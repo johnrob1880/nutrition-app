@@ -12,6 +12,7 @@ import { z } from "zod";
 import { useUpdatePenWeight } from "@/hooks/use-pen";
 import { useSellCattle } from "@/hooks/use-cattle-sale";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Pen, InsertCattleSale } from "@shared/schema";
 
 interface PensProps {
@@ -144,8 +145,9 @@ export default function Pens({ operatorEmail }: PensProps) {
     if (!selectedPen) return;
 
     try {
-      // Need to get operation ID first - let's get it from query cache or make a call
-      const operation = await fetch(`/api/operation/${operatorEmail}`).then(res => res.json());
+      // Get operation ID using apiRequest
+      const operationResponse = await apiRequest(`/api/operation/${operatorEmail}`);
+      const operation = await operationResponse.json();
       
       const saleData: InsertCattleSale = {
         operationId: operation.id,
