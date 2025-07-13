@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building } from "lucide-react";
-import type { DashboardStats, FeedingSchedule } from "@shared/schema";
+import { Building, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { DashboardStats, FeedingSchedule, UpcomingScheduleChange } from "@shared/schema";
 
 interface DashboardProps {
   operatorEmail: string;
@@ -17,9 +18,13 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
     queryKey: ["/api/schedules", operatorEmail],
   });
 
+  const { data: upcomingChanges, isLoading: changesLoading } = useQuery<UpcomingScheduleChange[]>({
+    queryKey: ["/api/upcoming-changes", operatorEmail],
+  });
+
   const todaySchedules = schedules?.filter(s => s.status === 'Active') || [];
 
-  if (statsLoading || schedulesLoading) {
+  if (statsLoading || schedulesLoading || changesLoading) {
     return (
       <div className="pb-20">
         <div className="bg-white shadow-sm">
@@ -80,6 +85,24 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
             <p className="text-sm text-gray-600">Total Cattle</p>
           </div>
         </div>
+
+        {/* Upcoming Schedule Changes */}
+        {upcomingChanges && upcomingChanges.length > 0 && (
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <div className="font-medium mb-2">Upcoming Schedule Changes</div>
+              {upcomingChanges.map((change) => (
+                <div key={change.id} className="text-sm mb-1">
+                  <span className="font-medium">{change.penName}</span> - {change.description} 
+                  <span className="text-orange-600 ml-1">
+                    ({change.daysFromNow === 0 ? 'Today' : `${change.daysFromNow} days`})
+                  </span>
+                </div>
+              ))}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Today's Feeding Schedule */}
         <div className="bg-white rounded-lg shadow-sm">

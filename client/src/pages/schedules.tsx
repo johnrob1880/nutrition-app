@@ -5,9 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Clock, Wheat, Scale, TrendingUp, Calendar, AlertTriangle, CheckCircle2, Timer } from "lucide-react";
-import type { FeedingPlan, UpcomingScheduleChange } from "@shared/schema";
+import { Search, Clock, Wheat, Scale, TrendingUp, Calendar, CheckCircle2, Timer } from "lucide-react";
+import type { FeedingPlan } from "@shared/schema";
 
 interface SchedulesProps {
   operatorEmail: string;
@@ -18,10 +17,6 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
   
   const { data: feedingPlans, isLoading } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
-  });
-
-  const { data: upcomingChanges } = useQuery<UpcomingScheduleChange[]>({
-    queryKey: ["/api/upcoming-changes", operatorEmail],
   });
 
   const filteredPlans = feedingPlans?.filter(plan => {
@@ -100,26 +95,6 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
           </div>
         </div>
       </div>
-
-      {/* Upcoming Changes Alert */}
-      {upcomingChanges && upcomingChanges.length > 0 && (
-        <div className="px-6 py-4">
-          <Alert className="border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <div className="font-medium mb-2">Upcoming Schedule Changes</div>
-              {upcomingChanges.map((change) => (
-                <div key={change.id} className="text-sm mb-1">
-                  <span className="font-medium">{change.penName}</span> - {change.description} 
-                  <span className="text-orange-600 ml-1">
-                    ({change.daysFromNow === 0 ? 'Today' : `${change.daysFromNow} days`})
-                  </span>
-                </div>
-              ))}
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
 
       {/* Feeding Plans List */}
       <div className="p-6 space-y-6">
