@@ -135,6 +135,8 @@ The application follows a monorepo architecture with clear separation of concern
 
 ## Recent Changes
 
+- **January 13, 2025**: Added comprehensive feeding details page showing expected vs actual ingredient amounts with variance indicators (over/under/on-target with color coding and percentage differences)
+- **January 13, 2025**: Created clickable "View Details" links on dashboard for completed feeding schedules that navigate to detailed feeding record view
 - **January 13, 2025**: Implemented feeding status tracking system that shows completed vs pending feeds on dashboard with visual indicators (green backgrounds and checkmarks for completed feeds)
 - **January 13, 2025**: Fixed feeding records API call error by correcting parameter order in apiRequest function call
 - **January 13, 2025**: Added cache invalidation for feeding records when feeding is completed to ensure dashboard updates in real-time

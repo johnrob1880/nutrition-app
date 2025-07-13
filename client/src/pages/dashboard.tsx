@@ -65,12 +65,13 @@ export default function Dashboard({
     record.feedingTime.startsWith(today)
   ) || [];
 
-  // Determine which schedules are completed
+  // Determine which schedules are completed and get feeding record IDs
   const schedulesWithStatus = todaySchedules.map(schedule => {
-    const isCompleted = todayFeedingRecords.some(record => 
+    const feedingRecord = todayFeedingRecords.find(record => 
       record.penId === schedule.penId && record.scheduleId === schedule.id
     );
-    return { ...schedule, isCompleted };
+    const isCompleted = !!feedingRecord;
+    return { ...schedule, isCompleted, feedingRecordId: feedingRecord?.id };
   });
 
   if (statsLoading || schedulesLoading || changesLoading || recordsLoading) {
@@ -212,10 +213,12 @@ export default function Dashboard({
                       </p>
                     </div>
                     {schedule.isCompleted ? (
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        <span className="text-sm font-medium">Fed</span>
-                      </div>
+                      <Link href={`/feeding-details/${schedule.feedingRecordId}`}>
+                        <div className="flex items-center text-green-600 hover:text-green-700 cursor-pointer">
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          <span className="text-sm font-medium">View Details</span>
+                        </div>
+                      </Link>
                     ) : (
                       <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
                         <Button
