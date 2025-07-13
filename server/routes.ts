@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOperationSchema } from "@shared/schema";
+import { insertOperationSchema, type UpdateWeightRequest } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -86,6 +86,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to get dashboard stats" });
+    }
+  });
+
+  // Update pen weight
+  app.patch("/api/pens/:penId/weight", async (req, res) => {
+    try {
+      const updateWeightSchema = z.object({
+        newWeight: z.number().positive(),
+        operatorEmail: z.string().email()
+      });
+
+      const validatedData = updateWeightSchema.parse(req.body);
+      const request: UpdateWeightRequest = {
+        penId: req.params.penId,
+        newWeight: validatedData.newWeight,
+        operatorEmail: validatedData.operatorEmail
+      };
+
+      const updatedPen = await storage.updatePenWeight(request);
+      if (!updatedPen) {
+        return res.status(404).json({ message: "Pen not found or access denied" });
+      }
+
+      res.json(updatedPen);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(400).json({ message: error.message || "Failed to update pen weight" });
     }
   });
 

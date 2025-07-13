@@ -127,9 +127,10 @@ The application follows a monorepo architecture with clear separation of concern
 
 1. **Operation Onboarding**: Initial setup flow for new cattle operations
 2. **Dashboard**: Real-time operational statistics and key metrics
-3. **Pen Management**: View and monitor individual cattle pen status
-4. **Feeding Schedules**: Manage and track feeding schedules across pens
+3. **Pen Management**: View cattle pen status with detailed weight tracking and cattle type information
+4. **Feeding Schedules**: View detailed feeding schedules with comprehensive ingredient breakdowns
 5. **Operation Settings**: Update operation details and preferences
+6. **Weight Tracking**: Update current cattle weights with history maintenance and external system integration
 
 ## Technical Considerations
 

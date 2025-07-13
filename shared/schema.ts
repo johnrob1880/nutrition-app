@@ -19,6 +19,12 @@ export type InsertOperation = z.infer<typeof insertOperationSchema>;
 export type Operation = typeof operations.$inferSelect;
 
 // External system data types (read-only)
+export interface WeightRecord {
+  date: string;
+  weight: number;
+  recordedBy: string;
+}
+
 export interface Pen {
   id: string;
   name: string;
@@ -27,6 +33,19 @@ export interface Pen {
   status: 'Active' | 'Maintenance' | 'Inactive';
   feedType: string;
   lastFed: string;
+  operatorEmail: string;
+  cattleType: 'Steers' | 'Heifers' | 'Mixed';
+  startingWeight: number;
+  marketWeight: number;
+  averageDailyGain: number;
+  isCrossbred: boolean;
+  currentWeight: number;
+  weightHistory: WeightRecord[];
+}
+
+export interface UpdateWeightRequest {
+  penId: string;
+  newWeight: number;
   operatorEmail: string;
 }
 

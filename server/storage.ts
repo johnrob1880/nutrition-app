@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingSchedule, type DashboardStats, type FeedIngredient } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -9,15 +9,88 @@ export interface IStorage {
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
   getSchedulesByOperatorEmail(operatorEmail: string): Promise<FeedingSchedule[]>;
   getDashboardStats(operatorEmail: string): Promise<DashboardStats>;
+  updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private operations: Map<number, Operation>;
   private currentId: number;
+  private pens: Map<string, Pen>;
 
   constructor() {
     this.operations = new Map();
     this.currentId = 1;
+    this.pens = new Map();
+    this.initializePensData();
+  }
+
+  private initializePensData() {
+    // Initialize sample pen data
+    const samplePens: Pen[] = [
+      {
+        id: "pen-001",
+        name: "Pen A-1",
+        capacity: 25,
+        current: 23,
+        status: "Active",
+        feedType: "High Protein Mix",
+        lastFed: "7:15 AM Today",
+        operatorEmail: "johnrob1880@gmail.com",
+        cattleType: "Steers",
+        startingWeight: 650,
+        marketWeight: 1350,
+        averageDailyGain: 3.2,
+        isCrossbred: true,
+        currentWeight: 890,
+        weightHistory: [
+          { date: "2025-01-01", weight: 650, recordedBy: "johnrob1880@gmail.com" },
+          { date: "2025-01-13", weight: 890, recordedBy: "johnrob1880@gmail.com" }
+        ]
+      },
+      {
+        id: "pen-002",
+        name: "Pen B-2",
+        capacity: 30,
+        current: 28,
+        status: "Active",
+        feedType: "Standard Grain Mix",
+        lastFed: "8:45 AM Today",
+        operatorEmail: "johnrob1880@gmail.com",
+        cattleType: "Heifers",
+        startingWeight: 550,
+        marketWeight: 1200,
+        averageDailyGain: 2.8,
+        isCrossbred: false,
+        currentWeight: 785,
+        weightHistory: [
+          { date: "2025-01-01", weight: 550, recordedBy: "johnrob1880@gmail.com" },
+          { date: "2025-01-13", weight: 785, recordedBy: "johnrob1880@gmail.com" }
+        ]
+      },
+      {
+        id: "pen-003",
+        name: "Pen C-1",
+        capacity: 20,
+        current: 0,
+        status: "Maintenance",
+        feedType: "N/A",
+        lastFed: "N/A",
+        operatorEmail: "johnrob1880@gmail.com",
+        cattleType: "Mixed",
+        startingWeight: 600,
+        marketWeight: 1275,
+        averageDailyGain: 3.0,
+        isCrossbred: true,
+        currentWeight: 600,
+        weightHistory: [
+          { date: "2025-01-01", weight: 600, recordedBy: "johnrob1880@gmail.com" }
+        ]
+      }
+    ];
+
+    samplePens.forEach(pen => {
+      this.pens.set(pen.id, pen);
+    });
   }
 
   async getOperation(id: number): Promise<Operation | undefined> {
@@ -52,39 +125,36 @@ export class MemStorage implements IStorage {
 
   // Simulate external system data
   async getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]> {
-    // Simulate external system data based on operator email
-    return [
-      {
-        id: "pen-001",
-        name: "Pen A-1",
-        capacity: 25,
-        current: 23,
-        status: "Active",
-        feedType: "High Protein Mix",
-        lastFed: "7:15 AM Today",
-        operatorEmail
-      },
-      {
-        id: "pen-002",
-        name: "Pen B-2",
-        capacity: 30,
-        current: 28,
-        status: "Active",
-        feedType: "Standard Grain Mix",
-        lastFed: "8:45 AM Today",
-        operatorEmail
-      },
-      {
-        id: "pen-003",
-        name: "Pen C-1",
-        capacity: 20,
-        current: 0,
-        status: "Maintenance",
-        feedType: "N/A",
-        lastFed: "N/A",
-        operatorEmail
-      }
-    ];
+    return Array.from(this.pens.values()).filter(pen => pen.operatorEmail === operatorEmail);
+  }
+
+  async updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined> {
+    const pen = this.pens.get(request.penId);
+    if (!pen || pen.operatorEmail !== request.operatorEmail) {
+      return undefined;
+    }
+
+    // Validate that new weight is greater than starting weight
+    if (request.newWeight <= pen.startingWeight) {
+      throw new Error("Current weight must be greater than starting weight");
+    }
+
+    // Add new weight record to history
+    const newWeightRecord: WeightRecord = {
+      date: new Date().toISOString().split('T')[0],
+      weight: request.newWeight,
+      recordedBy: request.operatorEmail
+    };
+
+    // Update pen with new current weight and add to history
+    const updatedPen: Pen = {
+      ...pen,
+      currentWeight: request.newWeight,
+      weightHistory: [...pen.weightHistory, newWeightRecord]
+    };
+
+    this.pens.set(pen.id, updatedPen);
+    return updatedPen;
   }
 
   async getSchedulesByOperatorEmail(operatorEmail: string): Promise<FeedingSchedule[]> {
