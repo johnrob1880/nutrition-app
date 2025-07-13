@@ -135,6 +135,8 @@ The application follows a monorepo architecture with clear separation of concern
 
 ## Recent Changes
 
+- **January 13, 2025**: Added tabbed interface to cattle pens page with "Active Pens" and "Sold Cattle" tabs for better organization and data separation
+- **January 13, 2025**: Implemented sold cattle overview display with comprehensive sale details including cattle count, final weight, sale price, total revenue, and sale dates
 - **January 13, 2025**: Added cattle selling functionality with "Sell" buttons on pens page that opens dialog for final weight, price per hundredweight, and sale date input with live revenue calculation preview
 - **January 13, 2025**: Implemented cattle sale backend with CattleSale schema, API endpoints, and pen status updates (sets pen to inactive with 0 cattle after sale)
 - **January 13, 2025**: Added complete feeding functionality with "Start Feeding" buttons on dashboard that link to feeding pages where operators can enter actual ingredient amounts and submit feeding records with operation ID and pen ID
