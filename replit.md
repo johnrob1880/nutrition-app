@@ -126,14 +126,18 @@ The application follows a monorepo architecture with clear separation of concern
 ## Key Features
 
 1. **Operation Onboarding**: Initial setup flow for new cattle operations
-2. **Dashboard**: Real-time operational statistics, key metrics, and upcoming schedule changes alerts
+2. **Dashboard**: Real-time operational statistics, key metrics, upcoming schedule changes alerts, and feeding management with "Start Feeding" buttons
 3. **Pen Management**: View cattle pen status with detailed weight tracking and cattle type information
 4. **Feeding Schedules**: View detailed feeding schedules with comprehensive ingredient breakdowns
-5. **Operation Settings**: Update operation details and preferences
-6. **Weight Tracking**: Update current cattle weights with history maintenance and external system integration
+5. **Feeding Execution**: Interactive feeding pages where operators can enter actual ingredient amounts and submit feeding records
+6. **Operation Settings**: Update operation details and preferences
+7. **Weight Tracking**: Update current cattle weights with history maintenance and external system integration
 
 ## Recent Changes
 
+- **January 13, 2025**: Added complete feeding functionality with "Start Feeding" buttons on dashboard that link to feeding pages where operators can enter actual ingredient amounts and submit feeding records with operation ID and pen ID
+- **January 13, 2025**: Fixed dashboard data types to properly use FeedingPlan[] instead of FeedingSchedule[] and extract individual schedules for display
+- **January 13, 2025**: Added feeding record schema types (FeedingRecord, ActualIngredient, InsertFeedingRecord) and API endpoints for creating and retrieving feeding records
 - **January 13, 2025**: Moved upcoming schedule changes alert from feeding schedules page to dashboard page, positioned after metrics cards for better visibility and user experience
 
 ## Technical Considerations
