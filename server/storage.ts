@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -14,6 +14,9 @@ export interface IStorage {
   // Feeding records
   createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord>;
   getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]>;
+  // Cattle sales
+  sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale>;
+  getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -22,6 +25,8 @@ export class MemStorage implements IStorage {
   private pens: Map<string, Pen>;
   private feedingRecords: Map<string, FeedingRecord>;
   private feedingRecordId: number;
+  private cattleSales: Map<string, CattleSale>;
+  private saleId: number;
 
   constructor() {
     this.operations = new Map();
@@ -29,6 +34,8 @@ export class MemStorage implements IStorage {
     this.pens = new Map();
     this.feedingRecords = new Map();
     this.feedingRecordId = 1;
+    this.cattleSales = new Map();
+    this.saleId = 1;
     this.initializePensData();
   }
 
@@ -577,6 +584,54 @@ export class MemStorage implements IStorage {
   async getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]> {
     return Array.from(this.feedingRecords.values()).filter(
       record => record.operatorEmail === operatorEmail
+    );
+  }
+
+  async sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale> {
+    const id = `SALE-${this.saleId.toString().padStart(3, '0')}`;
+    this.saleId++;
+
+    // Get the pen to extract cattle information
+    const pen = this.pens.get(saleRecord.penId);
+    if (!pen) {
+      throw new Error(`Pen with ID ${saleRecord.penId} not found`);
+    }
+
+    // Calculate total revenue (final weight * price per cwt / 100 * cattle count)
+    const totalRevenue = (saleRecord.finalWeight * saleRecord.pricePerCwt / 100) * pen.current;
+
+    const cattleSale: CattleSale = {
+      id,
+      operationId: saleRecord.operationId,
+      penId: saleRecord.penId,
+      penName: pen.name,
+      finalWeight: saleRecord.finalWeight,
+      pricePerCwt: saleRecord.pricePerCwt,
+      totalRevenue,
+      cattleCount: pen.current,
+      cattleType: pen.cattleType,
+      saleDate: saleRecord.saleDate,
+      operatorEmail: saleRecord.operatorEmail,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.cattleSales.set(id, cattleSale);
+
+    // Update pen to reflect sold cattle (set current to 0 and status to inactive)
+    const updatedPen: Pen = {
+      ...pen,
+      current: 0,
+      status: 'Inactive',
+      lastFed: 'Cattle Sold'
+    };
+    this.pens.set(saleRecord.penId, updatedPen);
+
+    return cattleSale;
+  }
+
+  async getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]> {
+    return Array.from(this.cattleSales.values()).filter(
+      sale => sale.operatorEmail === operatorEmail
     );
   }
 }

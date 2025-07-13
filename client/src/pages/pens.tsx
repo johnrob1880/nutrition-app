@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Scale, TrendingUp, Award, Edit3 } from "lucide-react";
+import { Search, Scale, TrendingUp, Award, Edit3, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUpdatePenWeight } from "@/hooks/use-pen";
+import { useSellCattle } from "@/hooks/use-cattle-sale";
 import { useToast } from "@/hooks/use-toast";
-import type { Pen } from "@shared/schema";
+import type { Pen, InsertCattleSale } from "@shared/schema";
 
 interface PensProps {
   operatorEmail: string;
@@ -21,12 +22,20 @@ const weightUpdateSchema = z.object({
   newWeight: z.number().min(1, "Weight must be positive"),
 });
 
+const cattleSaleSchema = z.object({
+  finalWeight: z.number().min(1, "Final weight must be positive"),
+  pricePerCwt: z.number().min(0.01, "Price per CWT must be positive"),
+  saleDate: z.string().min(1, "Sale date is required"),
+});
+
 type WeightUpdateData = z.infer<typeof weightUpdateSchema>;
+type CattleSaleData = z.infer<typeof cattleSaleSchema>;
 
 export default function Pens({ operatorEmail }: PensProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPen, setSelectedPen] = useState<Pen | null>(null);
   const [isWeightDialogOpen, setIsWeightDialogOpen] = useState(false);
+  const [isSellDialogOpen, setIsSellDialogOpen] = useState(false);
   const { toast } = useToast();
   
   const { data: pens, isLoading } = useQuery<Pen[]>({
@@ -34,11 +43,21 @@ export default function Pens({ operatorEmail }: PensProps) {
   });
 
   const updateWeight = useUpdatePenWeight();
+  const sellCattle = useSellCattle();
 
   const weightForm = useForm<WeightUpdateData>({
     resolver: zodResolver(weightUpdateSchema),
     defaultValues: {
       newWeight: 0,
+    },
+  });
+
+  const saleForm = useForm<CattleSaleData>({
+    resolver: zodResolver(cattleSaleSchema),
+    defaultValues: {
+      finalWeight: 0,
+      pricePerCwt: 0,
+      saleDate: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -111,6 +130,48 @@ export default function Pens({ operatorEmail }: PensProps) {
     setSelectedPen(pen);
     weightForm.setValue("newWeight", pen.currentWeight);
     setIsWeightDialogOpen(true);
+  };
+
+  const openSellDialog = (pen: Pen) => {
+    setSelectedPen(pen);
+    saleForm.setValue("finalWeight", pen.marketWeight);
+    saleForm.setValue("pricePerCwt", 180); // Default price per cwt
+    saleForm.setValue("saleDate", new Date().toISOString().split('T')[0]);
+    setIsSellDialogOpen(true);
+  };
+
+  const handleCattleSale = async (data: CattleSaleData) => {
+    if (!selectedPen) return;
+
+    try {
+      // Need to get operation ID first - let's get it from query cache or make a call
+      const operation = await fetch(`/api/operation/${operatorEmail}`).then(res => res.json());
+      
+      const saleData: InsertCattleSale = {
+        operationId: operation.id,
+        penId: selectedPen.id,
+        finalWeight: data.finalWeight,
+        pricePerCwt: data.pricePerCwt,
+        saleDate: data.saleDate,
+        operatorEmail,
+      };
+
+      await sellCattle.mutateAsync(saleData);
+
+      toast({
+        title: "Cattle Sold Successfully",
+        description: `${selectedPen.current} head sold from ${selectedPen.name}`,
+      });
+
+      setIsSellDialogOpen(false);
+      saleForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Sale Failed",
+        description: error.message || "Failed to process cattle sale",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -193,17 +254,30 @@ export default function Pens({ operatorEmail }: PensProps) {
                       <Scale className="h-4 w-4 mr-1" />
                       Weight Tracking
                     </h4>
-                    {pen.status === "Active" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openWeightDialog(pen)}
-                        className="text-xs"
-                      >
-                        <Edit3 className="h-3 w-3 mr-1" />
-                        Update
-                      </Button>
-                    )}
+                    <div className="flex space-x-2">
+                      {pen.status === "Active" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openWeightDialog(pen)}
+                          className="text-xs"
+                        >
+                          <Edit3 className="h-3 w-3 mr-1" />
+                          Update
+                        </Button>
+                      )}
+                      {pen.status === "Active" && pen.current > 0 && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => openSellDialog(pen)}
+                          className="text-xs bg-green-600 hover:bg-green-700"
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          Sell
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-xs">
                     <div className="text-center">
@@ -309,6 +383,123 @@ export default function Pens({ operatorEmail }: PensProps) {
                   type="button"
                   variant="outline"
                   onClick={() => setIsWeightDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Sell Cattle Dialog */}
+      <Dialog open={isSellDialogOpen} onOpenChange={setIsSellDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sell Cattle</DialogTitle>
+          </DialogHeader>
+          {selectedPen && (
+            <form onSubmit={saleForm.handleSubmit(handleCattleSale)} className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Selling cattle from <strong>{selectedPen.name}</strong> ({selectedPen.cattleType})
+                </p>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs text-center mb-4 p-3 bg-gray-50 rounded">
+                  <div>
+                    <p className="font-medium text-primary">{selectedPen.current}</p>
+                    <p className="text-gray-500">Head Count</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">{selectedPen.cattleType}</p>
+                    <p className="text-gray-500">Type</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="finalWeight" className="text-sm font-medium">
+                      Final Weight (lbs per head)
+                    </Label>
+                    <Input
+                      id="finalWeight"
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      {...saleForm.register("finalWeight", { valueAsNumber: true })}
+                      className="mt-1"
+                    />
+                    {saleForm.formState.errors.finalWeight && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {saleForm.formState.errors.finalWeight.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pricePerCwt" className="text-sm font-medium">
+                      Price per Hundredweight ($)
+                    </Label>
+                    <Input
+                      id="pricePerCwt"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      {...saleForm.register("pricePerCwt", { valueAsNumber: true })}
+                      className="mt-1"
+                    />
+                    {saleForm.formState.errors.pricePerCwt && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {saleForm.formState.errors.pricePerCwt.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="saleDate" className="text-sm font-medium">
+                      Sale Date
+                    </Label>
+                    <Input
+                      id="saleDate"
+                      type="date"
+                      {...saleForm.register("saleDate")}
+                      className="mt-1"
+                    />
+                    {saleForm.formState.errors.saleDate && (
+                      <p className="text-sm text-red-600 mt-1">
+                        {saleForm.formState.errors.saleDate.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Revenue Calculation Preview */}
+                {saleForm.watch("finalWeight") && saleForm.watch("pricePerCwt") && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+                    <p className="text-sm font-medium text-green-800">Estimated Revenue</p>
+                    <p className="text-lg font-bold text-green-900">
+                      ${((saleForm.watch("finalWeight") * saleForm.watch("pricePerCwt") / 100) * selectedPen.current).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-green-700">
+                      {selectedPen.current} head × {saleForm.watch("finalWeight")} lbs × ${saleForm.watch("pricePerCwt")}/cwt
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  type="submit"
+                  disabled={sellCattle.isPending}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  {sellCattle.isPending ? "Processing Sale..." : "Complete Sale"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsSellDialogOpen(false)}
                   className="flex-1"
                 >
                   Cancel

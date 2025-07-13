@@ -140,3 +140,28 @@ export interface InsertFeedingRecord {
   actualIngredients: ActualIngredient[];
   operatorEmail: string;
 }
+
+// Cattle Sale Records
+export interface CattleSale {
+  id: string;
+  operationId: number;
+  penId: string;
+  penName: string;
+  finalWeight: number;
+  pricePerCwt: number;
+  totalRevenue: number;
+  cattleCount: number;
+  cattleType: string;
+  saleDate: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface InsertCattleSale {
+  operationId: number;
+  penId: string;
+  finalWeight: number;
+  pricePerCwt: number;
+  saleDate: string;
+  operatorEmail: string;
+}

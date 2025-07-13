@@ -168,6 +168,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sell cattle
+  app.post("/api/cattle-sales", async (req, res) => {
+    try {
+      const cattleSaleSchema = z.object({
+        operationId: z.number(),
+        penId: z.string(),
+        finalWeight: z.number().positive(),
+        pricePerCwt: z.number().positive(),
+        saleDate: z.string(),
+        operatorEmail: z.string().email(),
+      });
+
+      const validatedData = cattleSaleSchema.parse(req.body);
+      const cattleSale = await storage.sellCattle(validatedData);
+      
+      res.status(201).json(cattleSale);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(400).json({ message: error.message || "Failed to sell cattle" });
+    }
+  });
+
+  // Get cattle sales by operator email
+  app.get("/api/cattle-sales/:operatorEmail", async (req, res) => {
+    try {
+      const cattleSales = await storage.getCattleSalesByOperatorEmail(req.params.operatorEmail);
+      res.json(cattleSales);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get cattle sales" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
