@@ -30,17 +30,35 @@ export interface Pen {
   operatorEmail: string;
 }
 
+export interface FeedIngredient {
+  name: string;
+  category: 'Feedstuff' | 'Mineral' | 'Protein' | 'Grain' | 'Supplement';
+  amount: string;
+  unit: 'lbs' | 'kg' | 'oz' | 'g';
+  percentage: string;
+  nutritionalValue?: {
+    protein?: string;
+    fat?: string;
+    fiber?: string;
+    moisture?: string;
+  };
+}
+
 export interface FeedingSchedule {
   id: string;
   penId: string;
   penName: string;
   time: string;
-  amount: string;
+  totalAmount: string;
   feedType: string;
   status: 'Active' | 'Inactive';
-  protein: string;
-  fat: string;
-  fiber: string;
+  ingredients: FeedIngredient[];
+  totalNutrition: {
+    protein: string;
+    fat: string;
+    fiber: string;
+    moisture: string;
+  };
   lastUpdated: string;
   operatorEmail: string;
 }

@@ -106,7 +106,7 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">{schedule.time}</p>
-                    <p className="text-xs text-gray-500">{schedule.amount}</p>
+                    <p className="text-xs text-gray-500">{schedule.totalAmount}</p>
                   </div>
                 </div>
               ))

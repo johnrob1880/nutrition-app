@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingSchedule, type DashboardStats } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type FeedingSchedule, type DashboardStats, type FeedIngredient } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -94,12 +94,70 @@ export class MemStorage implements IStorage {
         penId: "pen-001",
         penName: "Pen A-1",
         time: "7:00 AM Daily",
-        amount: "45 lbs",
+        totalAmount: "45 lbs",
         feedType: "High Protein Mix",
         status: "Active",
-        protein: "18%",
-        fat: "4.5%",
-        fiber: "12%",
+        ingredients: [
+          {
+            name: "Corn Grain",
+            category: "Grain",
+            amount: "20",
+            unit: "lbs",
+            percentage: "44.4%",
+            nutritionalValue: {
+              protein: "8.5%",
+              fat: "3.8%",
+              fiber: "2.2%",
+              moisture: "14%"
+            }
+          },
+          {
+            name: "Soybean Meal",
+            category: "Protein",
+            amount: "12",
+            unit: "lbs",
+            percentage: "26.7%",
+            nutritionalValue: {
+              protein: "48%",
+              fat: "1.5%",
+              fiber: "7%",
+              moisture: "12%"
+            }
+          },
+          {
+            name: "Alfalfa Hay",
+            category: "Feedstuff",
+            amount: "10",
+            unit: "lbs",
+            percentage: "22.2%",
+            nutritionalValue: {
+              protein: "17%",
+              fat: "2.5%",
+              fiber: "32%",
+              moisture: "15%"
+            }
+          },
+          {
+            name: "Calcium Carbonate",
+            category: "Mineral",
+            amount: "2",
+            unit: "lbs",
+            percentage: "4.4%"
+          },
+          {
+            name: "Vitamin E Supplement",
+            category: "Supplement",
+            amount: "1",
+            unit: "lbs",
+            percentage: "2.2%"
+          }
+        ],
+        totalNutrition: {
+          protein: "18%",
+          fat: "4.5%",
+          fiber: "12%",
+          moisture: "14.2%"
+        },
         lastUpdated: "2 hours ago",
         operatorEmail
       },
@@ -108,12 +166,76 @@ export class MemStorage implements IStorage {
         penId: "pen-002",
         penName: "Pen B-2",
         time: "8:30 AM Daily",
-        amount: "38 lbs",
+        totalAmount: "38 lbs",
         feedType: "Standard Grain Mix",
         status: "Active",
-        protein: "14%",
-        fat: "3.2%",
-        fiber: "15%",
+        ingredients: [
+          {
+            name: "Barley Grain",
+            category: "Grain",
+            amount: "18",
+            unit: "lbs",
+            percentage: "47.4%",
+            nutritionalValue: {
+              protein: "11%",
+              fat: "2.3%",
+              fiber: "5.4%",
+              moisture: "12%"
+            }
+          },
+          {
+            name: "Wheat Middlings",
+            category: "Feedstuff",
+            amount: "10",
+            unit: "lbs",
+            percentage: "26.3%",
+            nutritionalValue: {
+              protein: "16%",
+              fat: "4.2%",
+              fiber: "8.5%",
+              moisture: "11%"
+            }
+          },
+          {
+            name: "Cottonseed Meal",
+            category: "Protein",
+            amount: "6",
+            unit: "lbs",
+            percentage: "15.8%",
+            nutritionalValue: {
+              protein: "41%",
+              fat: "6.8%",
+              fiber: "12%",
+              moisture: "10%"
+            }
+          },
+          {
+            name: "Salt Mix",
+            category: "Mineral",
+            amount: "2.5",
+            unit: "lbs",
+            percentage: "6.6%"
+          },
+          {
+            name: "Molasses",
+            category: "Supplement",
+            amount: "1.5",
+            unit: "lbs",
+            percentage: "3.9%",
+            nutritionalValue: {
+              protein: "3%",
+              fat: "0.1%",
+              fiber: "0%",
+              moisture: "25%"
+            }
+          }
+        ],
+        totalNutrition: {
+          protein: "14%",
+          fat: "3.2%",
+          fiber: "15%",
+          moisture: "12.8%"
+        },
         lastUpdated: "1 day ago",
         operatorEmail
       }

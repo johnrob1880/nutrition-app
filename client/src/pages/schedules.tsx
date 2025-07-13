@@ -116,12 +116,12 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                     <p className="font-semibold">{schedule.time}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Amount</p>
-                    <p className="font-semibold">{schedule.amount}</p>
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="font-semibold">{schedule.totalAmount}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Feed Type:</span>
                     <span className="font-medium">{schedule.feedType}</span>
@@ -136,24 +136,79 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                   </div>
                 </div>
 
-                {/* Schedule Details */}
+                {/* Ingredients List */}
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-600 mb-2">Nutrition Details:</p>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center">
-                      <p className="font-medium text-gray-900">{schedule.protein}</p>
-                      <p className="text-gray-500">Protein</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-gray-900">{schedule.fat}</p>
-                      <p className="text-gray-500">Fat</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-gray-900">{schedule.fiber}</p>
-                      <p className="text-gray-500">Fiber</p>
-                    </div>
+                  <p className="text-sm font-medium text-gray-700 mb-3">Feed Ingredients:</p>
+                  <div className="space-y-3">
+                    {schedule.ingredients?.map((ingredient, ingredientIndex) => (
+                      <div key={ingredientIndex} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{ingredient.name}</p>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">{ingredient.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-primary">{ingredient.amount} {ingredient.unit}</p>
+                            <p className="text-xs text-gray-500">{ingredient.percentage}</p>
+                          </div>
+                        </div>
+                        {ingredient.nutritionalValue && (
+                          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                            {ingredient.nutritionalValue.protein && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Protein:</span>
+                                <span className="font-medium">{ingredient.nutritionalValue.protein}</span>
+                              </div>
+                            )}
+                            {ingredient.nutritionalValue.fat && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Fat:</span>
+                                <span className="font-medium">{ingredient.nutritionalValue.fat}</span>
+                              </div>
+                            )}
+                            {ingredient.nutritionalValue.fiber && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Fiber:</span>
+                                <span className="font-medium">{ingredient.nutritionalValue.fiber}</span>
+                              </div>
+                            )}
+                            {ingredient.nutritionalValue.moisture && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Moisture:</span>
+                                <span className="font-medium">{ingredient.nutritionalValue.moisture}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
+
+                {/* Total Nutrition Summary */}
+                {schedule.totalNutrition && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Total Nutrition Profile:</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-center bg-primary/5 rounded p-2">
+                        <p className="font-medium text-gray-900">{schedule.totalNutrition.protein}</p>
+                        <p className="text-gray-500">Protein</p>
+                      </div>
+                      <div className="text-center bg-secondary/5 rounded p-2">
+                        <p className="font-medium text-gray-900">{schedule.totalNutrition.fat}</p>
+                        <p className="text-gray-500">Fat</p>
+                      </div>
+                      <div className="text-center bg-accent/5 rounded p-2">
+                        <p className="font-medium text-gray-900">{schedule.totalNutrition.fiber}</p>
+                        <p className="text-gray-500">Fiber</p>
+                      </div>
+                      <div className="text-center bg-gray-100 rounded p-2">
+                        <p className="font-medium text-gray-900">{schedule.totalNutrition.moisture}</p>
+                        <p className="text-gray-500">Moisture</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))
