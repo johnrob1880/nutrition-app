@@ -13,6 +13,8 @@ export function useSellCattle() {
     onSuccess: (data: CattleSale, variables) => {
       // Invalidate and refetch pens data to reflect the sold cattle
       queryClient.invalidateQueries({ queryKey: ["/api/pens", variables.operatorEmail] });
+      // Invalidate cattle sales data to show the new sale
+      queryClient.invalidateQueries({ queryKey: ["/api/cattle-sales", variables.operatorEmail] });
       // Invalidate dashboard stats as they may have changed
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", variables.operatorEmail] });
     },
