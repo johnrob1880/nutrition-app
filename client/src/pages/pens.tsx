@@ -4,7 +4,6 @@ import { Search, Scale, TrendingUp, Award, Edit3, DollarSign, Calendar, Users } 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
@@ -130,7 +129,7 @@ export default function Pens({ operatorEmail }: PensProps) {
 
       toast({
         title: "Weight Updated",
-        description: `Successfully updated weight for ${selectedPen.name}`,
+        description: `${selectedPen.name} weight updated to ${data.newWeight} lbs`,
       });
 
       setIsWeightDialogOpen(false);
@@ -218,450 +217,403 @@ export default function Pens({ operatorEmail }: PensProps) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 pt-4">
-            <TabsList>
-              <TabsTrigger value="active">Active Pens</TabsTrigger>
-              <TabsTrigger value="sold">Sold Cattle</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          {/* Search Bar */}
-          <div className="p-6 pt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                type="text"
-                placeholder={activeTab === "active" ? "Search pens..." : "Search sold cattle..."}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+      {/* Filter Tabs */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="px-6 py-3">
+          <div className="flex space-x-4">
+            {[
+              { id: "active", label: "Active Pens" },
+              { id: "sold", label: "Sold Cattle" },
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveTab(filter.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors ${
+                  activeTab === filter.id
+                    ? "text-primary border-b-2 border-primary bg-primary/5"
+                    : "text-gray-600 hover:text-primary"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Active Pens Tab */}
-        <TabsContent value="active" className="mt-0">
-          <div className="p-6 space-y-4">
-            {filteredActivePens.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">
-                  {searchQuery ? "No active pens found matching your search" : "No active pens found"}
-                </p>
-              </div>
-            ) : (
-              filteredActivePens.map((pen) => (
-            <div key={pen.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold">{pen.name}</h3>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getCattleTypeColor(pen.cattleType)}>{pen.cattleType}</Badge>
-                    {pen.isCrossbred && <Badge variant="outline">Crossbred</Badge>}
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(pen.status)}`}>
-                      {pen.status}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Capacity</p>
-                    <p className="font-semibold">{pen.capacity} head</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Current</p>
-                    <p className="font-semibold">{pen.current} head</p>
-                  </div>
-                </div>
+      {/* Search Bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="p-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder={activeTab === "active" ? "Search pens..." : "Search sold cattle..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
 
-                {/* Weight Information */}
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium text-gray-700 flex items-center">
-                      <Scale className="h-4 w-4 mr-1" />
-                      Weight Tracking
-                    </h4>
-                    <div className="flex space-x-2">
-                      {pen.status === "Active" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openWeightDialog(pen)}
-                          className="text-xs"
-                        >
-                          <Edit3 className="h-3 w-3 mr-1" />
-                          Update
-                        </Button>
-                      )}
-                      {pen.status === "Active" && pen.current > 0 && (
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => openSellDialog(pen)}
-                          className="text-xs bg-green-600 hover:bg-green-700"
-                        >
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          Sell
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-xs">
-                    <div className="text-center">
-                      <p className="font-medium text-gray-900">{pen.startingWeight} lbs</p>
-                      <p className="text-gray-500">Starting</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-primary">{pen.currentWeight} lbs</p>
-                      <p className="text-gray-500">Current</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-gray-900">{pen.marketWeight} lbs</p>
-                      <p className="text-gray-500">Market</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-center">
-                    <div className="flex items-center justify-center space-x-1">
-                      <TrendingUp className="h-3 w-3 text-secondary" />
-                      <span className="text-xs font-medium text-secondary">{pen.averageDailyGain} lbs/day</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Feed Type:</span>
-                    <span className="font-medium">{pen.feedType}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Last Fed:</span>
-                    <span className="font-medium">{pen.lastFed}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Weight Records:</span>
-                    <span className="font-medium">{pen.weightHistory.length} entries</span>
-                  </div>
-                </div>
-              </div>
+      {/* Active Pens Tab */}
+      {activeTab === "active" && (
+        <div className="p-6 space-y-4">
+          {filteredActivePens.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                {searchQuery ? "No active pens found matching your search" : "No active pens found"}
+              </p>
             </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
+          ) : (
+            filteredActivePens.map((pen) => (
+              <div key={pen.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">{pen.name}</h3>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getCattleTypeColor(pen.cattleType)}>{pen.cattleType}</Badge>
+                      {pen.isCrossbred && <Badge variant="outline">Crossbred</Badge>}
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(pen.status)}`}>
+                        {pen.status}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Capacity</p>
+                      <p className="font-semibold">{pen.capacity} head</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Current</p>
+                      <p className="font-semibold">{pen.current} head</p>
+                    </div>
+                  </div>
 
-        {/* Sold Cattle Tab */}
-        <TabsContent value="sold" className="mt-0">
-          <div className="p-6 space-y-4">
-            {filteredSoldCattle.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">
-                  {searchQuery ? "No sold cattle found matching your search" : "No cattle sales recorded yet"}
-                </p>
-              </div>
-            ) : (
-              filteredSoldCattle.map((sale) => (
-                <div key={sale.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold">{sale.penName}</h3>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={getCattleTypeColor(sale.cattleType)}>{sale.cattleType}</Badge>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Sold
-                        </Badge>
+                  {/* Weight Information */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                        <Scale className="h-4 w-4 mr-1" />
+                        Weight Tracking
+                      </h4>
+                      <div className="flex space-x-2">
+                        {pen.status === "Active" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openWeightDialog(pen)}
+                            className="text-xs"
+                          >
+                            <Edit3 className="h-3 w-3 mr-1" />
+                            Update
+                          </Button>
+                        )}
+                        {pen.status === "Active" && pen.current > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openSellDialog(pen)}
+                            className="text-xs bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            Sell
+                          </Button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Sale Overview */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Cattle Count</p>
-                        <p className="font-semibold flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {sale.cattleCount} head
-                        </p>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div className="text-center">
+                        <p className="font-medium text-gray-900">{pen.startingWeight} lbs</p>
+                        <p className="text-gray-500">Starting</p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Days on Feed</p>
-                        <p className="font-semibold flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {sale.daysOnFeed} days
-                        </p>
+                      <div className="text-center">
+                        <p className="font-medium text-primary">{pen.currentWeight} lbs</p>
+                        <p className="text-gray-500">Current</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-gray-900">{pen.marketWeight} lbs</p>
+                        <p className="text-gray-500">Market</p>
                       </div>
                     </div>
-
-                    {/* Weight Details */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium text-gray-700 flex items-center">
-                          <Scale className="h-4 w-4 mr-1" />
-                          Weight Performance
-                        </h4>
-                        <div className="flex items-center text-xs text-secondary">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          {sale.averageDailyGain} lbs/day
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-xs">
-                        <div className="text-center">
-                          <p className="font-medium text-gray-900">{sale.startingWeight} lbs</p>
-                          <p className="text-gray-500">Starting</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-medium text-primary">{sale.finalWeight} lbs</p>
-                          <p className="text-gray-500">Final</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-medium text-secondary">{sale.finalWeight - sale.startingWeight} lbs</p>
-                          <p className="text-gray-500">Total Gain</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sale Details */}
-                    <div className="bg-green-50 rounded-lg p-3 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium text-green-700 flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          Sale Information
-                        </h4>
-                        <div className="flex items-center text-xs text-green-600">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(sale.saleDate).toLocaleDateString()}
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3 text-xs mb-2">
-                        <div className="text-center">
-                          <p className="font-medium text-green-900">${sale.pricePerCwt}/cwt</p>
-                          <p className="text-green-600">Price per CWT</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-medium text-green-900">${sale.totalRevenue.toFixed(2)}</p>
-                          <p className="text-green-600">Total Revenue</p>
-                        </div>
-                      </div>
-                      
-                      <div className="text-center pt-1 border-t border-green-200">
-                        <p className="text-xs text-green-700">
-                          {sale.cattleCount} head × {sale.finalWeight} lbs × ${sale.pricePerCwt}/cwt
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Additional Details */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Sale Date:</span>
-                        <span className="font-medium">{new Date(sale.saleDate).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Record Created:</span>
-                        <span className="font-medium">{new Date(sale.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Sale ID:</span>
-                        <span className="font-medium font-mono text-xs">{sale.id}</span>
+                    <div className="mt-2 text-center">
+                      <div className="flex items-center justify-center space-x-1">
+                        <TrendingUp className="h-3 w-3 text-secondary" />
+                        <span className="text-xs font-medium text-secondary">{pen.averageDailyGain} lbs/day</span>
                       </div>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Feed Type:</span>
+                      <span className="font-medium">{pen.feedType}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Last Fed:</span>
+                      <span className="font-medium">{pen.lastFed}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Weight Records:</span>
+                      <span className="font-medium">{pen.weightHistory.length} entries</span>
+                    </div>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Sold Cattle Tab */}
+      {activeTab === "sold" && (
+        <div className="p-6 space-y-4">
+          {filteredSoldCattle.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">
+                {searchQuery ? "No sold cattle found matching your search" : "No cattle sales recorded yet"}
+              </p>
+            </div>
+          ) : (
+            filteredSoldCattle.map((sale) => (
+              <div key={sale.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">{sale.penName}</h3>
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getCattleTypeColor(sale.cattleType)}>{sale.cattleType}</Badge>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Sold
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Sale Overview */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Cattle Count</p>
+                      <p className="font-semibold flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {sale.cattleCount} head
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Days on Feed</p>
+                      <p className="font-semibold flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {sale.daysOnFeed} days
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Weight Details */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                        <Scale className="h-4 w-4 mr-1" />
+                        Weight Performance
+                      </h4>
+                      <div className="flex items-center text-xs text-secondary">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        {sale.averageDailyGain} lbs/day
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div className="text-center">
+                        <p className="font-medium text-gray-900">{sale.startingWeight} lbs</p>
+                        <p className="text-gray-500">Starting</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-primary">{sale.finalWeight} lbs</p>
+                        <p className="text-gray-500">Final</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-secondary">{sale.finalWeight - sale.startingWeight} lbs</p>
+                        <p className="text-gray-500">Total Gain</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sale Details */}
+                  <div className="bg-green-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-green-700 flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Sale Information
+                      </h4>
+                      <div className="flex items-center text-xs text-green-600">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {new Date(sale.saleDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-xs mb-2">
+                      <div className="text-center">
+                        <p className="font-medium text-green-900">${sale.pricePerCwt}/cwt</p>
+                        <p className="text-green-600">Price per CWT</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-green-900">${sale.totalRevenue.toFixed(2)}</p>
+                        <p className="text-green-600">Total Revenue</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center pt-1 border-t border-green-200">
+                      <p className="text-xs text-green-700">
+                        {sale.cattleCount} head × {sale.finalWeight} lbs × ${sale.pricePerCwt}/cwt
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Additional Details */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Sale Date:</span>
+                      <span className="font-medium">{new Date(sale.saleDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Record Created:</span>
+                      <span className="font-medium">{new Date(sale.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Sale ID:</span>
+                      <span className="font-medium font-mono text-xs">{sale.id}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Weight Update Dialog */}
       <Dialog open={isWeightDialogOpen} onOpenChange={setIsWeightDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Update Current Weight</DialogTitle>
+            <DialogTitle>Update Weight - {selectedPen?.name}</DialogTitle>
           </DialogHeader>
-          {selectedPen && (
-            <form onSubmit={weightForm.handleSubmit(handleWeightUpdate)} className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Updating weight for <strong>{selectedPen.name}</strong> ({selectedPen.cattleType})
-                </p>
-                
-                <div className="grid grid-cols-3 gap-2 text-xs text-center mb-4 p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-medium">{selectedPen.startingWeight} lbs</p>
-                    <p className="text-gray-500">Starting</p>
+          <form onSubmit={weightForm.handleSubmit(handleWeightUpdate)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newWeight">New Weight (lbs)</Label>
+              <Input
+                id="newWeight"
+                type="number"
+                step="0.1"
+                {...weightForm.register("newWeight", { valueAsNumber: true })}
+                placeholder="Enter new weight"
+              />
+              {weightForm.formState.errors.newWeight && (
+                <p className="text-sm text-red-600">{weightForm.formState.errors.newWeight.message}</p>
+              )}
+            </div>
+            
+            {selectedPen && (
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Current Weight:</span>
+                    <span className="font-medium">{selectedPen.currentWeight} lbs</span>
                   </div>
-                  <div>
-                    <p className="font-medium text-primary">{selectedPen.currentWeight} lbs</p>
-                    <p className="text-gray-500">Current</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Starting Weight:</span>
+                    <span className="font-medium">{selectedPen.startingWeight} lbs</span>
                   </div>
-                  <div>
-                    <p className="font-medium">{selectedPen.marketWeight} lbs</p>
-                    <p className="text-gray-500">Target</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Market Weight:</span>
+                    <span className="font-medium">{selectedPen.marketWeight} lbs</span>
                   </div>
                 </div>
-
-                <Label htmlFor="newWeight" className="text-sm font-medium">
-                  New Current Weight (lbs)
-                </Label>
-                <Input
-                  id="newWeight"
-                  type="number"
-                  min={selectedPen.startingWeight + 1}
-                  max={selectedPen.marketWeight}
-                  step="0.1"
-                  {...weightForm.register("newWeight", { valueAsNumber: true })}
-                  className="mt-1"
-                />
-                {weightForm.formState.errors.newWeight && (
-                  <p className="text-sm text-red-600 mt-1">
-                    {weightForm.formState.errors.newWeight.message}
-                  </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Must be greater than {selectedPen.startingWeight} lbs (starting weight)
-                </p>
               </div>
-
-              <div className="flex space-x-3">
-                <Button
-                  type="submit"
-                  disabled={updateWeight.isPending}
-                  className="flex-1"
-                >
-                  {updateWeight.isPending ? "Updating..." : "Update Weight"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsWeightDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          )}
+            )}
+            
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsWeightDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateWeight.isPending}>
+                {updateWeight.isPending ? "Updating..." : "Update Weight"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {/* Sell Cattle Dialog */}
+      {/* Cattle Sale Dialog */}
       <Dialog open={isSellDialogOpen} onOpenChange={setIsSellDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Sell Cattle</DialogTitle>
+            <DialogTitle>Sell Cattle - {selectedPen?.name}</DialogTitle>
           </DialogHeader>
-          {selectedPen && (
-            <form onSubmit={saleForm.handleSubmit(handleCattleSale)} className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Selling cattle from <strong>{selectedPen.name}</strong> ({selectedPen.cattleType})
-                </p>
-                
-                <div className="grid grid-cols-2 gap-2 text-xs text-center mb-4 p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-medium text-primary">{selectedPen.current}</p>
-                    <p className="text-gray-500">Head Count</p>
+          <form onSubmit={saleForm.handleSubmit(handleCattleSale)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="finalWeight">Final Weight (lbs)</Label>
+              <Input
+                id="finalWeight"
+                type="number"
+                step="0.1"
+                {...saleForm.register("finalWeight", { valueAsNumber: true })}
+                placeholder="Enter final weight"
+              />
+              {saleForm.formState.errors.finalWeight && (
+                <p className="text-sm text-red-600">{saleForm.formState.errors.finalWeight.message}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="pricePerCwt">Price per CWT ($)</Label>
+              <Input
+                id="pricePerCwt"
+                type="number"
+                step="0.01"
+                {...saleForm.register("pricePerCwt", { valueAsNumber: true })}
+                placeholder="Enter price per hundredweight"
+              />
+              {saleForm.formState.errors.pricePerCwt && (
+                <p className="text-sm text-red-600">{saleForm.formState.errors.pricePerCwt.message}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="saleDate">Sale Date</Label>
+              <Input
+                id="saleDate"
+                type="date"
+                {...saleForm.register("saleDate")}
+              />
+              {saleForm.formState.errors.saleDate && (
+                <p className="text-sm text-red-600">{saleForm.formState.errors.saleDate.message}</p>
+              )}
+            </div>
+            
+            {selectedPen && (
+              <div className="bg-green-50 rounded-lg p-3">
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cattle Count:</span>
+                    <span className="font-medium">{selectedPen.current} head</span>
                   </div>
-                  <div>
-                    <p className="font-medium">{selectedPen.cattleType}</p>
-                    <p className="text-gray-500">Type</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="finalWeight" className="text-sm font-medium">
-                      Final Weight (lbs per head)
-                    </Label>
-                    <Input
-                      id="finalWeight"
-                      type="number"
-                      min="1"
-                      step="0.1"
-                      {...saleForm.register("finalWeight", { valueAsNumber: true })}
-                      className="mt-1"
-                    />
-                    {saleForm.formState.errors.finalWeight && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {saleForm.formState.errors.finalWeight.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pricePerCwt" className="text-sm font-medium">
-                      Price per Hundredweight ($)
-                    </Label>
-                    <Input
-                      id="pricePerCwt"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      {...saleForm.register("pricePerCwt", { valueAsNumber: true })}
-                      className="mt-1"
-                    />
-                    {saleForm.formState.errors.pricePerCwt && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {saleForm.formState.errors.pricePerCwt.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="saleDate" className="text-sm font-medium">
-                      Sale Date
-                    </Label>
-                    <Input
-                      id="saleDate"
-                      type="date"
-                      {...saleForm.register("saleDate")}
-                      className="mt-1"
-                    />
-                    {saleForm.formState.errors.saleDate && (
-                      <p className="text-sm text-red-600 mt-1">
-                        {saleForm.formState.errors.saleDate.message}
-                      </p>
-                    )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Expected Revenue:</span>
+                    <span className="font-medium text-green-700">
+                      ${((saleForm.watch("finalWeight") || 0) * (saleForm.watch("pricePerCwt") || 0) * (selectedPen.current || 0) / 100).toFixed(2)}
+                    </span>
                   </div>
                 </div>
-
-                {/* Revenue Calculation Preview */}
-                {saleForm.watch("finalWeight") && saleForm.watch("pricePerCwt") && (
-                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-                    <p className="text-sm font-medium text-green-800">Estimated Revenue</p>
-                    <p className="text-lg font-bold text-green-900">
-                      ${((saleForm.watch("finalWeight") * saleForm.watch("pricePerCwt") / 100) * selectedPen.current).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-green-700">
-                      {selectedPen.current} head × {saleForm.watch("finalWeight")} lbs × ${saleForm.watch("pricePerCwt")}/cwt
-                    </p>
-                  </div>
-                )}
               </div>
-
-              <div className="flex space-x-3">
-                <Button
-                  type="submit"
-                  disabled={sellCattle.isPending}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {sellCattle.isPending ? "Processing Sale..." : "Complete Sale"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsSellDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          )}
+            )}
+            
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsSellDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={sellCattle.isPending}>
+                {sellCattle.isPending ? "Processing..." : "Sell Cattle"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
