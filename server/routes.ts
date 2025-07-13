@@ -29,6 +29,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Operation with this email already exists" });
       }
 
+      // Validate invite code
+      const isValidInvite = await storage.validateInviteCode(validatedData.inviteCode, validatedData.operatorEmail);
+      if (!isValidInvite) {
+        return res.status(400).json({ message: "Invalid invite code or email combination" });
+      }
+
       const operation = await storage.createOperation(validatedData);
       res.status(201).json(operation);
     } catch (error) {

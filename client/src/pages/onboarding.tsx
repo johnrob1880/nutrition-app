@@ -21,8 +21,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const form = useForm<InsertOperation>({
     resolver: zodResolver(insertOperationSchema),
     defaultValues: {
-      name: "",
+      inviteCode: "",
       operatorEmail: "",
+      name: "",
       location: "",
     },
   });
@@ -36,9 +37,19 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       });
       onComplete({ operatorEmail: operation.operatorEmail });
     } catch (error: any) {
+      let errorMessage = "Please try again";
+      
+      if (error.message?.includes("Invalid invite code")) {
+        errorMessage = "The invite code doesn't match your email address. Please check both fields.";
+      } else if (error.message?.includes("already exists")) {
+        errorMessage = "An operation with this email already exists.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error creating operation",
-        description: error.message || "Please try again",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -76,18 +87,21 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2">
-              Operation Name *
+            <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700 mb-2">
+              Invite Code *
             </Label>
             <Input
-              id="name"
+              id="inviteCode"
               type="text"
-              placeholder="e.g. Johnson Ranch"
-              {...form.register("name")}
+              placeholder="Enter your invite code"
+              {...form.register("inviteCode")}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-            {form.formState.errors.name && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              This code is provided by your organization administrator
+            </p>
+            {form.formState.errors.inviteCode && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.inviteCode.message}</p>
             )}
           </div>
 
@@ -103,10 +117,26 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">
-              This email links your operation to cattle pens in the external management system
+              This email must match the one associated with your invite code
             </p>
             {form.formState.errors.operatorEmail && (
               <p className="text-sm text-red-600 mt-1">{form.formState.errors.operatorEmail.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2">
+              Operation Name *
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="e.g. Johnson Ranch"
+              {...form.register("name")}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+            {form.formState.errors.name && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
             )}
           </div>
 

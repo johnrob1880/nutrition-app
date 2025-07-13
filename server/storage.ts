@@ -5,6 +5,8 @@ export interface IStorage {
   getOperationByEmail(email: string): Promise<Operation | undefined>;
   createOperation(operation: InsertOperation): Promise<Operation>;
   updateOperation(id: number, operation: Partial<InsertOperation>): Promise<Operation | undefined>;
+  // Invite code validation
+  validateInviteCode(inviteCode: string, operatorEmail: string): Promise<boolean>;
   // External system simulation
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
   getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
@@ -27,6 +29,7 @@ export class MemStorage implements IStorage {
   private feedingRecordId: number;
   private cattleSales: Map<string, CattleSale>;
   private saleId: number;
+  private inviteCodes: Map<string, string>; // inviteCode -> operatorEmail
 
   constructor() {
     this.operations = new Map();
@@ -36,7 +39,17 @@ export class MemStorage implements IStorage {
     this.feedingRecordId = 1;
     this.cattleSales = new Map();
     this.saleId = 1;
+    this.inviteCodes = new Map();
     this.initializePensData();
+    this.initializeInviteCodes();
+  }
+
+  private initializeInviteCodes() {
+    // Initialize sample invite codes (in production, this would come from external system)
+    this.inviteCodes.set("RANCH2025", "johnrob1880@gmail.com");
+    this.inviteCodes.set("CATTLE123", "jane.smith@example.com");
+    this.inviteCodes.set("FEEDLOT456", "bob.johnson@example.com");
+    this.inviteCodes.set("BEEF789", "mary.davis@example.com");
   }
 
   private initializePensData() {
@@ -136,6 +149,12 @@ export class MemStorage implements IStorage {
     const updatedOperation = { ...operation, ...updateData };
     this.operations.set(id, updatedOperation);
     return updatedOperation;
+  }
+
+  async validateInviteCode(inviteCode: string, operatorEmail: string): Promise<boolean> {
+    // In production, this would validate against external system
+    const associatedEmail = this.inviteCodes.get(inviteCode);
+    return associatedEmail === operatorEmail;
   }
 
   // Simulate external system data

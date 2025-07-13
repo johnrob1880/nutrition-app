@@ -7,6 +7,7 @@ export const operations = pgTable("operations", {
   name: text("name").notNull(),
   operatorEmail: text("operator_email").notNull().unique(),
   location: text("location").notNull(),
+  inviteCode: text("invite_code").notNull(),
   setupDate: timestamp("setup_date").notNull().defaultNow(),
 });
 
