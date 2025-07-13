@@ -3,7 +3,11 @@ import { Building, AlertTriangle, Play } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import type { DashboardStats, FeedingPlan, UpcomingScheduleChange } from "@shared/schema";
+import type {
+  DashboardStats,
+  FeedingPlan,
+  UpcomingScheduleChange,
+} from "@shared/schema";
 
 interface DashboardProps {
   operatorEmail: string;
@@ -11,31 +15,40 @@ interface DashboardProps {
   operationLocation: string;
 }
 
-export default function Dashboard({ operatorEmail, operationName, operationLocation }: DashboardProps) {
+export default function Dashboard({
+  operatorEmail,
+  operationName,
+  operationLocation,
+}: DashboardProps) {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard", operatorEmail],
   });
 
-  const { data: feedingPlans, isLoading: schedulesLoading } = useQuery<FeedingPlan[]>({
+  const { data: feedingPlans, isLoading: schedulesLoading } = useQuery<
+    FeedingPlan[]
+  >({
     queryKey: ["/api/schedules", operatorEmail],
   });
 
-  const { data: upcomingChanges, isLoading: changesLoading } = useQuery<UpcomingScheduleChange[]>({
+  const { data: upcomingChanges, isLoading: changesLoading } = useQuery<
+    UpcomingScheduleChange[]
+  >({
     queryKey: ["/api/upcoming-changes", operatorEmail],
   });
 
   // Extract today's active schedules from feeding plans
-  const todaySchedules = feedingPlans
-    ?.filter(plan => plan.status === 'Active')
-    .flatMap(plan => 
-      plan.schedules.map(schedule => ({
-        ...schedule,
-        penId: plan.penId,
-        penName: plan.penName,
-        feedType: plan.feedType,
-        planId: plan.id
-      }))
-    ) || [];
+  const todaySchedules =
+    feedingPlans
+      ?.filter((plan) => plan.status === "Active")
+      .flatMap((plan) =>
+        plan.schedules.map((schedule) => ({
+          ...schedule,
+          penId: plan.penId,
+          penName: plan.penName,
+          feedType: plan.feedType,
+          planId: plan.id,
+        })),
+      ) || [];
 
   if (statsLoading || schedulesLoading || changesLoading) {
     return (
@@ -68,7 +81,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">{operationName}</h1>
+              <h1 className="text-xl font-semibold text-gray-900">
+                {operationName}
+              </h1>
               <p className="text-sm text-gray-600">{operationLocation}</p>
             </div>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -84,7 +99,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-primary">{stats?.totalPens || 0}</span>
+              <span className="text-2xl font-bold text-primary">
+                {stats?.totalPens || 0}
+              </span>
               <Building className="h-5 w-5 text-gray-400" />
             </div>
             <p className="text-sm text-gray-600">Active Pens</p>
@@ -92,7 +109,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
 
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl font-bold text-secondary">{stats?.totalCattle || 0}</span>
+              <span className="text-2xl font-bold text-secondary">
+                {stats?.totalCattle || 0}
+              </span>
               <Building className="h-5 w-5 text-gray-400" />
             </div>
             <p className="text-sm text-gray-600">Total Cattle</p>
@@ -107,9 +126,14 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
               <div className="font-medium mb-2">Upcoming Schedule Changes</div>
               {upcomingChanges.map((change) => (
                 <div key={change.id} className="text-sm mb-1">
-                  <span className="font-medium">{change.penName}</span> - {change.description} 
+                  <span className="font-medium">{change.penName}</span> -{" "}
+                  {change.description}
                   <span className="text-orange-600 ml-1">
-                    ({change.daysFromNow === 0 ? 'Today' : `${change.daysFromNow} days`})
+                    (
+                    {change.daysFromNow === 0
+                      ? "Today"
+                      : `${change.daysFromNow} days`}
+                    )
                   </span>
                 </div>
               ))}
@@ -121,7 +145,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 border-b border-gray-100">
             <h2 className="text-lg font-semibold">Today's Feeding Schedule</h2>
-            <p className="text-sm text-gray-600">Active schedules for your pens</p>
+            <p className="text-sm text-gray-600">
+              Active schedules for your pens
+            </p>
           </div>
           <div className="divide-y divide-gray-100">
             {todaySchedules.length === 0 ? (
@@ -130,25 +156,35 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
               </div>
             ) : (
               todaySchedules.map((schedule) => (
-                <div key={schedule.id} className="p-4 flex items-center justify-between">
+                <div
+                  key={schedule.id}
+                  className="p-4 flex items-center justify-between"
+                >
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
                       <div className="w-3 h-3 bg-primary rounded-full"></div>
                       <div>
                         <p className="font-medium">{schedule.penName}</p>
-                        <p className="text-sm text-gray-600">{schedule.feedType}</p>
+                        <p className="text-sm text-gray-600">
+                          {schedule.feedType}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
                       <p className="text-sm font-medium">{schedule.time}</p>
-                      <p className="text-xs text-gray-500">{schedule.totalAmount}</p>
+                      <p className="text-xs text-gray-500">
+                        {schedule.totalAmount}
+                      </p>
                     </div>
                     <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
-                      <Button size="sm" className="bg-primary hover:bg-primary/90">
+                      <Button
+                        size="sm"
+                        className="bg-primary hover:bg-primary/90"
+                      >
                         <Play className="h-4 w-4 mr-1" />
-                        Start Feeding
+                        Feed
                       </Button>
                     </Link>
                   </div>
@@ -166,7 +202,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
           <div className="p-4 space-y-3">
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-primary rounded-full"></div>
-              <p className="text-sm text-gray-600">Data synced with external systems</p>
+              <p className="text-sm text-gray-600">
+                Data synced with external systems
+              </p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-secondary rounded-full"></div>
@@ -174,7 +212,9 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-accent rounded-full"></div>
-              <p className="text-sm text-gray-600">System status: All systems operational</p>
+              <p className="text-sm text-gray-600">
+                System status: All systems operational
+              </p>
             </div>
           </div>
         </div>
