@@ -110,3 +110,33 @@ export interface DashboardStats {
   avgFeedPerDay: string;
   lastSync: string;
 }
+
+// Feeding records for tracking actual feeding events
+export interface FeedingRecord {
+  id: string;
+  operationId: number;
+  penId: string;
+  scheduleId: string;
+  plannedAmount: string;
+  actualIngredients: ActualIngredient[];
+  feedingTime: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface ActualIngredient {
+  name: string;
+  plannedAmount: string;
+  actualAmount: string;
+  unit: string;
+  category: string;
+}
+
+export interface InsertFeedingRecord {
+  operationId: number;
+  penId: string;
+  scheduleId: string;
+  plannedAmount: string;
+  actualIngredients: ActualIngredient[];
+  operatorEmail: string;
+}

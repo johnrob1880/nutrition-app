@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -11,17 +11,24 @@ export interface IStorage {
   getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
   getDashboardStats(operatorEmail: string): Promise<DashboardStats>;
   updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined>;
+  // Feeding records
+  createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord>;
+  getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]>;
 }
 
 export class MemStorage implements IStorage {
   private operations: Map<number, Operation>;
   private currentId: number;
   private pens: Map<string, Pen>;
+  private feedingRecords: Map<string, FeedingRecord>;
+  private feedingRecordId: number;
 
   constructor() {
     this.operations = new Map();
     this.currentId = 1;
     this.pens = new Map();
+    this.feedingRecords = new Map();
+    this.feedingRecordId = 1;
     this.initializePensData();
   }
 
@@ -545,6 +552,32 @@ export class MemStorage implements IStorage {
       avgFeedPerDay: "342 lbs",
       lastSync: "15 minutes ago"
     };
+  }
+
+  async createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord> {
+    const id = `FEED-${this.feedingRecordId.toString().padStart(3, '0')}`;
+    this.feedingRecordId++;
+
+    const feedingRecord: FeedingRecord = {
+      id,
+      operationId: record.operationId,
+      penId: record.penId,
+      scheduleId: record.scheduleId,
+      plannedAmount: record.plannedAmount,
+      actualIngredients: record.actualIngredients,
+      feedingTime: new Date().toISOString(),
+      operatorEmail: record.operatorEmail,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.feedingRecords.set(id, feedingRecord);
+    return feedingRecord;
+  }
+
+  async getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]> {
+    return Array.from(this.feedingRecords.values()).filter(
+      record => record.operatorEmail === operatorEmail
+    );
   }
 }
 

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building, AlertTriangle } from "lucide-react";
+import { Building, AlertTriangle, Play } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { DashboardStats, FeedingSchedule, UpcomingScheduleChange } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import type { DashboardStats, FeedingPlan, UpcomingScheduleChange } from "@shared/schema";
 
 interface DashboardProps {
   operatorEmail: string;
@@ -14,7 +16,7 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
     queryKey: ["/api/dashboard", operatorEmail],
   });
 
-  const { data: schedules, isLoading: schedulesLoading } = useQuery<FeedingSchedule[]>({
+  const { data: feedingPlans, isLoading: schedulesLoading } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
   });
 
@@ -22,7 +24,18 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
     queryKey: ["/api/upcoming-changes", operatorEmail],
   });
 
-  const todaySchedules = schedules?.filter(s => s.status === 'Active') || [];
+  // Extract today's active schedules from feeding plans
+  const todaySchedules = feedingPlans
+    ?.filter(plan => plan.status === 'Active')
+    .flatMap(plan => 
+      plan.schedules.map(schedule => ({
+        ...schedule,
+        penId: plan.penId,
+        penName: plan.penName,
+        feedType: plan.feedType,
+        planId: plan.id
+      }))
+    ) || [];
 
   if (statsLoading || schedulesLoading || changesLoading) {
     return (
@@ -127,9 +140,17 @@ export default function Dashboard({ operatorEmail, operationName, operationLocat
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{schedule.time}</p>
-                    <p className="text-xs text-gray-500">{schedule.totalAmount}</p>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{schedule.time}</p>
+                      <p className="text-xs text-gray-500">{schedule.totalAmount}</p>
+                    </div>
+                    <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
+                      <Button size="sm" className="bg-primary hover:bg-primary/90">
+                        <Play className="h-4 w-4 mr-1" />
+                        Start Feeding
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               ))

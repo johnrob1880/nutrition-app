@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOperationSchema, type UpdateWeightRequest } from "@shared/schema";
+import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -125,6 +125,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       res.status(400).json({ message: error.message || "Failed to update pen weight" });
+    }
+  });
+
+  // Create feeding record
+  app.post("/api/feeding-records", async (req, res) => {
+    try {
+      const feedingRecordSchema = z.object({
+        operationId: z.number(),
+        penId: z.string(),
+        scheduleId: z.string(),
+        plannedAmount: z.string(),
+        actualIngredients: z.array(z.object({
+          name: z.string(),
+          plannedAmount: z.string(),
+          actualAmount: z.string(),
+          unit: z.string(),
+          category: z.string(),
+        })),
+        operatorEmail: z.string().email(),
+      });
+
+      const validatedData = feedingRecordSchema.parse(req.body);
+      const feedingRecord = await storage.createFeedingRecord(validatedData);
+      
+      res.status(201).json(feedingRecord);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create feeding record" });
+    }
+  });
+
+  // Get feeding records by operator email
+  app.get("/api/feeding-records/:operatorEmail", async (req, res) => {
+    try {
+      const feedingRecords = await storage.getFeedingRecordsByOperatorEmail(req.params.operatorEmail);
+      res.json(feedingRecords);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get feeding records" });
     }
   });
 
