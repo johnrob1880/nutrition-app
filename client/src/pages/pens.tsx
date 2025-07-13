@@ -222,7 +222,7 @@ export default function Pens({ operatorEmail }: PensProps) {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="bg-white border-b border-gray-200">
           <div className="px-6 pt-4">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList>
               <TabsTrigger value="active">Active Pens</TabsTrigger>
               <TabsTrigger value="sold">Sold Cattle</TabsTrigger>
             </TabsList>
