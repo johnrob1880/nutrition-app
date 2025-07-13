@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building, AlertTriangle, Play } from "lucide-react";
+import { Building, AlertTriangle, Play, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -7,6 +7,7 @@ import type {
   DashboardStats,
   FeedingPlan,
   UpcomingScheduleChange,
+  FeedingRecord,
 } from "@shared/schema";
 
 interface DashboardProps {
@@ -36,6 +37,12 @@ export default function Dashboard({
     queryKey: ["/api/upcoming-changes", operatorEmail],
   });
 
+  const { data: feedingRecords, isLoading: recordsLoading } = useQuery<
+    FeedingRecord[]
+  >({
+    queryKey: ["/api/feeding-records", operatorEmail],
+  });
+
   // Extract today's active schedules from feeding plans
   const todaySchedules =
     feedingPlans
@@ -50,7 +57,23 @@ export default function Dashboard({
         })),
       ) || [];
 
-  if (statsLoading || schedulesLoading || changesLoading) {
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Filter today's feeding records
+  const todayFeedingRecords = feedingRecords?.filter(record => 
+    record.feedingTime.startsWith(today)
+  ) || [];
+
+  // Determine which schedules are completed
+  const schedulesWithStatus = todaySchedules.map(schedule => {
+    const isCompleted = todayFeedingRecords.some(record => 
+      record.penId === schedule.penId && record.scheduleId === schedule.id
+    );
+    return { ...schedule, isCompleted };
+  });
+
+  if (statsLoading || schedulesLoading || changesLoading || recordsLoading) {
     return (
       <div className="pb-20">
         <div className="bg-white shadow-sm">
@@ -150,21 +173,31 @@ export default function Dashboard({
             </p>
           </div>
           <div className="divide-y divide-gray-100">
-            {todaySchedules.length === 0 ? (
+            {schedulesWithStatus.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 No active feeding schedules found
               </div>
             ) : (
-              todaySchedules.map((schedule) => (
+              schedulesWithStatus.map((schedule) => (
                 <div
                   key={schedule.id}
-                  className="p-4 flex items-center justify-between"
+                  className={`p-4 flex items-center justify-between ${
+                    schedule.isCompleted ? 'bg-green-50' : ''
+                  }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <div 
+                        className={`w-3 h-3 rounded-full ${
+                          schedule.isCompleted ? 'bg-green-500' : 'bg-primary'
+                        }`}
+                      ></div>
                       <div>
-                        <p className="font-medium">{schedule.penName}</p>
+                        <p className={`font-medium ${
+                          schedule.isCompleted ? 'text-green-700' : ''
+                        }`}>
+                          {schedule.penName}
+                        </p>
                         <p className="text-sm text-gray-600">
                           {schedule.feedType}
                         </p>
@@ -178,15 +211,22 @@ export default function Dashboard({
                         {schedule.totalAmount}
                       </p>
                     </div>
-                    <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Feed
-                      </Button>
-                    </Link>
+                    {schedule.isCompleted ? (
+                      <div className="flex items-center text-green-600">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        <span className="text-sm font-medium">Fed</span>
+                      </div>
+                    ) : (
+                      <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
+                        <Button
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Feed
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))

@@ -135,6 +135,10 @@ The application follows a monorepo architecture with clear separation of concern
 
 ## Recent Changes
 
+- **January 13, 2025**: Implemented feeding status tracking system that shows completed vs pending feeds on dashboard with visual indicators (green backgrounds and checkmarks for completed feeds)
+- **January 13, 2025**: Fixed feeding records API call error by correcting parameter order in apiRequest function call
+- **January 13, 2025**: Added cache invalidation for feeding records when feeding is completed to ensure dashboard updates in real-time
+- **January 13, 2025**: Enhanced dashboard UI to show feeding completion status with different colors and icons for completed schedules
 - **January 13, 2025**: Added tabbed interface to cattle pens page with "Active Pens" and "Sold Cattle" tabs for better organization and data separation
 - **January 13, 2025**: Implemented sold cattle overview display with comprehensive sale details including cattle count, final weight, sale price, total revenue, and sale dates
 - **January 13, 2025**: Added cattle selling functionality with "Sell" buttons on pens page that opens dialog for final weight, price per hundredweight, and sale date input with live revenue calculation preview

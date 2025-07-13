@@ -69,6 +69,8 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
       return response;
     },
     onSuccess: () => {
+      // Invalidate feeding records cache to refresh dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/feeding-records", operatorEmail] });
       toast({
         title: "Feeding Completed",
         description: "Feeding record has been saved successfully.",
