@@ -126,11 +126,15 @@ The application follows a monorepo architecture with clear separation of concern
 ## Key Features
 
 1. **Operation Onboarding**: Initial setup flow for new cattle operations
-2. **Dashboard**: Real-time operational statistics and key metrics
+2. **Dashboard**: Real-time operational statistics, key metrics, and upcoming schedule changes alerts
 3. **Pen Management**: View cattle pen status with detailed weight tracking and cattle type information
 4. **Feeding Schedules**: View detailed feeding schedules with comprehensive ingredient breakdowns
 5. **Operation Settings**: Update operation details and preferences
 6. **Weight Tracking**: Update current cattle weights with history maintenance and external system integration
+
+## Recent Changes
+
+- **January 13, 2025**: Moved upcoming schedule changes alert from feeding schedules page to dashboard page, positioned after metrics cards for better visibility and user experience
 
 ## Technical Considerations
 
