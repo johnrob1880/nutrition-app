@@ -63,14 +63,24 @@ export interface FeedIngredient {
   };
 }
 
-export interface FeedingSchedule {
+export interface FeedingPlan {
   id: string;
   penId: string;
   penName: string;
+  planName: string;
+  startDate: string;
+  daysToFeed: number;
+  currentDay: number;
+  status: 'Active' | 'Upcoming' | 'Completed';
+  feedType: string;
+  schedules: FeedingSchedule[];
+  operatorEmail: string;
+}
+
+export interface FeedingSchedule {
+  id: string;
   time: string;
   totalAmount: string;
-  feedType: string;
-  status: 'Active' | 'Inactive';
   ingredients: FeedIngredient[];
   totalNutrition: {
     protein: string;
@@ -78,7 +88,18 @@ export interface FeedingSchedule {
     fiber: string;
     moisture: string;
   };
-  lastUpdated: string;
+}
+
+export interface UpcomingScheduleChange {
+  id: string;
+  penId: string;
+  penName: string;
+  changeType: 'Plan Start' | 'Plan End' | 'Feed Change';
+  changeDate: string;
+  daysFromNow: number;
+  currentPlan?: string;
+  newPlan?: string;
+  description: string;
   operatorEmail: string;
 }
 

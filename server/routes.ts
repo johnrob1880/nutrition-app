@@ -69,13 +69,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get schedules for operation
+  // Get feeding plans for operation
   app.get("/api/schedules/:operatorEmail", async (req, res) => {
     try {
-      const schedules = await storage.getSchedulesByOperatorEmail(req.params.operatorEmail);
-      res.json(schedules);
+      const feedingPlans = await storage.getFeedingPlansByOperatorEmail(req.params.operatorEmail);
+      res.json(feedingPlans);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get schedules" });
+      res.status(500).json({ message: "Failed to get feeding plans" });
+    }
+  });
+
+  // Get upcoming schedule changes
+  app.get("/api/upcoming-changes/:operatorEmail", async (req, res) => {
+    try {
+      const changes = await storage.getUpcomingScheduleChanges(req.params.operatorEmail);
+      res.json(changes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get upcoming changes" });
     }
   });
 

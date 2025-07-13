@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -7,7 +7,8 @@ export interface IStorage {
   updateOperation(id: number, operation: Partial<InsertOperation>): Promise<Operation | undefined>;
   // External system simulation
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
-  getSchedulesByOperatorEmail(operatorEmail: string): Promise<FeedingSchedule[]>;
+  getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
+  getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
   getDashboardStats(operatorEmail: string): Promise<DashboardStats>;
   updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined>;
 }
@@ -157,167 +158,385 @@ export class MemStorage implements IStorage {
     return updatedPen;
   }
 
-  async getSchedulesByOperatorEmail(operatorEmail: string): Promise<FeedingSchedule[]> {
-    return [
+  async getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]> {
+    const now = new Date();
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    
+    // Using type assertion to handle the complex nested types with strict literal unions
+    const plans = [
       {
-        id: "SCH-001",
+        id: "PLAN-001",
         penId: "pen-001",
         penName: "Pen A-1",
-        time: "7:00 AM Daily",
-        totalAmount: "45 lbs",
+        planName: "High Protein Growth Phase",
+        startDate: formatDate(new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000)), // Started 15 days ago
+        daysToFeed: 45,
+        currentDay: 16,
+        status: "Active" as const,
         feedType: "High Protein Mix",
-        status: "Active",
-        ingredients: [
+        schedules: [
           {
-            name: "Corn Grain",
-            category: "Grain",
-            amount: "20",
-            unit: "lbs",
-            percentage: "44.4%",
-            nutritionalValue: {
-              protein: "8.5%",
-              fat: "3.8%",
-              fiber: "2.2%",
-              moisture: "14%"
+            id: "SCH-001-1",
+            time: "7:00 AM",
+            totalAmount: "45 lbs",
+            ingredients: [
+              {
+                name: "Corn Grain",
+                category: "Grain" as const,
+                amount: "20",
+                unit: "lbs" as const,
+                percentage: "44.4%",
+                nutritionalValue: {
+                  protein: "8.5%",
+                  fat: "3.8%",
+                  fiber: "2.2%",
+                  moisture: "14%"
+                }
+              },
+              {
+                name: "Soybean Meal",
+                category: "Protein" as const,
+                amount: "12",
+                unit: "lbs" as const,
+                percentage: "26.7%",
+                nutritionalValue: {
+                  protein: "48%",
+                  fat: "1.5%",
+                  fiber: "7%",
+                  moisture: "12%"
+                }
+              },
+              {
+                name: "Alfalfa Hay",
+                category: "Feedstuff",
+                amount: "10",
+                unit: "lbs",
+                percentage: "22.2%",
+                nutritionalValue: {
+                  protein: "17%",
+                  fat: "2.5%",
+                  fiber: "25%",
+                  moisture: "10%"
+                }
+              },
+              {
+                name: "Vitamin E Supplement",
+                category: "Supplement",
+                amount: "2",
+                unit: "oz",
+                percentage: "2.8%",
+                nutritionalValue: {
+                  protein: "0%",
+                  fat: "0%",
+                  fiber: "0%",
+                  moisture: "0%"
+                }
+              },
+              {
+                name: "Salt Mix",
+                category: "Mineral",
+                amount: "1",
+                unit: "lbs",
+                percentage: "2.2%"
+              }
+            ],
+            totalNutrition: {
+              protein: "18.2%",
+              fat: "2.8%",
+              fiber: "8.5%",
+              moisture: "12.5%"
             }
-          },
-          {
-            name: "Soybean Meal",
-            category: "Protein",
-            amount: "12",
-            unit: "lbs",
-            percentage: "26.7%",
-            nutritionalValue: {
-              protein: "48%",
-              fat: "1.5%",
-              fiber: "7%",
-              moisture: "12%"
-            }
-          },
-          {
-            name: "Alfalfa Hay",
-            category: "Feedstuff",
-            amount: "10",
-            unit: "lbs",
-            percentage: "22.2%",
-            nutritionalValue: {
-              protein: "17%",
-              fat: "2.5%",
-              fiber: "32%",
-              moisture: "15%"
-            }
-          },
-          {
-            name: "Calcium Carbonate",
-            category: "Mineral",
-            amount: "2",
-            unit: "lbs",
-            percentage: "4.4%"
-          },
-          {
-            name: "Vitamin E Supplement",
-            category: "Supplement",
-            amount: "1",
-            unit: "lbs",
-            percentage: "2.2%"
           }
         ],
-        totalNutrition: {
-          protein: "18%",
-          fat: "4.5%",
-          fiber: "12%",
-          moisture: "14.2%"
-        },
-        lastUpdated: "2 hours ago",
         operatorEmail
       },
       {
-        id: "SCH-002",
+        id: "PLAN-002",
         penId: "pen-002",
         penName: "Pen B-2",
-        time: "8:30 AM Daily",
-        totalAmount: "38 lbs",
-        feedType: "Standard Grain Mix",
-        status: "Active",
-        ingredients: [
+        planName: "Standard Growth Program",
+        startDate: formatDate(new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000)), // Started 8 days ago
+        daysToFeed: 60,
+        currentDay: 9,
+        status: "Active" as const,
+        feedType: "Standard Growth Mix",
+        schedules: [
           {
-            name: "Barley Grain",
-            category: "Grain",
-            amount: "18",
-            unit: "lbs",
-            percentage: "47.4%",
-            nutritionalValue: {
-              protein: "11%",
-              fat: "2.3%",
-              fiber: "5.4%",
-              moisture: "12%"
+            id: "SCH-002-1",
+            time: "6:30 AM",
+            totalAmount: "38 lbs",
+            ingredients: [
+              {
+                name: "Corn Silage",
+                category: "Feedstuff",
+                amount: "22",
+                unit: "lbs",
+                percentage: "57.9%",
+                nutritionalValue: {
+                  protein: "8.0%",
+                  fat: "3.2%",
+                  fiber: "22%",
+                  moisture: "65%"
+                }
+              },
+              {
+                name: "Cottonseed Meal",
+                category: "Protein",
+                amount: "8",
+                unit: "lbs",
+                percentage: "21.1%",
+                nutritionalValue: {
+                  protein: "41%",
+                  fat: "5.8%",
+                  fiber: "12%",
+                  moisture: "10%"
+                }
+              },
+              {
+                name: "Wheat Middlings",
+                category: "Grain",
+                amount: "6",
+                unit: "lbs",
+                percentage: "15.8%",
+                nutritionalValue: {
+                  protein: "17%",
+                  fat: "4.2%",
+                  fiber: "9%",
+                  moisture: "12%"
+                }
+              },
+              {
+                name: "Limestone",
+                category: "Mineral",
+                amount: "1.5",
+                unit: "lbs",
+                percentage: "3.9%"
+              },
+              {
+                name: "Trace Mineral Mix",
+                category: "Supplement",
+                amount: "0.5",
+                unit: "lbs",
+                percentage: "1.3%"
+              }
+            ],
+            totalNutrition: {
+              protein: "16.8%",
+              fat: "4.1%",
+              fiber: "18.2%",
+              moisture: "45.8%"
             }
           },
           {
-            name: "Wheat Middlings",
-            category: "Feedstuff",
-            amount: "10",
-            unit: "lbs",
-            percentage: "26.3%",
-            nutritionalValue: {
-              protein: "16%",
-              fat: "4.2%",
-              fiber: "8.5%",
-              moisture: "11%"
-            }
-          },
-          {
-            name: "Cottonseed Meal",
-            category: "Protein",
-            amount: "6",
-            unit: "lbs",
-            percentage: "15.8%",
-            nutritionalValue: {
-              protein: "41%",
-              fat: "6.8%",
-              fiber: "12%",
-              moisture: "10%"
-            }
-          },
-          {
-            name: "Salt Mix",
-            category: "Mineral",
-            amount: "2.5",
-            unit: "lbs",
-            percentage: "6.6%"
-          },
-          {
-            name: "Molasses",
-            category: "Supplement",
-            amount: "1.5",
-            unit: "lbs",
-            percentage: "3.9%",
-            nutritionalValue: {
-              protein: "3%",
-              fat: "0.1%",
-              fiber: "0%",
-              moisture: "25%"
+            id: "SCH-002-2",
+            time: "5:00 PM",
+            totalAmount: "38 lbs",
+            ingredients: [
+              {
+                name: "Corn Silage",
+                category: "Feedstuff",
+                amount: "22",
+                unit: "lbs",
+                percentage: "57.9%",
+                nutritionalValue: {
+                  protein: "8.0%",
+                  fat: "3.2%",
+                  fiber: "22%",
+                  moisture: "65%"
+                }
+              },
+              {
+                name: "Cottonseed Meal",
+                category: "Protein",
+                amount: "8",
+                unit: "lbs",
+                percentage: "21.1%",
+                nutritionalValue: {
+                  protein: "41%",
+                  fat: "5.8%",
+                  fiber: "12%",
+                  moisture: "10%"
+                }
+              },
+              {
+                name: "Wheat Middlings",
+                category: "Grain",
+                amount: "6",
+                unit: "lbs",
+                percentage: "15.8%",
+                nutritionalValue: {
+                  protein: "17%",
+                  fat: "4.2%",
+                  fiber: "9%",
+                  moisture: "12%"
+                }
+              },
+              {
+                name: "Limestone",
+                category: "Mineral",
+                amount: "1.5",
+                unit: "lbs",
+                percentage: "3.9%"
+              },
+              {
+                name: "Trace Mineral Mix",
+                category: "Supplement",
+                amount: "0.5",
+                unit: "lbs",
+                percentage: "1.3%"
+              }
+            ],
+            totalNutrition: {
+              protein: "16.8%",
+              fat: "4.1%",
+              fiber: "18.2%",
+              moisture: "45.8%"
             }
           }
         ],
-        totalNutrition: {
-          protein: "14%",
-          fat: "3.2%",
-          fiber: "15%",
-          moisture: "12.8%"
-        },
-        lastUpdated: "1 day ago",
+        operatorEmail
+      },
+      {
+        id: "PLAN-003",
+        penId: "pen-003",
+        penName: "Pen C-3",
+        planName: "Finishing Ration Phase 1",
+        startDate: formatDate(new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)), // Starts in 3 days
+        daysToFeed: 30,
+        currentDay: 0,
+        status: "Upcoming" as const,
+        feedType: "Finishing Ration",
+        schedules: [
+          {
+            id: "SCH-003-1",
+            time: "8:00 AM",
+            totalAmount: "52 lbs",
+            ingredients: [
+              {
+                name: "Rolled Barley",
+                category: "Grain",
+                amount: "25",
+                unit: "lbs",
+                percentage: "48.1%",
+                nutritionalValue: {
+                  protein: "11.5%",
+                  fat: "2.1%",
+                  fiber: "5.8%",
+                  moisture: "12%"
+                }
+              },
+              {
+                name: "Canola Meal",
+                category: "Protein",
+                amount: "15",
+                unit: "lbs",
+                percentage: "28.8%",
+                nutritionalValue: {
+                  protein: "36%",
+                  fat: "3.5%",
+                  fiber: "11%",
+                  moisture: "12%"
+                }
+              },
+              {
+                name: "Grass Hay",
+                category: "Feedstuff",
+                amount: "8",
+                unit: "lbs",
+                percentage: "15.4%",
+                nutritionalValue: {
+                  protein: "12%",
+                  fat: "2.8%",
+                  fiber: "30%",
+                  moisture: "15%"
+                }
+              },
+              {
+                name: "Molasses",
+                category: "Supplement",
+                amount: "3",
+                unit: "lbs",
+                percentage: "5.8%",
+                nutritionalValue: {
+                  protein: "3%",
+                  fat: "0.1%",
+                  fiber: "0%",
+                  moisture: "25%"
+                }
+              },
+              {
+                name: "Dicalcium Phosphate",
+                category: "Mineral",
+                amount: "1",
+                unit: "lbs",
+                percentage: "1.9%"
+              }
+            ],
+            totalNutrition: {
+              protein: "19.5%",
+              fat: "2.7%",
+              fiber: "12.8%",
+              moisture: "14.2%"
+            }
+          }
+        ],
         operatorEmail
       }
-    ];
+    ] as FeedingPlan[];
+    
+    return plans.filter(plan => plan.operatorEmail === operatorEmail);
+  }
+
+  async getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]> {
+    const now = new Date();
+    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    const getDaysFromNow = (date: Date) => Math.ceil((date.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    
+    const changes: UpcomingScheduleChange[] = [
+      {
+        id: "CHANGE-001",
+        penId: "pen-001",
+        penName: "Pen A-1",
+        changeType: "Plan End",
+        changeDate: formatDate(new Date(now.getTime() + 29 * 24 * 60 * 60 * 1000)), // 29 days from now
+        daysFromNow: 29,
+        currentPlan: "High Protein Growth Phase",
+        description: "Current feeding plan will end, transition to finishing phase",
+        operatorEmail
+      },
+      {
+        id: "CHANGE-002",
+        penId: "pen-003",
+        penName: "Pen C-3",
+        changeType: "Plan Start",
+        changeDate: formatDate(new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)), // 3 days from now
+        daysFromNow: 3,
+        newPlan: "Finishing Ration Phase 1",
+        description: "Begin new finishing ration feeding plan",
+        operatorEmail
+      },
+      {
+        id: "CHANGE-003",
+        penId: "pen-002",
+        penName: "Pen B-2",
+        changeType: "Feed Change",
+        changeDate: formatDate(new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000)), // 2 days from now
+        daysFromNow: 2,
+        currentPlan: "Standard Growth Program",
+        description: "Increase feed amount from 38 lbs to 42 lbs per feeding",
+        operatorEmail
+      }
+    ] as UpcomingScheduleChange[];
+    
+    return changes.filter(change => change.operatorEmail === operatorEmail && change.daysFromNow <= 5);
   }
 
   async getDashboardStats(operatorEmail: string): Promise<DashboardStats> {
     const pens = await this.getPensByOperatorEmail(operatorEmail);
-    const schedules = await this.getSchedulesByOperatorEmail(operatorEmail);
+    const feedingPlans = await this.getFeedingPlansByOperatorEmail(operatorEmail);
     
     const totalCattle = pens.reduce((sum, pen) => sum + pen.current, 0);
-    const activeSchedules = schedules.filter(s => s.status === 'Active').length;
+    const activeSchedules = feedingPlans.filter(plan => plan.status === 'Active').length;
     
     return {
       totalPens: pens.length,

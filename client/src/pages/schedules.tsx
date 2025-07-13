@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { FeedingSchedule } from "@shared/schema";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, Clock, Wheat, Scale, TrendingUp, Calendar, AlertTriangle, CheckCircle2, Timer } from "lucide-react";
+import type { FeedingPlan, UpcomingScheduleChange } from "@shared/schema";
 
 interface SchedulesProps {
   operatorEmail: string;
@@ -9,16 +16,20 @@ interface SchedulesProps {
 export default function Schedules({ operatorEmail }: SchedulesProps) {
   const [activeFilter, setActiveFilter] = useState("today");
   
-  const { data: schedules, isLoading } = useQuery<FeedingSchedule[]>({
+  const { data: feedingPlans, isLoading } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
   });
 
-  const filteredSchedules = schedules?.filter(schedule => {
+  const { data: upcomingChanges } = useQuery<UpcomingScheduleChange[]>({
+    queryKey: ["/api/upcoming-changes", operatorEmail],
+  });
+
+  const filteredPlans = feedingPlans?.filter(plan => {
     switch (activeFilter) {
       case "today":
-        return schedule.status === "Active";
+        return plan.status === "Active";
       case "week":
-        return true; // In a real app, filter by week
+        return true;
       case "all":
         return true;
       default:
@@ -90,127 +101,137 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
         </div>
       </div>
 
-      {/* Schedules List */}
-      <div className="p-6 space-y-4">
-        {filteredSchedules.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No feeding schedules found</p>
-          </div>
-        ) : (
-          filteredSchedules.map((schedule, index) => (
-            <div key={schedule.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 ${getPenColor(index)} rounded-full`}></div>
-                    <h3 className="text-lg font-semibold">{schedule.penName} Schedule</h3>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(schedule.status)}`}>
-                    {schedule.status}
+      {/* Upcoming Changes Alert */}
+      {upcomingChanges && upcomingChanges.length > 0 && (
+        <div className="px-6 py-4">
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <div className="font-medium mb-2">Upcoming Schedule Changes</div>
+              {upcomingChanges.map((change) => (
+                <div key={change.id} className="text-sm mb-1">
+                  <span className="font-medium">{change.penName}</span> - {change.description} 
+                  <span className="text-orange-600 ml-1">
+                    ({change.daysFromNow === 0 ? 'Today' : `${change.daysFromNow} days`})
                   </span>
                 </div>
+              ))}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Feed Time</p>
-                    <p className="font-semibold">{schedule.time}</p>
+      {/* Feeding Plans List */}
+      <div className="p-6 space-y-6">
+        {filteredPlans.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No feeding plans found</p>
+          </div>
+        ) : (
+          filteredPlans.map((plan, index) => (
+            <Card key={plan.id} className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 ${getPenColor(index)} rounded-full`}></div>
+                    <div>
+                      <CardTitle className="text-lg">{plan.planName}</CardTitle>
+                      <p className="text-sm text-gray-600">{plan.penName}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="font-semibold">{schedule.totalAmount}</p>
+                  <Badge className={getStatusColor(plan.status)}>
+                    {plan.status}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>Started {plan.startDate}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Timer className="h-4 w-4" />
+                      <span>Day {plan.currentDay} of {plan.daysToFeed}</span>
+                    </div>
                   </div>
                 </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Feed Type:</span>
-                    <span className="font-medium">{schedule.feedType}</span>
+                
+                <div className="mt-3">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Progress</span>
+                    <span>{Math.round((plan.currentDay / plan.daysToFeed) * 100)}%</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Schedule ID:</span>
-                    <span className="font-medium text-gray-500">{schedule.id}</span>
+                  <Progress 
+                    value={(plan.currentDay / plan.daysToFeed) * 100} 
+                    className="h-2"
+                  />
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Feed Type</p>
+                    <p className="font-medium">{plan.feedType}</p>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Last Updated:</span>
-                    <span className="font-medium text-gray-500">{schedule.lastUpdated}</span>
+                  <div>
+                    <p className="text-gray-600">Plan ID</p>
+                    <p className="font-medium text-gray-500">{plan.id}</p>
                   </div>
                 </div>
-
-                {/* Ingredients List */}
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-sm font-medium text-gray-700 mb-3">Feed Ingredients:</p>
+                
+                <Separator />
+                
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Daily Feeding Schedules
+                  </h4>
+                  
                   <div className="space-y-3">
-                    {schedule.ingredients?.map((ingredient, ingredientIndex) => (
-                      <div key={ingredientIndex} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{ingredient.name}</p>
-                            <p className="text-xs text-gray-500 uppercase tracking-wide">{ingredient.category}</p>
+                    {plan.schedules.map((schedule, scheduleIndex) => (
+                      <div key={schedule.id} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="font-medium">{schedule.time}</div>
+                            <div className="text-sm text-gray-600">Total: {schedule.totalAmount}</div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-primary">{ingredient.amount} {ingredient.unit}</p>
-                            <p className="text-xs text-gray-500">{ingredient.percentage}</p>
+                            <div className="text-sm text-gray-600">Nutrition</div>
+                            <div className="text-xs space-x-2">
+                              <span>P: {schedule.totalNutrition.protein}</span>
+                              <span>F: {schedule.totalNutrition.fat}</span>
+                              <span>Fib: {schedule.totalNutrition.fiber}</span>
+                            </div>
                           </div>
                         </div>
-                        {ingredient.nutritionalValue && (
-                          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                            {ingredient.nutritionalValue.protein && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Protein:</span>
-                                <span className="font-medium">{ingredient.nutritionalValue.protein}</span>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Ingredients:</p>
+                          <div className="grid grid-cols-1 gap-2">
+                            {schedule.ingredients.map((ingredient, ingredientIndex) => (
+                              <div key={ingredientIndex} className="flex justify-between items-center text-sm">
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {ingredient.category}
+                                  </Badge>
+                                  <span>{ingredient.name}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="font-medium">{ingredient.amount} {ingredient.unit}</span>
+                                  <span className="text-gray-500 ml-2">({ingredient.percentage})</span>
+                                </div>
                               </div>
-                            )}
-                            {ingredient.nutritionalValue.fat && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Fat:</span>
-                                <span className="font-medium">{ingredient.nutritionalValue.fat}</span>
-                              </div>
-                            )}
-                            {ingredient.nutritionalValue.fiber && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Fiber:</span>
-                                <span className="font-medium">{ingredient.nutritionalValue.fiber}</span>
-                              </div>
-                            )}
-                            {ingredient.nutritionalValue.moisture && (
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Moisture:</span>
-                                <span className="font-medium">{ingredient.nutritionalValue.moisture}</span>
-                              </div>
-                            )}
+                            ))}
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Total Nutrition Summary */}
-                {schedule.totalNutrition && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Total Nutrition Profile:</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-center bg-primary/5 rounded p-2">
-                        <p className="font-medium text-gray-900">{schedule.totalNutrition.protein}</p>
-                        <p className="text-gray-500">Protein</p>
-                      </div>
-                      <div className="text-center bg-secondary/5 rounded p-2">
-                        <p className="font-medium text-gray-900">{schedule.totalNutrition.fat}</p>
-                        <p className="text-gray-500">Fat</p>
-                      </div>
-                      <div className="text-center bg-accent/5 rounded p-2">
-                        <p className="font-medium text-gray-900">{schedule.totalNutrition.fiber}</p>
-                        <p className="text-gray-500">Fiber</p>
-                      </div>
-                      <div className="text-center bg-gray-100 rounded p-2">
-                        <p className="font-medium text-gray-900">{schedule.totalNutrition.moisture}</p>
-                        <p className="text-gray-500">Moisture</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
