@@ -135,6 +135,11 @@ The application follows a monorepo architecture with clear separation of concern
 
 ## Recent Changes
 
+- **January 13, 2025**: Added invite code functionality to onboarding process - users must provide a valid invite code that matches their email address to create an operation
+- **January 13, 2025**: Updated database schema to include inviteCode field in operations table with validation system
+- **January 13, 2025**: Enhanced onboarding form with invite code field as first input, improved error handling for invalid codes
+- **January 13, 2025**: Added logout functionality with "Sign Out" button on operation page that clears localStorage and query cache
+- **January 13, 2025**: Implemented sample invite codes for testing: RANCH2025 (johnrob1880@gmail.com), CATTLE123 (jane.smith@example.com), FEEDLOT456 (bob.johnson@example.com)
 - **January 13, 2025**: Added comprehensive feeding details page showing expected vs actual ingredient amounts with variance indicators (over/under/on-target with color coding and percentage differences)
 - **January 13, 2025**: Created clickable "View Details" links on dashboard for completed feeding schedules that navigate to detailed feeding record view
 - **January 13, 2025**: Implemented feeding status tracking system that shows completed vs pending feeds on dashboard with visual indicators (green backgrounds and checkmarks for completed feeds)
@@ -145,10 +150,6 @@ The application follows a monorepo architecture with clear separation of concern
 - **January 13, 2025**: Implemented sold cattle overview display with comprehensive sale details including cattle count, final weight, sale price, total revenue, and sale dates
 - **January 13, 2025**: Added cattle selling functionality with "Sell" buttons on pens page that opens dialog for final weight, price per hundredweight, and sale date input with live revenue calculation preview
 - **January 13, 2025**: Implemented cattle sale backend with CattleSale schema, API endpoints, and pen status updates (sets pen to inactive with 0 cattle after sale)
-- **January 13, 2025**: Added complete feeding functionality with "Start Feeding" buttons on dashboard that link to feeding pages where operators can enter actual ingredient amounts and submit feeding records with operation ID and pen ID
-- **January 13, 2025**: Fixed dashboard data types to properly use FeedingPlan[] instead of FeedingSchedule[] and extract individual schedules for display
-- **January 13, 2025**: Added feeding record schema types (FeedingRecord, ActualIngredient, InsertFeedingRecord) and API endpoints for creating and retrieving feeding records
-- **January 13, 2025**: Moved upcoming schedule changes alert from feeding schedules page to dashboard page, positioned after metrics cards for better visibility and user experience
 
 ## Technical Considerations
 

@@ -35,6 +35,13 @@ function AppContent() {
     setCurrentOperation(operationData.operatorEmail);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("operatorEmail");
+    setCurrentOperation(null);
+    // Clear query cache to ensure fresh data on next login
+    queryClient.clear();
+  };
+
   // If no current operation or operation doesn't exist, show onboarding
   if (!currentOperation || (currentOperation && !operation)) {
     return <Onboarding onComplete={handleOnboardingComplete} />;
@@ -64,7 +71,7 @@ function AppContent() {
           <Schedules operatorEmail={currentOperation} />
         } />
         <Route path="/operation" component={() => 
-          <OperationPage operation={operation!} stats={stats} />
+          <OperationPage operation={operation!} stats={stats} onLogout={handleLogout} />
         } />
         <Route path="/feeding/:penId/:scheduleId" component={() => 
           <Feeding operatorEmail={currentOperation} />
