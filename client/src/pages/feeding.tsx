@@ -65,11 +65,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   // Submit feeding record
   const submitFeeding = useMutation({
     mutationFn: async (feedingRecord: InsertFeedingRecord) => {
-      const response = await apiRequest("/api/feeding-records", {
-        method: "POST",
-        body: JSON.stringify(feedingRecord),
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await apiRequest("POST", "/api/feeding-records", feedingRecord);
       return response;
     },
     onSuccess: () => {
