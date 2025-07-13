@@ -146,9 +146,7 @@ export default function Pens({ operatorEmail }: PensProps) {
 
     try {
       // Get operation ID using apiRequest
-      const operationResponse = await apiRequest(`/api/operation/${operatorEmail}`, {
-        method: "GET",
-      });
+      const operationResponse = await apiRequest("GET", `/api/operation/${operatorEmail}`);
       const operation = await operationResponse.json();
       
       const saleData: InsertCattleSale = {
