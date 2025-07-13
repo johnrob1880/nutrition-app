@@ -7,19 +7,7 @@ export function useSellCattle() {
 
   return useMutation<CattleSale, Error, InsertCattleSale>({
     mutationFn: async (saleData: InsertCattleSale) => {
-      const response = await apiRequest("/api/cattle-sales", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(saleData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to sell cattle");
-      }
-
+      const response = await apiRequest("POST", "/api/cattle-sales", saleData);
       return response.json();
     },
     onSuccess: (data: CattleSale, variables) => {
