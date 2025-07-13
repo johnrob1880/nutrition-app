@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Scale, TrendingUp, Award, Edit3, DollarSign } from "lucide-react";
+import { Search, Scale, TrendingUp, Award, Edit3, DollarSign, Calendar, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
@@ -13,7 +14,7 @@ import { useUpdatePenWeight } from "@/hooks/use-pen";
 import { useSellCattle } from "@/hooks/use-cattle-sale";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { Pen, InsertCattleSale } from "@shared/schema";
+import type { Pen, InsertCattleSale, CattleSale } from "@shared/schema";
 
 interface PensProps {
   operatorEmail: string;
@@ -37,10 +38,15 @@ export default function Pens({ operatorEmail }: PensProps) {
   const [selectedPen, setSelectedPen] = useState<Pen | null>(null);
   const [isWeightDialogOpen, setIsWeightDialogOpen] = useState(false);
   const [isSellDialogOpen, setIsSellDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
   
-  const { data: pens, isLoading } = useQuery<Pen[]>({
+  const { data: pens, isLoading: isPensLoading } = useQuery<Pen[]>({
     queryKey: ["/api/pens", operatorEmail],
+  });
+
+  const { data: cattleSales, isLoading: isSalesLoading } = useQuery<CattleSale[]>({
+    queryKey: ["/api/cattle-sales", operatorEmail],
   });
 
   const updateWeight = useUpdatePenWeight();
@@ -62,10 +68,21 @@ export default function Pens({ operatorEmail }: PensProps) {
     },
   });
 
-  const filteredPens = pens?.filter(pen =>
+  // Filter active pens (status Active or Maintenance with current > 0)
+  const activePens = pens?.filter(pen => 
+    pen.status !== 'Inactive' && pen.current > 0
+  ) || [];
+
+  const filteredActivePens = activePens.filter(pen =>
     pen.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pen.feedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pen.cattleType.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter sold cattle (cattle sales)
+  const filteredSoldCattle = cattleSales?.filter(sale =>
+    sale.penName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    sale.cattleType.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   const getStatusColor = (status: string) => {
@@ -176,7 +193,7 @@ export default function Pens({ operatorEmail }: PensProps) {
     }
   };
 
-  if (isLoading) {
+  if (isPensLoading || isSalesLoading) {
     return (
       <div className="pb-20">
         <div className="bg-white shadow-sm">
@@ -201,30 +218,42 @@ export default function Pens({ operatorEmail }: PensProps) {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-6 bg-white border-b border-gray-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            type="text"
-            placeholder="Search pens..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      {/* Pens List */}
-      <div className="p-6 space-y-4">
-        {filteredPens.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">
-              {searchQuery ? "No pens found matching your search" : "No pens found for this operation"}
-            </p>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="bg-white border-b border-gray-200">
+          <div className="px-6 pt-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="active">Active Pens</TabsTrigger>
+              <TabsTrigger value="sold">Sold Cattle</TabsTrigger>
+            </TabsList>
           </div>
-        ) : (
-          filteredPens.map((pen) => (
+          
+          {/* Search Bar */}
+          <div className="p-6 pt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder={activeTab === "active" ? "Search pens..." : "Search sold cattle..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Active Pens Tab */}
+        <TabsContent value="active" className="mt-0">
+          <div className="p-6 space-y-4">
+            {filteredActivePens.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  {searchQuery ? "No active pens found matching your search" : "No active pens found"}
+                </p>
+              </div>
+            ) : (
+              filteredActivePens.map((pen) => (
             <div key={pen.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -319,9 +348,105 @@ export default function Pens({ operatorEmail }: PensProps) {
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Sold Cattle Tab */}
+        <TabsContent value="sold" className="mt-0">
+          <div className="p-6 space-y-4">
+            {filteredSoldCattle.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  {searchQuery ? "No sold cattle found matching your search" : "No cattle sales recorded yet"}
+                </p>
+              </div>
+            ) : (
+              filteredSoldCattle.map((sale) => (
+                <div key={sale.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold">{sale.penName}</h3>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getCattleTypeColor(sale.cattleType)}>{sale.cattleType}</Badge>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Sold
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Sale Overview */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Cattle Count</p>
+                        <p className="font-semibold flex items-center">
+                          <Users className="h-4 w-4 mr-1" />
+                          {sale.cattleCount} head
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Final Weight</p>
+                        <p className="font-semibold flex items-center">
+                          <Scale className="h-4 w-4 mr-1" />
+                          {sale.finalWeight} lbs
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Sale Details */}
+                    <div className="bg-green-50 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-green-700 flex items-center">
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          Sale Information
+                        </h4>
+                        <div className="flex items-center text-xs text-green-600">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {new Date(sale.saleDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-xs mb-2">
+                        <div className="text-center">
+                          <p className="font-medium text-green-900">${sale.pricePerCwt}/cwt</p>
+                          <p className="text-green-600">Price per CWT</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-green-900">${sale.totalRevenue.toFixed(2)}</p>
+                          <p className="text-green-600">Total Revenue</p>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center pt-1 border-t border-green-200">
+                        <p className="text-xs text-green-700">
+                          {sale.cattleCount} head × {sale.finalWeight} lbs × ${sale.pricePerCwt}/cwt
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Additional Details */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Sale Date:</span>
+                        <span className="font-medium">{new Date(sale.saleDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Record Created:</span>
+                        <span className="font-medium">{new Date(sale.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Sale ID:</span>
+                        <span className="font-medium font-mono text-xs">{sale.id}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Weight Update Dialog */}
       <Dialog open={isWeightDialogOpen} onOpenChange={setIsWeightDialogOpen}>
