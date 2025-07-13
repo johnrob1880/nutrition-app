@@ -152,6 +152,9 @@ export interface CattleSale {
   totalRevenue: number;
   cattleCount: number;
   cattleType: string;
+  startingWeight: number;
+  averageDailyGain: number;
+  daysOnFeed: number;
   saleDate: string;
   operatorEmail: string;
   createdAt: string;

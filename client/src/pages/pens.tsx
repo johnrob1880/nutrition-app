@@ -386,11 +386,39 @@ export default function Pens({ operatorEmail }: PensProps) {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Final Weight</p>
+                        <p className="text-sm text-gray-600">Days on Feed</p>
                         <p className="font-semibold flex items-center">
-                          <Scale className="h-4 w-4 mr-1" />
-                          {sale.finalWeight} lbs
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {sale.daysOnFeed} days
                         </p>
+                      </div>
+                    </div>
+
+                    {/* Weight Details */}
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                          <Scale className="h-4 w-4 mr-1" />
+                          Weight Performance
+                        </h4>
+                        <div className="flex items-center text-xs text-secondary">
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                          {sale.averageDailyGain} lbs/day
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 text-xs">
+                        <div className="text-center">
+                          <p className="font-medium text-gray-900">{sale.startingWeight} lbs</p>
+                          <p className="text-gray-500">Starting</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-primary">{sale.finalWeight} lbs</p>
+                          <p className="text-gray-500">Final</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-secondary">{sale.finalWeight - sale.startingWeight} lbs</p>
+                          <p className="text-gray-500">Total Gain</p>
+                        </div>
                       </div>
                     </div>
 

@@ -600,6 +600,30 @@ export class MemStorage implements IStorage {
     // Calculate total revenue (final weight * price per cwt / 100 * cattle count)
     const totalRevenue = (saleRecord.finalWeight * saleRecord.pricePerCwt / 100) * pen.current;
 
+    // Calculate days on feed - find the earliest feeding plan start date for this pen as reference
+    // If no feeding plans exist, use a default calculation based on expected 180-day feeding period
+    const feedingPlans = await this.getFeedingPlansByOperatorEmail(saleRecord.operatorEmail);
+    const penFeedingPlans = feedingPlans.filter(plan => plan.penId === saleRecord.penId);
+    
+    let startDate: Date;
+    if (penFeedingPlans.length > 0) {
+      // Use the earliest feeding plan start date
+      const earliestPlan = penFeedingPlans.reduce((earliest, current) => 
+        new Date(current.startDate) < new Date(earliest.startDate) ? current : earliest
+      );
+      startDate = new Date(earliestPlan.startDate);
+    } else {
+      // Fallback: estimate start date as 180 days before sale date (typical feeding period)
+      startDate = new Date(new Date(saleRecord.saleDate).getTime() - (180 * 24 * 60 * 60 * 1000));
+    }
+
+    const saleDate = new Date(saleRecord.saleDate);
+    const daysOnFeed = Math.ceil((saleDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
+    
+    // Calculate average daily gain: (final weight - starting weight) / days on feed
+    const weightGain = saleRecord.finalWeight - pen.startingWeight;
+    const averageDailyGain = daysOnFeed > 0 ? Math.round((weightGain / daysOnFeed) * 100) / 100 : 0;
+
     const cattleSale: CattleSale = {
       id,
       operationId: saleRecord.operationId,
@@ -610,6 +634,9 @@ export class MemStorage implements IStorage {
       totalRevenue,
       cattleCount: pen.current,
       cattleType: pen.cattleType,
+      startingWeight: pen.startingWeight,
+      averageDailyGain,
+      daysOnFeed,
       saleDate: saleRecord.saleDate,
       operatorEmail: saleRecord.operatorEmail,
       createdAt: new Date().toISOString(),
