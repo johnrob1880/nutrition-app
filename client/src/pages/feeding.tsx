@@ -111,7 +111,23 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
 
   // Numeric keypad functionality
   const addToCurrentAmount = (digit: string) => {
-    const currentAmount = actualIngredients[currentIngredientIndex]?.actualAmount || '';
+    const currentIngredient = actualIngredients[currentIngredientIndex];
+    if (!currentIngredient) return;
+    
+    const currentAmount = currentIngredient.actualAmount || '';
+    const plannedAmount = currentIngredient.plannedAmount;
+    
+    // Clear default value on first input if it matches planned amount
+    if (currentAmount === plannedAmount) {
+      if (digit === '.') {
+        updateIngredientAmount(currentIngredientIndex, '0.');
+      } else {
+        updateIngredientAmount(currentIngredientIndex, digit);
+      }
+      return;
+    }
+    
+    // Normal input handling
     if (digit === '.') {
       if (currentAmount.includes('.')) return; // Prevent multiple decimals
     }
