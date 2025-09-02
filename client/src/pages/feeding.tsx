@@ -45,7 +45,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   // State for ingredient inputs and wizard
   const [actualIngredients, setActualIngredients] = useState<ActualIngredient[]>([]);
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
-  const [isWizardMode, setIsWizardMode] = useState(false);
+  const [isWizardMode, setIsWizardMode] = useState(true); // Start with wizard mode
 
   // Helper function to calculate total amount from per-head amount
   const calculateTotalAmount = (perHeadAmount: string, cattleCount: number): string => {
@@ -315,71 +315,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
         </Card>
 
         {/* Ingredients */}
-        {!isWizardMode ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingredients</CardTitle>
-              <p className="text-sm text-gray-600">
-                Enter the total amount used for each ingredient ({currentPen?.current} head of cattle)
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {actualIngredients.map((ingredient, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium">{ingredient.name}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {ingredient.category}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-600 text-right">
-                        <div>Planned Total: {ingredient.plannedAmount} {ingredient.unit}</div>
-                        {currentPen && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            ({calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current)} {ingredient.unit} per head)
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor={`ingredient-${index}`}>
-                        Actual Total Amount ({ingredient.unit})
-                      </Label>
-                      <Input
-                        id={`ingredient-${index}`}
-                        type="number"
-                        step="0.1"
-                        placeholder={ingredient.plannedAmount}
-                        value={ingredient.actualAmount}
-                        onChange={(e) => updateIngredientAmount(index, e.target.value)}
-                        className="max-w-32"
-                      />
-                      {currentPen && ingredient.actualAmount && (
-                        <p className="text-xs text-gray-500">
-                          ({calculatePerHeadAmount(ingredient.actualAmount, currentPen.current)} {ingredient.unit} per head)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 flex justify-center">
-                <Button 
-                  onClick={startWizard}
-                  variant="outline"
-                  className="w-full max-w-md"
-                  size="lg"
-                >
-                  Use Touch-Friendly Input
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
+        {isWizardMode ? (
           /* Wizard Mode */
           <Card>
             <CardHeader>
@@ -393,7 +329,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                   </p>
                 </div>
                 <Button variant="ghost" onClick={exitWizard} size="sm">
-                  Exit Wizard
+                  Use Manual Input
                 </Button>
               </div>
             </CardHeader>
@@ -524,6 +460,71 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+        ) : (
+          /* Manual Input Mode */
+          <Card>
+            <CardHeader>
+              <CardTitle>Ingredients</CardTitle>
+              <p className="text-sm text-gray-600">
+                Enter the total amount used for each ingredient ({currentPen?.current} head of cattle)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {actualIngredients.map((ingredient, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-medium">{ingredient.name}</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          {ingredient.category}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-gray-600 text-right">
+                        <div>Planned Total: {ingredient.plannedAmount} {ingredient.unit}</div>
+                        {currentPen && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            ({calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current)} {ingredient.unit} per head)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`ingredient-${index}`}>
+                        Actual Total Amount ({ingredient.unit})
+                      </Label>
+                      <Input
+                        id={`ingredient-${index}`}
+                        type="number"
+                        step="0.1"
+                        placeholder={ingredient.plannedAmount}
+                        value={ingredient.actualAmount}
+                        onChange={(e) => updateIngredientAmount(index, e.target.value)}
+                        className="max-w-32"
+                      />
+                      {currentPen && ingredient.actualAmount && (
+                        <p className="text-xs text-gray-500">
+                          ({calculatePerHeadAmount(ingredient.actualAmount, currentPen.current)} {ingredient.unit} per head)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  onClick={startWizard}
+                  variant="outline"
+                  className="w-full max-w-md"
+                  size="lg"
+                >
+                  Use Touch-Friendly Input
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
