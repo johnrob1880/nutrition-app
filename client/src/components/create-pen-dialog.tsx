@@ -63,7 +63,18 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
         operatorEmail,
       };
 
-      await apiRequest("/api/pens", "POST", penData);
+      const response = await fetch("/api/pens", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(penData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create pen");
+      }
 
       // Invalidate pens cache to refetch the list
       queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
@@ -94,10 +105,13 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
           Add New Pen
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" aria-describedby="pen-form-description">
         <DialogHeader>
           <DialogTitle>Create New Cattle Pen</DialogTitle>
         </DialogHeader>
+        <p id="pen-form-description" className="text-sm text-gray-600 mb-4">
+          Fill in the details below to create a new cattle pen for your operation.
+        </p>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div>
