@@ -42,6 +42,7 @@ export interface Pen {
   isCrossbred: boolean;
   currentWeight: number;
   weightHistory: WeightRecord[];
+  nutritionistId?: string;
 }
 
 export interface CreatePenRequest {
@@ -54,6 +55,7 @@ export interface CreatePenRequest {
   marketWeight: number;
   feedType: string;
   isCrossbred: boolean;
+  nutritionistId?: string;
 }
 
 export interface UpdateWeightRequest {
@@ -179,5 +181,21 @@ export interface InsertCattleSale {
   finalWeight: number;
   pricePerCwt: number;
   saleDate: string;
+  operatorEmail: string;
+}
+
+// Nutritionist interface for external system integration
+export interface Nutritionist {
+  id: string;
+  personalName: string;
+  businessName: string;
+  operatorEmail: string;
+  createdAt?: string;
+}
+
+export interface CreateNutritionistRequest {
+  id: string;
+  personalName: string;
+  businessName: string;
   operatorEmail: string;
 }

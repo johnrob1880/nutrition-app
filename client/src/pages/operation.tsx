@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, HelpCircle, Mail, RefreshCw, LogOut } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NutritionistManagement from "@/components/nutritionist-management";
 
 interface OperationProps {
   operation: Operation;
@@ -70,9 +72,16 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
 
       {/* Profile Content */}
       <div className="p-6 space-y-6">
-        {/* Operation Info Card */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 border-b border-gray-100">
+        <Tabs defaultValue="operation" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="operation">Operation Info</TabsTrigger>
+            <TabsTrigger value="nutritionists">Nutritionists</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="operation">
+            {/* Operation Info Card */}
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Operation Information</h2>
               {!isEditing && (
@@ -255,18 +264,24 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
           </div>
         </div>
 
-        {/* Logout Section */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4">
-            <button 
-              onClick={onLogout}
-              className="w-full flex items-center justify-center p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-            >
-              <LogOut className="h-5 w-5 mr-2" />
-              <span className="font-medium">Sign Out</span>
-            </button>
-          </div>
-        </div>
+            {/* Logout Section */}
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="p-4">
+                <button 
+                  onClick={onLogout}
+                  className="w-full flex items-center justify-center p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  <span className="font-medium">Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="nutritionists">
+            <NutritionistManagement operatorEmail={operation.operatorEmail} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus } from "lucide-react";
-import type { CreatePenRequest, Pen } from "@shared/schema";
+import type { CreatePenRequest, Pen, Nutritionist } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 const createPenSchema = z.object({
   name: z.string().min(1, "Pen name is required"),
@@ -21,6 +22,7 @@ const createPenSchema = z.object({
   startingWeight: z.number().min(1, "Starting weight must be greater than 0"),
   marketWeight: z.number().min(1, "Market weight must be greater than 0"),
   isCrossbred: z.boolean(),
+  nutritionistId: z.string().min(1, "Nutritionist is required"),
 }).refine((data) => data.current <= data.capacity, {
   message: "Current cattle count cannot exceed capacity",
   path: ["current"],
@@ -40,6 +42,12 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Fetch nutritionists for the operation
+  const { data: nutritionists = [], isLoading: nutritionistsLoading } = useQuery<Nutritionist[]>({
+    queryKey: ["/api/nutritionists", operatorEmail],
+    enabled: !!operatorEmail,
+  });
+
   const form = useForm<CreatePenForm>({
     resolver: zodResolver(createPenSchema),
     defaultValues: {
@@ -50,6 +58,7 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
       startingWeight: 500,
       marketWeight: 1200,
       isCrossbred: false,
+      nutritionistId: "",
     },
   });
 
@@ -210,9 +219,32 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
             <Label htmlFor="isCrossbred">Crossbred cattle</Label>
           </div>
 
+          <div>
+            <Label htmlFor="nutritionist">Nutritionist *</Label>
+            <Select
+              value={form.watch("nutritionistId")}
+              onValueChange={(value) => form.setValue("nutritionistId", value)}
+              disabled={nutritionistsLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={nutritionistsLoading ? "Loading nutritionists..." : "Select a nutritionist"} />
+              </SelectTrigger>
+              <SelectContent>
+                {nutritionists.map((nutritionist) => (
+                  <SelectItem key={nutritionist.id} value={nutritionist.id}>
+                    {nutritionist.personalName} - {nutritionist.businessName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.nutritionistId && (
+              <p className="text-sm text-red-600 mt-1">{form.formState.errors.nutritionistId.message}</p>
+            )}
+          </div>
+
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">
-              <strong>Note:</strong> Feed type will be automatically assigned by the feeding management system once the pen is created.
+              <strong>Note:</strong> Feed type will be automatically assigned by the selected nutritionist once the pen is created.
             </p>
           </div>
 

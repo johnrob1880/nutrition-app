@@ -236,6 +236,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Nutritionist routes
+  app.get("/api/nutritionists/:operatorEmail", async (req, res) => {
+    try {
+      const { operatorEmail } = req.params;
+      const nutritionists = await storage.getNutritionistsByOperatorEmail(operatorEmail);
+      res.json(nutritionists);
+    } catch (error) {
+      console.error("Error fetching nutritionists:", error);
+      res.status(500).json({ message: "Failed to fetch nutritionists" });
+    }
+  });
+
+  app.post("/api/nutritionists", async (req, res) => {
+    try {
+      const nutritionist = await storage.createNutritionist(req.body);
+      res.status(201).json(nutritionist);
+    } catch (error) {
+      console.error("Error creating nutritionist:", error);
+      res.status(500).json({ message: "Failed to create nutritionist" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

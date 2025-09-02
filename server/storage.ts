@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type CreateNutritionistRequest } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -20,6 +20,9 @@ export interface IStorage {
   // Cattle sales
   sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale>;
   getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]>;
+  // Nutritionists
+  getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]>;
+  createNutritionist(nutritionist: CreateNutritionistRequest): Promise<Nutritionist>;
 }
 
 export class MemStorage implements IStorage {
@@ -32,6 +35,7 @@ export class MemStorage implements IStorage {
   private cattleSales: Map<string, CattleSale>;
   private saleId: number;
   private inviteCodes: Map<string, string>; // inviteCode -> operatorEmail
+  private nutritionists: Map<string, Nutritionist>;
 
   constructor() {
     this.operations = new Map();
@@ -43,8 +47,10 @@ export class MemStorage implements IStorage {
     this.cattleSales = new Map();
     this.saleId = 1;
     this.inviteCodes = new Map();
+    this.nutritionists = new Map();
     this.initializePensData();
     this.initializeInviteCodes();
+    this.initializeNutritionistData();
   }
 
   private initializeInviteCodes() {
@@ -711,6 +717,53 @@ export class MemStorage implements IStorage {
     return Array.from(this.cattleSales.values()).filter(
       sale => sale.operatorEmail === operatorEmail
     );
+  }
+
+  async getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]> {
+    return Array.from(this.nutritionists.values()).filter(
+      nutritionist => nutritionist.operatorEmail === operatorEmail
+    );
+  }
+
+  async createNutritionist(nutritionist: CreateNutritionistRequest): Promise<Nutritionist> {
+    const newNutritionist: Nutritionist = {
+      ...nutritionist,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.nutritionists.set(nutritionist.id, newNutritionist);
+    return newNutritionist;
+  }
+
+  private initializeNutritionistData() {
+    // Sample nutritionists for testing
+    const sampleNutritionists: Nutritionist[] = [
+      {
+        id: "NUT-001",
+        personalName: "Dr. Sarah Johnson",
+        businessName: "Prairie Nutrition Solutions",
+        operatorEmail: "johnrob1880@gmail.com",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "NUT-002", 
+        personalName: "Mike Rodriguez",
+        businessName: "Cattle Feed Experts Inc.",
+        operatorEmail: "johnrob1880@gmail.com",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "NUT-003",
+        personalName: "Dr. Emily Chen",
+        businessName: "Advanced Animal Nutrition",
+        operatorEmail: "jane.smith@example.com",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    sampleNutritionists.forEach(nutritionist => {
+      this.nutritionists.set(nutritionist.id, nutritionist);
+    });
   }
 }
 
