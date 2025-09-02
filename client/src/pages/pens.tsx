@@ -13,6 +13,7 @@ import { useUpdatePenWeight } from "@/hooks/use-pen";
 import { useSellCattle } from "@/hooks/use-cattle-sale";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import CreatePenDialog from "@/components/create-pen-dialog";
 import type { Pen, InsertCattleSale, CattleSale } from "@shared/schema";
 
 interface PensProps {
@@ -212,8 +213,13 @@ export default function Pens({ operatorEmail }: PensProps) {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="px-6 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">Cattle Pens</h1>
-          <p className="text-sm text-gray-600">Read-only view of pens linked to your operation</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Cattle Pens</h1>
+              <p className="text-sm text-gray-600">Manage your cattle pens and track livestock</p>
+            </div>
+            <CreatePenDialog operatorEmail={operatorEmail} />
+          </div>
         </div>
       </div>
 

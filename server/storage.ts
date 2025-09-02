@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -9,6 +9,7 @@ export interface IStorage {
   validateInviteCode(inviteCode: string, operatorEmail: string): Promise<boolean>;
   // External system simulation
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
+  createPen(penData: CreatePenRequest): Promise<Pen>;
   getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
   getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
   getDashboardStats(operatorEmail: string): Promise<DashboardStats>;
@@ -25,6 +26,7 @@ export class MemStorage implements IStorage {
   private operations: Map<number, Operation>;
   private currentId: number;
   private pens: Map<string, Pen>;
+  private penIdCounter: number;
   private feedingRecords: Map<string, FeedingRecord>;
   private feedingRecordId: number;
   private cattleSales: Map<string, CattleSale>;
@@ -35,6 +37,7 @@ export class MemStorage implements IStorage {
     this.operations = new Map();
     this.currentId = 1;
     this.pens = new Map();
+    this.penIdCounter = 4; // Start after existing sample pens
     this.feedingRecords = new Map();
     this.feedingRecordId = 1;
     this.cattleSales = new Map();
@@ -160,6 +163,35 @@ export class MemStorage implements IStorage {
   // Simulate external system data
   async getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]> {
     return Array.from(this.pens.values()).filter(pen => pen.operatorEmail === operatorEmail);
+  }
+
+  async createPen(penData: CreatePenRequest): Promise<Pen> {
+    const penId = `pen-${String(this.penIdCounter++).padStart(3, '0')}`;
+    
+    const newPen: Pen = {
+      id: penId,
+      name: penData.name,
+      capacity: penData.capacity,
+      current: penData.current,
+      status: 'Active',
+      feedType: penData.feedType,
+      lastFed: 'Never',
+      operatorEmail: penData.operatorEmail,
+      cattleType: penData.cattleType,
+      startingWeight: penData.startingWeight,
+      marketWeight: penData.marketWeight,
+      averageDailyGain: 0, // Will be calculated over time
+      isCrossbred: penData.isCrossbred,
+      currentWeight: penData.startingWeight, // Start with starting weight
+      weightHistory: [{
+        date: new Date().toISOString().split('T')[0],
+        weight: penData.startingWeight,
+        recordedBy: penData.operatorEmail
+      }]
+    };
+
+    this.pens.set(penId, newPen);
+    return newPen;
   }
 
   async updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined> {

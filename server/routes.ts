@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord } from "@shared/schema";
+import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type CreatePenRequest } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -72,6 +72,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pens);
     } catch (error) {
       res.status(500).json({ message: "Failed to get pens" });
+    }
+  });
+
+  // Create new pen
+  app.post("/api/pens", async (req, res) => {
+    try {
+      const penData: CreatePenRequest = req.body;
+      
+      // Validate required fields
+      if (!penData.name || !penData.operatorEmail || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight || !penData.feedType) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Validate capacity and current cattle count
+      if (penData.current > penData.capacity) {
+        return res.status(400).json({ message: "Current cattle count cannot exceed pen capacity" });
+      }
+
+      const pen = await storage.createPen(penData);
+      res.status(201).json(pen);
+    } catch (error) {
+      console.error("Error creating pen:", error);
+      res.status(500).json({ message: "Failed to create pen" });
     }
   });
 

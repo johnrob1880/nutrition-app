@@ -44,6 +44,18 @@ export interface Pen {
   weightHistory: WeightRecord[];
 }
 
+export interface CreatePenRequest {
+  name: string;
+  capacity: number;
+  current: number;
+  operatorEmail: string;
+  cattleType: 'Steers' | 'Heifers' | 'Mixed';
+  startingWeight: number;
+  marketWeight: number;
+  feedType: string;
+  isCrossbred: boolean;
+}
+
 export interface UpdateWeightRequest {
   penId: string;
   newWeight: number;
