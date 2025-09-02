@@ -9,6 +9,7 @@ import {
   DollarSign,
   Calendar,
   Users,
+  User,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -435,8 +436,10 @@ export default function Pens({ operatorEmail }: PensProps) {
                       const nutritionist = getNutritionistInfo(pen.nutritionistId);
                       return nutritionist ? (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-blue-900 truncate">{nutritionist.personalName}</p>
                               <p className="text-xs text-blue-700 truncate">{nutritionist.businessName}</p>
@@ -445,8 +448,10 @@ export default function Pens({ operatorEmail }: PensProps) {
                         </div>
                       ) : (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
                             <p className="text-sm text-gray-600">No nutritionist assigned</p>
                           </div>
                         </div>
