@@ -229,6 +229,11 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                     : currentSchedule.totalAmount
                   }
                 </p>
+                {currentPen && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    ({currentSchedule.totalAmount} per head)
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-gray-600">Time</p>
@@ -282,7 +287,12 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                       </Badge>
                     </div>
                     <div className="text-sm text-gray-600">
-                      Planned Total: {ingredient.plannedAmount} {ingredient.unit}
+                      <div>Planned Total: {ingredient.plannedAmount} {ingredient.unit}</div>
+                      {currentPen && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ({calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current)} {ingredient.unit} per head)
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -299,6 +309,11 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                       onChange={(e) => updateIngredientAmount(index, e.target.value)}
                       className="max-w-32"
                     />
+                    {currentPen && ingredient.actualAmount && (
+                      <p className="text-xs text-gray-500">
+                        ({calculatePerHeadAmount(ingredient.actualAmount, currentPen.current)} {ingredient.unit} per head)
+                      </p>
+                    )}
                   </div>
                   
                   {currentSchedule.ingredients[index]?.nutritionalValue && (
