@@ -9,7 +9,7 @@ export default function BottomNav({ currentOperation }: BottomNavProps) {
   const [location, setLocation] = useLocation();
 
   const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: Home, path: "/dashboard" },
+    { id: "dashboard", label: "Dashboard", icon: Home, path: "/" },
     { id: "pens", label: "Pens", icon: Building, path: "/pens" },
     { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
     { id: "operation", label: "Operation", icon: User, path: "/operation" },
@@ -22,7 +22,8 @@ export default function BottomNav({ currentOperation }: BottomNavProps) {
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = location === tab.path;
+          // Make dashboard active for both "/" and "/dashboard" paths
+          const isActive = location === tab.path || (tab.path === "/" && location === "/dashboard");
           
           return (
             <button
