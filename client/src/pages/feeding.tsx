@@ -334,20 +334,25 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
               <>
                 {/* Ingredient Info */}
                 <div className="text-center">
-                  <h3 className="font-semibold text-lg mb-2">
+                  <h3 className="font-semibold text-lg mb-3">
                     {actualIngredients[currentIngredientIndex].name}
                   </h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-blue-50 p-2 rounded">
-                      <div className="font-medium text-blue-800">
-                        Planned: {actualIngredients[currentIngredientIndex].plannedAmount} {actualIngredients[currentIngredientIndex].unit}
-                      </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="text-xs text-gray-600 mb-2">Actual / Planned ({actualIngredients[currentIngredientIndex].unit})</div>
+                    <div className="text-3xl font-bold font-mono">
+                      <span className="text-green-600">
+                        {actualIngredients[currentIngredientIndex].actualAmount || '0'}
+                      </span>
+                      <span className="text-gray-400 mx-2">/</span>
+                      <span className="text-blue-600">
+                        {actualIngredients[currentIngredientIndex].plannedAmount}
+                      </span>
                     </div>
-                    <div className="bg-green-50 p-2 rounded">
-                      <div className="font-medium text-green-800">
-                        Actual: {actualIngredients[currentIngredientIndex].actualAmount || '0'} {actualIngredients[currentIngredientIndex].unit}
+                    {currentPen && (
+                      <div className="text-xs text-gray-500 mt-2">
+                        ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].actualAmount || '0', currentPen.current)} / {calculatePerHeadAmount(actualIngredients[currentIngredientIndex].plannedAmount, currentPen.current)} per head)
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
