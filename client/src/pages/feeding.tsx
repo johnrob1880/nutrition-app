@@ -357,13 +357,15 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                     <Badge variant="secondary" className="mb-2">
                       {actualIngredients[currentIngredientIndex].category}
                     </Badge>
-                    <h3 className="text-xl font-semibold mb-2">
+                    <h3 className="text-xl font-semibold mb-3">
                       {actualIngredients[currentIngredientIndex].name}
                     </h3>
-                    <div className="text-sm text-gray-600">
-                      <div>Planned: {actualIngredients[currentIngredientIndex].plannedAmount} {actualIngredients[currentIngredientIndex].unit}</div>
+                    <div className="bg-blue-50 p-4 rounded-lg mb-2">
+                      <div className="text-lg font-semibold text-blue-800">
+                        Planned: {actualIngredients[currentIngredientIndex].plannedAmount} {actualIngredients[currentIngredientIndex].unit}
+                      </div>
                       {currentPen && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-sm text-blue-600 mt-1">
                           ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].plannedAmount, currentPen.current)} {actualIngredients[currentIngredientIndex].unit} per head)
                         </div>
                       )}
@@ -372,15 +374,15 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
 
                   {/* Amount Display */}
                   <div className="text-center mb-6">
-                    <Label className="text-lg">
+                    <Label className="text-lg font-semibold">
                       Actual Amount ({actualIngredients[currentIngredientIndex].unit})
                     </Label>
-                    <div className="mt-2 p-4 bg-gray-50 rounded-lg">
-                      <div className="text-3xl font-mono font-bold text-center min-h-12 flex items-center justify-center">
+                    <div className="mt-2 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                      <div className="text-3xl font-mono font-bold text-center min-h-12 flex items-center justify-center text-green-800">
                         {actualIngredients[currentIngredientIndex].actualAmount || '0'}
                       </div>
                       {currentPen && actualIngredients[currentIngredientIndex].actualAmount && (
-                        <div className="text-sm text-gray-500 mt-2">
+                        <div className="text-sm text-green-600 mt-2">
                           ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].actualAmount, currentPen.current)} {actualIngredients[currentIngredientIndex].unit} per head)
                         </div>
                       )}
