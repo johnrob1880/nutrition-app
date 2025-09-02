@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Save, Clock, Weight } from "lucide-react";
+import { ArrowLeft, Save, Clock, Weight, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -45,6 +46,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   // State for ingredient inputs
   const [actualIngredients, setActualIngredients] = useState<ActualIngredient[]>([]);
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
+  const [isFullScreenModal, setIsFullScreenModal] = useState(false);
 
   // Helper function to calculate total amount from per-head amount
   const calculateTotalAmount = (perHeadAmount: string, cattleCount: number): string => {
@@ -325,9 +327,19 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
         {/* Ingredients - Touch Input */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">
-              Ingredient {currentIngredientIndex + 1} of {actualIngredients.length}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">
+                Ingredient {currentIngredientIndex + 1} of {actualIngredients.length}
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsFullScreenModal(true)}
+                className="p-2"
+              >
+                <Expand className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {actualIngredients[currentIngredientIndex] && (
@@ -451,6 +463,136 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
 
 
       </div>
+
+      {/* Full Screen Modal */}
+      <Dialog open={isFullScreenModal} onOpenChange={setIsFullScreenModal}>
+        <DialogContent className="max-w-full max-h-full w-screen h-screen p-0 flex flex-col">
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle className="text-2xl">
+              Ingredient {currentIngredientIndex + 1} of {actualIngredients.length}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 px-6 pb-6 overflow-auto">
+            {actualIngredients[currentIngredientIndex] && (
+              <div className="space-y-8 max-w-md mx-auto">
+                {/* Ingredient Info */}
+                <div className="text-center">
+                  <h3 className="font-semibold text-3xl mb-4">
+                    {actualIngredients[currentIngredientIndex].name}
+                  </h3>
+                  <div className="bg-gray-50 p-6 rounded-lg">
+                    <div className="text-sm text-gray-600 mb-3">Actual / Planned ({actualIngredients[currentIngredientIndex].unit})</div>
+                    <div className="text-5xl font-bold font-mono">
+                      <span className="text-green-600">
+                        {actualIngredients[currentIngredientIndex].actualAmount || '0'}
+                      </span>
+                      <span className="text-gray-400 mx-3">/</span>
+                      <span className="text-blue-600">
+                        {actualIngredients[currentIngredientIndex].plannedAmount}
+                      </span>
+                    </div>
+                    {currentPen && (
+                      <div className="text-sm text-gray-500 mt-3">
+                        ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].actualAmount || '0', currentPen.current)} / {calculatePerHeadAmount(actualIngredients[currentIngredientIndex].plannedAmount, currentPen.current)} per head)
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Numeric Keypad */}
+                <div className="grid grid-cols-3 gap-4">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                    <Button
+                      key={digit}
+                      variant="outline"
+                      size="lg"
+                      className="h-16 text-2xl font-semibold"
+                      onClick={() => addToCurrentAmount(digit)}
+                    >
+                      {digit}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-16 text-2xl font-semibold"
+                    onClick={() => addToCurrentAmount('.')}
+                  >
+                    .
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-16 text-2xl font-semibold"
+                    onClick={() => addToCurrentAmount('0')}
+                  >
+                    0
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-16 text-2xl font-semibold"
+                    onClick={removeLastDigit}
+                  >
+                    ⌫
+                  </Button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant="destructive"
+                    onClick={clearAmount}
+                    className="h-14 text-lg"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    onClick={() => updateIngredientAmount(currentIngredientIndex, actualIngredients[currentIngredientIndex].plannedAmount)}
+                    variant="secondary"
+                    className="h-14 text-lg"
+                  >
+                    Use Planned
+                  </Button>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={goToPreviousIngredient}
+                    disabled={currentIngredientIndex === 0}
+                    className="flex-1 h-14 text-lg"
+                  >
+                    Previous
+                  </Button>
+                  
+                  {currentIngredientIndex < actualIngredients.length - 1 ? (
+                    <Button
+                      onClick={goToNextIngredient}
+                      className="flex-1 h-14 text-lg"
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setIsFullScreenModal(false);
+                        handleSubmit();
+                      }}
+                      className="flex-1 h-14 text-lg"
+                      disabled={submitFeeding.isPending || !allIngredientsCompleted}
+                    >
+                      {submitFeeding.isPending ? "Saving..." : "Complete"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
