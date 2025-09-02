@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { FeedingPlan, FeedingSchedule, InsertFeedingRecord, ActualIngredient, Operation } from "@shared/schema";
+import type { FeedingPlan, FeedingSchedule, InsertFeedingRecord, ActualIngredient, Operation, Pen } from "@shared/schema";
 
 interface FeedingProps {
   operatorEmail: string;
@@ -32,26 +32,49 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
     queryKey: ["/api/schedules", operatorEmail],
   });
 
-  // Find the specific schedule
+  // Get pen data to calculate total amounts
+  const { data: pens } = useQuery<Pen[]>({
+    queryKey: ["/api/pens", operatorEmail],
+  });
+
+  // Find the specific schedule and pen
   const currentPlan = feedingPlans?.find(plan => plan.penId === penId);
   const currentSchedule = currentPlan?.schedules.find(schedule => schedule.id === scheduleId);
+  const currentPen = pens?.find(pen => pen.id === penId);
 
   // State for ingredient inputs
   const [actualIngredients, setActualIngredients] = useState<ActualIngredient[]>([]);
 
+  // Helper function to calculate total amount from per-head amount
+  const calculateTotalAmount = (perHeadAmount: string, cattleCount: number): string => {
+    const numericAmount = parseFloat(perHeadAmount);
+    if (isNaN(numericAmount)) return perHeadAmount;
+    return (numericAmount * cattleCount).toString();
+  };
+
+  // Helper function to calculate per-head amount from total amount
+  const calculatePerHeadAmount = (totalAmount: string, cattleCount: number): string => {
+    const numericAmount = parseFloat(totalAmount);
+    if (isNaN(numericAmount) || cattleCount === 0) return totalAmount;
+    return (numericAmount / cattleCount).toString();
+  };
+
   // Initialize actual ingredients when schedule loads
   useEffect(() => {
-    if (currentSchedule && actualIngredients.length === 0) {
-      const initialIngredients = currentSchedule.ingredients.map(ingredient => ({
-        name: ingredient.name,
-        plannedAmount: ingredient.amount,
-        actualAmount: ingredient.amount, // Default to planned amount
-        unit: ingredient.unit,
-        category: ingredient.category,
-      }));
+    if (currentSchedule && currentPen && actualIngredients.length === 0) {
+      const initialIngredients = currentSchedule.ingredients.map(ingredient => {
+        const totalPlannedAmount = calculateTotalAmount(ingredient.amount, currentPen.current);
+        return {
+          name: ingredient.name,
+          plannedAmount: totalPlannedAmount,
+          actualAmount: totalPlannedAmount, // Default to planned total amount
+          unit: ingredient.unit,
+          category: ingredient.category,
+        };
+      });
       setActualIngredients(initialIngredients);
     }
-  }, [currentSchedule, actualIngredients.length]);
+  }, [currentSchedule, currentPen, actualIngredients.length]);
 
   // Update ingredient actual amount
   const updateIngredientAmount = (index: number, actualAmount: string) => {
@@ -87,7 +110,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   });
 
   const handleSubmit = () => {
-    if (!operation || !currentSchedule || !currentPlan) {
+    if (!operation || !currentSchedule || !currentPlan || !currentPen) {
       toast({
         title: "Error", 
         description: "Missing required data to submit feeding record.",
@@ -96,12 +119,19 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
       return;
     }
 
+    // Convert total amounts back to per-head amounts for storage
+    const perHeadIngredients = actualIngredients.map(ingredient => ({
+      ...ingredient,
+      actualAmount: calculatePerHeadAmount(ingredient.actualAmount, currentPen.current),
+      plannedAmount: calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current),
+    }));
+
     const feedingRecord: InsertFeedingRecord = {
       operationId: operation.id,
       penId: penId!,
       scheduleId: scheduleId!,
       plannedAmount: currentSchedule.totalAmount,
-      actualIngredients,
+      actualIngredients: perHeadIngredients,
       operatorEmail,
     };
 
@@ -162,6 +192,9 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
             <div>
               <h1 className="text-xl font-semibold text-gray-900">Start Feeding</h1>
               <p className="text-sm text-gray-600">{currentPlan.penName} - {currentPlan.feedType}</p>
+              {currentPen && (
+                <p className="text-xs text-gray-500 mt-1">{currentPen.current} head of cattle</p>
+              )}
             </div>
             <div className="text-right">
               <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -189,8 +222,13 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-600">Planned Amount</p>
-                <p className="font-medium">{currentSchedule.totalAmount}</p>
+                <p className="text-gray-600">Planned Total Amount</p>
+                <p className="font-medium">
+                  {currentPen ? 
+                    calculateTotalAmount(currentSchedule.totalAmount.split(' ')[0], currentPen.current) + ' ' + currentSchedule.totalAmount.split(' ')[1]
+                    : currentSchedule.totalAmount
+                  }
+                </p>
               </div>
               <div>
                 <p className="text-gray-600">Time</p>
@@ -228,7 +266,9 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
         <Card>
           <CardHeader>
             <CardTitle>Ingredients</CardTitle>
-            <p className="text-sm text-gray-600">Enter the actual amount used for each ingredient</p>
+            <p className="text-sm text-gray-600">
+              Enter the total amount used for each ingredient ({currentPen?.current} head of cattle)
+            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -242,13 +282,13 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                       </Badge>
                     </div>
                     <div className="text-sm text-gray-600">
-                      Planned: {ingredient.plannedAmount} {ingredient.unit}
+                      Planned Total: {ingredient.plannedAmount} {ingredient.unit}
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor={`ingredient-${index}`}>
-                      Actual Amount ({ingredient.unit})
+                      Actual Total Amount ({ingredient.unit})
                     </Label>
                     <Input
                       id={`ingredient-${index}`}
