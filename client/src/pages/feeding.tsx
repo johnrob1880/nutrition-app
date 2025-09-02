@@ -42,10 +42,9 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   const currentSchedule = currentPlan?.schedules.find(schedule => schedule.id === scheduleId);
   const currentPen = pens?.find(pen => pen.id === penId);
 
-  // State for ingredient inputs and wizard
+  // State for ingredient inputs
   const [actualIngredients, setActualIngredients] = useState<ActualIngredient[]>([]);
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
-  const [isWizardMode, setIsWizardMode] = useState(true); // Start with wizard mode
 
   // Helper function to calculate total amount from per-head amount
   const calculateTotalAmount = (perHeadAmount: string, cattleCount: number): string => {
@@ -100,14 +99,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
     }
   };
 
-  const startWizard = () => {
-    setIsWizardMode(true);
-    setCurrentIngredientIndex(0);
-  };
 
-  const exitWizard = () => {
-    setIsWizardMode(false);
-  };
 
   // Numeric keypad functionality
   const addToCurrentAmount = (digit: string) => {
@@ -330,237 +322,129 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
           </CardContent>
         </Card>
 
-        {/* Ingredients */}
-        {isWizardMode ? (
-          /* Wizard Mode */
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    Ingredient {currentIngredientIndex + 1} of {actualIngredients.length}
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    {actualIngredients[currentIngredientIndex]?.name}
-                  </p>
-                </div>
-                <Button variant="ghost" onClick={exitWizard} size="sm">
-                  Use Manual Input
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {actualIngredients[currentIngredientIndex] && (
-                <>
-                  {/* Current Ingredient Info */}
-                  <div className="text-center mb-6">
-                    <Badge variant="secondary" className="mb-2">
-                      {actualIngredients[currentIngredientIndex].category}
-                    </Badge>
-                    <h3 className="text-xl font-semibold mb-3">
-                      {actualIngredients[currentIngredientIndex].name}
-                    </h3>
-                    <div className="bg-blue-50 p-4 rounded-lg mb-2">
-                      <div className="text-lg font-semibold text-blue-800">
+        {/* Ingredients - Touch Input */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">
+              Ingredient {currentIngredientIndex + 1} of {actualIngredients.length}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {actualIngredients[currentIngredientIndex] && (
+              <>
+                {/* Ingredient Info */}
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg mb-2">
+                    {actualIngredients[currentIngredientIndex].name}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="bg-blue-50 p-2 rounded">
+                      <div className="font-medium text-blue-800">
                         Planned: {actualIngredients[currentIngredientIndex].plannedAmount} {actualIngredients[currentIngredientIndex].unit}
                       </div>
-                      {currentPen && (
-                        <div className="text-sm text-blue-600 mt-1">
-                          ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].plannedAmount, currentPen.current)} {actualIngredients[currentIngredientIndex].unit} per head)
-                        </div>
-                      )}
                     </div>
-                  </div>
-
-                  {/* Amount Display */}
-                  <div className="text-center mb-6">
-                    <Label className="text-lg font-semibold">
-                      Actual Amount ({actualIngredients[currentIngredientIndex].unit})
-                    </Label>
-                    <div className="mt-2 p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                      <div className="text-3xl font-mono font-bold text-center min-h-12 flex items-center justify-center text-green-800">
-                        {actualIngredients[currentIngredientIndex].actualAmount || '0'}
-                      </div>
-                      {currentPen && actualIngredients[currentIngredientIndex].actualAmount && (
-                        <div className="text-sm text-green-600 mt-2">
-                          ({calculatePerHeadAmount(actualIngredients[currentIngredientIndex].actualAmount, currentPen.current)} {actualIngredients[currentIngredientIndex].unit} per head)
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Numeric Keypad */}
-                  <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto mb-6">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                      <Button
-                        key={digit}
-                        variant="outline"
-                        size="lg"
-                        className="h-14 text-xl font-semibold"
-                        onClick={() => addToCurrentAmount(digit)}
-                      >
-                        {digit}
-                      </Button>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="h-14 text-xl font-semibold"
-                      onClick={() => addToCurrentAmount('.')}
-                    >
-                      .
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="h-14 text-xl font-semibold"
-                      onClick={() => addToCurrentAmount('0')}
-                    >
-                      0
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="h-14 text-xl font-semibold"
-                      onClick={removeLastDigit}
-                    >
-                      ⌫
-                    </Button>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto mb-4">
-                    <Button
-                      variant="destructive"
-                      onClick={clearAmount}
-                      className="h-12"
-                    >
-                      Clear
-                    </Button>
-                    <Button
-                      onClick={() => updateIngredientAmount(currentIngredientIndex, actualIngredients[currentIngredientIndex].plannedAmount)}
-                      variant="secondary"
-                      className="h-12"
-                    >
-                      Use Planned
-                    </Button>
-                  </div>
-
-                  {/* Navigation */}
-                  <div className="flex justify-between items-center">
-                    <Button
-                      variant="outline"
-                      onClick={goToPreviousIngredient}
-                      disabled={currentIngredientIndex === 0}
-                      className="flex-1 mr-2"
-                    >
-                      Previous
-                    </Button>
-                    
-                    {currentIngredientIndex < actualIngredients.length - 1 ? (
-                      <Button
-                        onClick={goToNextIngredient}
-                        className="flex-1 ml-2"
-                      >
-                        Next
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => {
-                          exitWizard();
-                        }}
-                        className="flex-1 ml-2"
-                        disabled={!allIngredientsCompleted}
-                      >
-                        Finish
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          /* Manual Input Mode */
-          <Card>
-            <CardHeader>
-              <CardTitle>Ingredients</CardTitle>
-              <p className="text-sm text-gray-600">
-                Enter the total amount used for each ingredient ({currentPen?.current} head of cattle)
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {actualIngredients.map((ingredient, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium">{ingredient.name}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {ingredient.category}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-600 text-right">
-                        <div>Planned Total: {ingredient.plannedAmount} {ingredient.unit}</div>
-                        {currentPen && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            ({calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current)} {ingredient.unit} per head)
-                          </div>
-                        )}
+                    <div className="bg-green-50 p-2 rounded">
+                      <div className="font-medium text-green-800">
+                        Actual: {actualIngredients[currentIngredientIndex].actualAmount || '0'} {actualIngredients[currentIngredientIndex].unit}
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor={`ingredient-${index}`}>
-                        Actual Total Amount ({ingredient.unit})
-                      </Label>
-                      <Input
-                        id={`ingredient-${index}`}
-                        type="number"
-                        step="0.1"
-                        placeholder={ingredient.plannedAmount}
-                        value={ingredient.actualAmount}
-                        onChange={(e) => updateIngredientAmount(index, e.target.value)}
-                        className="max-w-32"
-                      />
-                      {currentPen && ingredient.actualAmount && (
-                        <p className="text-xs text-gray-500">
-                          ({calculatePerHeadAmount(ingredient.actualAmount, currentPen.current)} {ingredient.unit} per head)
-                        </p>
-                      )}
-                    </div>
                   </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 flex justify-center">
-                <Button 
-                  onClick={startWizard}
-                  variant="outline"
-                  className="w-full max-w-md"
-                  size="lg"
-                >
-                  Use Touch-Friendly Input
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </div>
 
-        {/* Submit Button - Only show when not in wizard mode */}
-        {!isWizardMode && (
-          <div className="mt-6 flex justify-center">
-            <Button 
-              onClick={handleSubmit}
-              disabled={submitFeeding.isPending || !allIngredientsCompleted}
-              className="w-full max-w-md"
-              size="lg"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {submitFeeding.isPending ? "Saving..." : "Complete Feeding"}
-            </Button>
-          </div>
-        )}
+                {/* Numeric Keypad */}
+                <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+                    <Button
+                      key={digit}
+                      variant="outline"
+                      size="lg"
+                      className="h-12 text-lg"
+                      onClick={() => addToCurrentAmount(digit)}
+                    >
+                      {digit}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-12 text-lg"
+                    onClick={() => addToCurrentAmount('.')}
+                  >
+                    .
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-12 text-lg"
+                    onClick={() => addToCurrentAmount('0')}
+                  >
+                    0
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-12 text-lg"
+                    onClick={removeLastDigit}
+                  >
+                    ⌫
+                  </Button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
+                  <Button
+                    variant="destructive"
+                    onClick={clearAmount}
+                    size="sm"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    onClick={() => updateIngredientAmount(currentIngredientIndex, actualIngredients[currentIngredientIndex].plannedAmount)}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Use Planned
+                  </Button>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={goToPreviousIngredient}
+                    disabled={currentIngredientIndex === 0}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  
+                  {currentIngredientIndex < actualIngredients.length - 1 ? (
+                    <Button
+                      onClick={goToNextIngredient}
+                      className="flex-1"
+                      size="sm"
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSubmit}
+                      className="flex-1"
+                      size="sm"
+                      disabled={submitFeeding.isPending || !allIngredientsCompleted}
+                    >
+                      {submitFeeding.isPending ? "Saving..." : "Complete"}
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+
       </div>
     </div>
   );
