@@ -81,8 +81,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const penData: CreatePenRequest = req.body;
       
       // Validate required fields
-      if (!penData.name || !penData.operatorEmail || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight || !penData.feedType) {
+      if (!penData.name || !penData.operatorEmail || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight) {
         return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Set default feed type if not provided
+      if (!penData.feedType) {
+        penData.feedType = "Pending";
       }
 
       // Validate capacity and current cattle count

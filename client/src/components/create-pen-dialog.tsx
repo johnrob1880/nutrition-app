@@ -20,7 +20,6 @@ const createPenSchema = z.object({
   cattleType: z.enum(["Steers", "Heifers", "Mixed"]),
   startingWeight: z.number().min(1, "Starting weight must be greater than 0"),
   marketWeight: z.number().min(1, "Market weight must be greater than 0"),
-  feedType: z.string().min(1, "Feed type is required"),
   isCrossbred: z.boolean(),
 }).refine((data) => data.current <= data.capacity, {
   message: "Current cattle count cannot exceed capacity",
@@ -50,7 +49,6 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
       cattleType: "Steers",
       startingWeight: 500,
       marketWeight: 1200,
-      feedType: "Standard Grain Mix",
       isCrossbred: false,
     },
   });
@@ -61,6 +59,7 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
       const penData: CreatePenRequest = {
         ...data,
         operatorEmail,
+        feedType: "Pending", // Feed type will be assigned by external system
       };
 
       const response = await fetch("/api/pens", {
@@ -202,28 +201,6 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="feedType">Feed Type *</Label>
-            <Select
-              value={form.watch("feedType")}
-              onValueChange={(value) => form.setValue("feedType", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select feed type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="High Protein Mix">High Protein Mix</SelectItem>
-                <SelectItem value="Standard Grain Mix">Standard Grain Mix</SelectItem>
-                <SelectItem value="Finishing Feed">Finishing Feed</SelectItem>
-                <SelectItem value="Maintenance Ration">Maintenance Ration</SelectItem>
-                <SelectItem value="Custom Mix">Custom Mix</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.formState.errors.feedType && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.feedType.message}</p>
-            )}
-          </div>
-
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isCrossbred"
@@ -231,6 +208,12 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
               onCheckedChange={(checked) => form.setValue("isCrossbred", !!checked)}
             />
             <Label htmlFor="isCrossbred">Crossbred cattle</Label>
+          </div>
+
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">
+              <strong>Note:</strong> Feed type will be automatically assigned by the feeding management system once the pen is created.
+            </p>
           </div>
 
           <div className="flex space-x-3 pt-4">
