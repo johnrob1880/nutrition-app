@@ -8,6 +8,7 @@ import { useOperation } from "@/hooks/use-operation";
 import { useQuery } from "@tanstack/react-query";
 
 import Onboarding from "@/pages/onboarding";
+import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Pens from "@/pages/pens";
 import Schedules from "@/pages/schedules";
@@ -23,6 +24,7 @@ function AppContent() {
   const [currentOperation, setCurrentOperation] = useState<string | null>(
     localStorage.getItem("operatorEmail")
   );
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: operation } = useOperation(currentOperation || "");
   const { data: stats } = useQuery<DashboardStats>({
@@ -33,18 +35,40 @@ function AppContent() {
   const handleOnboardingComplete = (operationData: { operatorEmail: string }) => {
     localStorage.setItem("operatorEmail", operationData.operatorEmail);
     setCurrentOperation(operationData.operatorEmail);
+    setShowOnboarding(false);
+  };
+
+  const handleLoginSuccess = (operatorEmail: string) => {
+    localStorage.setItem("operatorEmail", operatorEmail);
+    setCurrentOperation(operatorEmail);
+    setShowOnboarding(false);
   };
 
   const handleLogout = () => {
     localStorage.removeItem("operatorEmail");
     setCurrentOperation(null);
+    setShowOnboarding(false);
     // Clear query cache to ensure fresh data on next login
     queryClient.clear();
   };
 
-  // If no current operation or operation doesn't exist, show onboarding
+  // If no current operation or operation doesn't exist, show login or onboarding
   if (!currentOperation || (currentOperation && !operation)) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    if (showOnboarding) {
+      return (
+        <Onboarding 
+          onComplete={handleOnboardingComplete} 
+          onSwitchToLogin={() => setShowOnboarding(false)}
+        />
+      );
+    } else {
+      return (
+        <Login 
+          onLoginSuccess={handleLoginSuccess}
+          onSwitchToOnboarding={() => setShowOnboarding(true)}
+        />
+      );
+    }
   }
 
   return (

@@ -12,12 +12,13 @@ import { Building } from "lucide-react";
 
 interface OnboardingProps {
   onComplete: (operation: { operatorEmail: string }) => void;
+  onSwitchToLogin?: () => void;
 }
 
-export default function Onboarding({ onComplete }: OnboardingProps) {
+export default function Onboarding({ onComplete, onSwitchToLogin }: OnboardingProps) {
   const { toast } = useToast();
   const createOperation = useCreateOperation();
-  
+
   const form = useForm<InsertOperation>({
     resolver: zodResolver(insertOperationSchema),
     defaultValues: {
@@ -38,15 +39,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       onComplete({ operatorEmail: operation.operatorEmail });
     } catch (error: any) {
       let errorMessage = "Please try again";
-      
+
       if (error.message?.includes("Invalid invite code")) {
-        errorMessage = "The invite code doesn't match your email address. Please check both fields.";
+        errorMessage =
+          "The invite code doesn't match your email address. Please check both fields.";
       } else if (error.message?.includes("already exists")) {
         errorMessage = "An operation with this email already exists.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       toast({
         title: "Error creating operation",
         description: errorMessage,
@@ -63,7 +65,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           <Building className="h-6 w-6" />
           <h1 className="text-xl font-semibold">CattleNutrition Pro</h1>
         </div>
-        <div className="text-sm opacity-80">Step 1 of 3</div>
+        {onSwitchToLogin && (
+          <button 
+            onClick={onSwitchToLogin}
+            className="flex items-center space-x-2 text-sm opacity-80 hover:opacity-100 transition-opacity"
+          >
+            <span>Have an account?</span>
+          </button>
+        )}
       </div>
 
       {/* Progress Bar */}
@@ -81,13 +90,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           </div>
           <h2 className="text-2xl font-semibold mb-2">Setup Your Operation</h2>
           <p className="text-gray-600">
-            Let's get your cattle operation configured to start managing nutrition schedules.
+            Let's get your cattle operation configured to start managing
+            nutrition schedules.
           </p>
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <Label htmlFor="inviteCode" className="text-sm font-medium text-gray-700 mb-2">
+            <Label
+              htmlFor="inviteCode"
+              className="text-sm font-medium text-gray-700 mb-2"
+            >
               Invite Code *
             </Label>
             <Input
@@ -101,13 +114,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               This code is provided by your organization administrator
             </p>
             {form.formState.errors.inviteCode && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.inviteCode.message}</p>
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.inviteCode.message}
+              </p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="operatorEmail" className="text-sm font-medium text-gray-700 mb-2">
-              Operator Email *
+            <Label
+              htmlFor="operatorEmail"
+              className="text-sm font-medium text-gray-700 mb-2"
+            >
+              Email *
             </Label>
             <Input
               id="operatorEmail"
@@ -120,12 +138,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               This email must match the one associated with your invite code
             </p>
             {form.formState.errors.operatorEmail && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.operatorEmail.message}</p>
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.operatorEmail.message}
+              </p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2">
+            <Label
+              htmlFor="name"
+              className="text-sm font-medium text-gray-700 mb-2"
+            >
               Operation Name *
             </Label>
             <Input
@@ -136,12 +159,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
             {form.formState.errors.name && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.name.message}</p>
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.name.message}
+              </p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="location" className="text-sm font-medium text-gray-700 mb-2">
+            <Label
+              htmlFor="location"
+              className="text-sm font-medium text-gray-700 mb-2"
+            >
               Location *
             </Label>
             <Input
@@ -152,7 +180,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             />
             {form.formState.errors.location && (
-              <p className="text-sm text-red-600 mt-1">{form.formState.errors.location.message}</p>
+              <p className="text-sm text-red-600 mt-1">
+                {form.formState.errors.location.message}
+              </p>
             )}
           </div>
 
@@ -163,6 +193,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
           >
             {createOperation.isPending ? "Creating..." : "Continue"}
           </Button>
+
+          {onSwitchToLogin && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="text-sm text-primary hover:text-primary-light transition-colors"
+              >
+                Already have an operation? Sign in here
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
