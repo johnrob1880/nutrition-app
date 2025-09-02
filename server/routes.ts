@@ -248,13 +248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/nutritionists", async (req, res) => {
+  app.post("/api/nutritionists/accept", async (req, res) => {
     try {
-      const nutritionist = await storage.createNutritionist(req.body);
-      res.status(201).json(nutritionist);
+      const nutritionist = await storage.acceptNutritionistInvitation(req.body);
+      if (!nutritionist) {
+        return res.status(404).json({ message: "Nutritionist invitation not found or access denied" });
+      }
+      res.json(nutritionist);
     } catch (error) {
-      console.error("Error creating nutritionist:", error);
-      res.status(500).json({ message: "Failed to create nutritionist" });
+      console.error("Error accepting nutritionist invitation:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type CreateNutritionistRequest } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -22,7 +22,7 @@ export interface IStorage {
   getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]>;
   // Nutritionists
   getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]>;
-  createNutritionist(nutritionist: CreateNutritionistRequest): Promise<Nutritionist>;
+  acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -725,39 +725,54 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createNutritionist(nutritionist: CreateNutritionistRequest): Promise<Nutritionist> {
-    const newNutritionist: Nutritionist = {
+  async acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined> {
+    const nutritionist = this.nutritionists.get(request.nutritionistId);
+    
+    if (!nutritionist || nutritionist.operatorEmail !== request.operatorEmail) {
+      return undefined;
+    }
+
+    if (nutritionist.status !== 'Invited') {
+      return nutritionist; // Already accepted or different status
+    }
+
+    const updatedNutritionist: Nutritionist = {
       ...nutritionist,
-      createdAt: new Date().toISOString(),
+      status: 'Active',
+      acceptedAt: new Date().toISOString(),
     };
 
-    this.nutritionists.set(nutritionist.id, newNutritionist);
-    return newNutritionist;
+    this.nutritionists.set(request.nutritionistId, updatedNutritionist);
+    return updatedNutritionist;
   }
 
   private initializeNutritionistData() {
-    // Sample nutritionists for testing
+    // Sample nutritionist invitations for testing
     const sampleNutritionists: Nutritionist[] = [
       {
         id: "NUT-001",
         personalName: "Dr. Sarah Johnson",
         businessName: "Prairie Nutrition Solutions",
         operatorEmail: "johnrob1880@gmail.com",
-        createdAt: new Date().toISOString(),
+        status: "Invited",
+        invitedAt: new Date().toISOString(),
       },
       {
         id: "NUT-002", 
         personalName: "Mike Rodriguez",
         businessName: "Cattle Feed Experts Inc.",
         operatorEmail: "johnrob1880@gmail.com",
-        createdAt: new Date().toISOString(),
+        status: "Active",
+        invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+        acceptedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
       },
       {
         id: "NUT-003",
         personalName: "Dr. Emily Chen",
         businessName: "Advanced Animal Nutrition",
         operatorEmail: "jane.smith@example.com",
-        createdAt: new Date().toISOString(),
+        status: "Invited",
+        invitedAt: new Date().toISOString(),
       },
     ];
 

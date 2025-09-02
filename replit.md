@@ -150,6 +150,11 @@ The application follows a monorepo architecture with clear separation of concern
 - **January 13, 2025**: Implemented sold cattle overview display with comprehensive sale details including cattle count, final weight, sale price, total revenue, and sale dates
 - **January 13, 2025**: Added cattle selling functionality with "Sell" buttons on pens page that opens dialog for final weight, price per hundredweight, and sale date input with live revenue calculation preview
 - **January 13, 2025**: Implemented cattle sale backend with CattleSale schema, API endpoints, and pen status updates (sets pen to inactive with 0 cattle after sale)
+- **January 13, 2025**: Added nutritionist concept with unique ID, personal name, and business name for external system collaboration
+- **January 13, 2025**: Implemented invitation-based nutritionist workflow where nutritionists have "Invited" status that operations can accept to activate collaboration
+- **January 13, 2025**: Updated operations page with tabs for operation info and nutritionist management with invitation acceptance functionality
+- **January 13, 2025**: Enhanced pen creation to require nutritionist selection from active nutritionists for feed type management
+- **January 13, 2025**: Added sample nutritionist invitations for testing with mixed statuses (invited and active)
 
 ## Technical Considerations
 

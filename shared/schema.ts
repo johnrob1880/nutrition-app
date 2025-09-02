@@ -190,12 +190,12 @@ export interface Nutritionist {
   personalName: string;
   businessName: string;
   operatorEmail: string;
-  createdAt?: string;
+  status: 'Invited' | 'Active';
+  invitedAt?: string;
+  acceptedAt?: string;
 }
 
-export interface CreateNutritionistRequest {
-  id: string;
-  personalName: string;
-  businessName: string;
+export interface AcceptInvitationRequest {
+  nutritionistId: string;
   operatorEmail: string;
 }

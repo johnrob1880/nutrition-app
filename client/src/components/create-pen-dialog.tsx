@@ -230,11 +230,13 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
                 <SelectValue placeholder={nutritionistsLoading ? "Loading nutritionists..." : "Select a nutritionist"} />
               </SelectTrigger>
               <SelectContent>
-                {nutritionists.map((nutritionist) => (
-                  <SelectItem key={nutritionist.id} value={nutritionist.id}>
-                    {nutritionist.personalName} - {nutritionist.businessName}
-                  </SelectItem>
-                ))}
+                {nutritionists
+                  .filter(nutritionist => nutritionist.status === 'Active')
+                  .map((nutritionist) => (
+                    <SelectItem key={nutritionist.id} value={nutritionist.id}>
+                      {nutritionist.personalName} - {nutritionist.businessName}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             {form.formState.errors.nutritionistId && (

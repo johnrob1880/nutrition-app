@@ -1,33 +1,17 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Plus, Building2, User } from "lucide-react";
-import type { Nutritionist, CreateNutritionistRequest } from "@shared/schema";
-
-const createNutritionistSchema = z.object({
-  id: z.string().min(1, "Nutritionist ID is required"),
-  personalName: z.string().min(1, "Personal name is required"),
-  businessName: z.string().min(1, "Business name is required"),
-});
-
-type CreateNutritionistForm = z.infer<typeof createNutritionistSchema>;
+import { Building2, User } from "lucide-react";
+import type { Nutritionist, AcceptInvitationRequest } from "@shared/schema";
 
 interface NutritionistManagementProps {
   operatorEmail: string;
 }
 
 export default function NutritionistManagement({ operatorEmail }: NutritionistManagementProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch nutritionists
@@ -36,58 +20,47 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
     enabled: !!operatorEmail,
   });
 
-  const form = useForm<CreateNutritionistForm>({
-    resolver: zodResolver(createNutritionistSchema),
-    defaultValues: {
-      id: "",
-      personalName: "",
-      businessName: "",
-    },
-  });
-
-  // Create nutritionist mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: CreateNutritionistForm) => {
-      const nutritionistData: CreateNutritionistRequest = {
-        ...data,
+  // Accept invitation mutation
+  const acceptMutation = useMutation({
+    mutationFn: async (nutritionistId: string) => {
+      const requestData: AcceptInvitationRequest = {
+        nutritionistId,
         operatorEmail,
       };
 
-      const response = await fetch("/api/nutritionists", {
+      const response = await fetch("/api/nutritionists/accept", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(nutritionistData),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create nutritionist");
+        throw new Error(error.message || "Failed to accept invitation");
       }
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedNutritionist) => {
       queryClient.invalidateQueries({ queryKey: ["/api/nutritionists", operatorEmail] });
       toast({
-        title: "Nutritionist added successfully!",
-        description: "The nutritionist can now be assigned to pens for feed management.",
+        title: "Invitation accepted!",
+        description: `${updatedNutritionist.personalName} can now manage feed types for your pens.`,
       });
-      form.reset();
-      setIsDialogOpen(false);
     },
     onError: (error: any) => {
       toast({
-        title: "Error adding nutritionist",
+        title: "Error accepting invitation",
         description: error.message || "Please try again",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: CreateNutritionistForm) => {
-    createMutation.mutate(data);
+  const handleAcceptInvitation = (nutritionistId: string) => {
+    acceptMutation.mutate(nutritionistId);
   };
 
   if (isLoading) {
@@ -108,83 +81,8 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Nutritionists</h3>
-          <p className="text-sm text-gray-600">Manage nutritionists who collaborate on feed management</p>
+          <p className="text-sm text-gray-600">Nutritionist invitations are managed by the external system</p>
         </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Nutritionist
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Nutritionist</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nutritionist ID *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., NUT-004" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="personalName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Personal Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Dr. John Smith" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="businessName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Business Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Smith Nutrition Consulting" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createMutation.isPending}
-                  >
-                    {createMutation.isPending ? "Adding..." : "Add Nutritionist"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {nutritionists.length === 0 ? (
@@ -192,9 +90,9 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No nutritionists added yet</p>
+              <p className="text-gray-500 mb-4">No nutritionist invitations yet</p>
               <p className="text-sm text-gray-400 mb-6">
-                Add nutritionists to collaborate on feed management for your pens
+                Nutritionist invitations will appear here when sent by the external system
               </p>
             </div>
           </CardContent>
@@ -222,10 +120,30 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
                   <Badge variant="secondary" className="text-xs">
                     ID: {nutritionist.id}
                   </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Active
-                  </Badge>
+                  <div className="flex items-center space-x-2">
+                    <Badge 
+                      variant={nutritionist.status === 'Active' ? 'default' : 'outline'} 
+                      className="text-xs"
+                    >
+                      {nutritionist.status}
+                    </Badge>
+                    {nutritionist.status === 'Invited' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleAcceptInvitation(nutritionist.id)}
+                        disabled={acceptMutation.isPending}
+                        className="h-6 px-2 text-xs"
+                      >
+                        {acceptMutation.isPending ? "Accepting..." : "Accept"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {nutritionist.status === 'Active' && nutritionist.acceptedAt && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Accepted {new Date(nutritionist.acceptedAt).toLocaleDateString()}
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
