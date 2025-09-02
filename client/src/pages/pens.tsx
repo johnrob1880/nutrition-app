@@ -14,7 +14,7 @@ import { useSellCattle } from "@/hooks/use-cattle-sale";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import CreatePenDialog from "@/components/create-pen-dialog";
-import type { Pen, InsertCattleSale, CattleSale } from "@shared/schema";
+import type { Pen, InsertCattleSale, CattleSale, Nutritionist } from "@shared/schema";
 
 interface PensProps {
   operatorEmail: string;
@@ -49,6 +49,10 @@ export default function Pens({ operatorEmail }: PensProps) {
     queryKey: ["/api/cattle-sales", operatorEmail],
   });
 
+  const { data: nutritionists = [], isLoading: isNutritionistsLoading } = useQuery<Nutritionist[]>({
+    queryKey: ["/api/nutritionists", operatorEmail],
+  });
+
   const updateWeight = useUpdatePenWeight();
   const sellCattle = useSellCattle();
 
@@ -68,16 +72,26 @@ export default function Pens({ operatorEmail }: PensProps) {
     },
   });
 
+  // Helper function to get nutritionist info
+  const getNutritionistInfo = (nutritionistId?: string) => {
+    if (!nutritionistId || !nutritionists) return null;
+    return nutritionists.find(n => n.id === nutritionistId);
+  };
+
   // Filter active pens (status Active or Maintenance with current > 0)
   const activePens = pens?.filter(pen => 
     pen.status !== 'Inactive' && pen.current > 0
   ) || [];
 
-  const filteredActivePens = activePens.filter(pen =>
-    pen.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pen.feedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pen.cattleType.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredActivePens = activePens.filter(pen => {
+    const nutritionist = getNutritionistInfo(pen.nutritionistId);
+    const nutritionistName = nutritionist ? `${nutritionist.personalName} ${nutritionist.businessName}` : '';
+    
+    return pen.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pen.feedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pen.cattleType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      nutritionistName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   // Filter sold cattle (cattle sales)
   const filteredSoldCattle = cattleSales?.filter(sale =>
@@ -356,6 +370,17 @@ export default function Pens({ operatorEmail }: PensProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Feed Type:</span>
                       <span className="font-medium">{pen.feedType}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Nutritionist:</span>
+                      <span className="font-medium">
+                        {(() => {
+                          const nutritionist = getNutritionistInfo(pen.nutritionistId);
+                          return nutritionist 
+                            ? `${nutritionist.personalName} (${nutritionist.businessName})`
+                            : pen.nutritionistId || "Not assigned";
+                        })()}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Last Fed:</span>
