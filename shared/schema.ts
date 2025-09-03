@@ -195,6 +195,7 @@ export interface CattleSale {
   startingWeight: number;
   averageDailyGain: number;
   daysOnFeed: number;
+  nutritionistId?: string;
   saleDate: string;
   operatorEmail: string;
   createdAt: string;

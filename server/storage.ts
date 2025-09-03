@@ -711,6 +711,7 @@ export class MemStorage implements IStorage {
       startingWeight: pen.startingWeight,
       averageDailyGain,
       daysOnFeed,
+      nutritionistId: pen.nutritionistId,
       saleDate: saleRecord.saleDate,
       operatorEmail: saleRecord.operatorEmail,
       createdAt: new Date().toISOString(),
