@@ -13,7 +13,7 @@ import {
   User,
   Skull,
   Syringe,
-  MoreVertical,
+  Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -482,9 +482,30 @@ export default function Pens({ operatorEmail }: PensProps) {
               >
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <Link href={`/pen/${pen.id}`}>
-                      <h3 className="text-lg font-semibold hover:text-blue-600 cursor-pointer">{pen.name}</h3>
-                    </Link>
+                    <div className="flex items-center space-x-3">
+                      <Link href={`/pen/${pen.id}`}>
+                        <h3 className="text-lg font-semibold hover:text-blue-600 cursor-pointer">{pen.name}</h3>
+                      </Link>
+                      {pen.status === "Active" && pen.current > 0 && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                              <Zap className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => openDeathLossDialog(pen)}>
+                              <Skull className="h-4 w-4 mr-2" />
+                              Record Death Loss
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openTreatmentDialog(pen)}>
+                              <Syringe className="h-4 w-4 mr-2" />
+                              Record Treatment
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                     <div className="flex items-center space-x-2">
                       <Badge className={getCattleTypeColor(pen.cattleType)}>
                         {pen.cattleType}
@@ -540,25 +561,6 @@ export default function Pens({ operatorEmail }: PensProps) {
                             <DollarSign className="h-3 w-3 mr-1" />
                             Sell
                           </Button>
-                        )}
-                        {pen.status === "Active" && pen.current > 0 && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline" className="text-xs">
-                                <MoreVertical className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => openDeathLossDialog(pen)}>
-                                <Skull className="h-4 w-4 mr-2" />
-                                Record Death Loss
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openTreatmentDialog(pen)}>
-                                <Syringe className="h-4 w-4 mr-2" />
-                                Record Treatment
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         )}
                       </div>
                     </div>
