@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest, type DeathLoss, type InsertDeathLoss, type TreatmentRecord, type InsertTreatmentRecord } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest, type DeathLoss, type InsertDeathLoss, type TreatmentRecord, type InsertTreatmentRecord, type PartialSale, type InsertPartialSale } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -29,6 +29,9 @@ export interface IStorage {
   // Treatment Records
   recordTreatment(record: InsertTreatmentRecord): Promise<TreatmentRecord>;
   getTreatmentsByOperatorEmail(operatorEmail: string): Promise<TreatmentRecord[]>;
+  // Partial Sales
+  recordPartialSale(record: InsertPartialSale): Promise<PartialSale>;
+  getPartialSalesByOperatorEmail(operatorEmail: string): Promise<PartialSale[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -46,6 +49,8 @@ export class MemStorage implements IStorage {
   private deathLossId: number;
   private treatments: Map<string, TreatmentRecord>;
   private treatmentId: number;
+  private partialSales: Map<string, PartialSale>;
+  private partialSaleId: number;
 
   constructor() {
     this.operations = new Map();
@@ -62,6 +67,8 @@ export class MemStorage implements IStorage {
     this.deathLossId = 1;
     this.treatments = new Map();
     this.treatmentId = 1;
+    this.partialSales = new Map();
+    this.partialSaleId = 1;
     this.initializePensData();
     this.initializeInviteCodes();
     this.initializeNutritionistData();
@@ -885,6 +892,53 @@ export class MemStorage implements IStorage {
   async getTreatmentsByOperatorEmail(operatorEmail: string): Promise<TreatmentRecord[]> {
     return Array.from(this.treatments.values()).filter(
       treatment => treatment.operatorEmail === operatorEmail
+    );
+  }
+
+  async recordPartialSale(record: InsertPartialSale): Promise<PartialSale> {
+    const id = `PSALE-${this.partialSaleId.toString().padStart(3, '0')}`;
+    this.partialSaleId++;
+
+    const pen = this.pens.get(record.penId);
+    if (!pen) {
+      throw new Error('Pen not found');
+    }
+
+    // Calculate total revenue
+    const totalRevenue = (record.finalWeight * record.pricePerCwt / 100) * record.cattleCount;
+
+    const partialSale: PartialSale = {
+      id,
+      operationId: record.operationId,
+      penId: record.penId,
+      penName: pen.name,
+      saleDate: record.saleDate,
+      cattleCount: record.cattleCount,
+      finalWeight: record.finalWeight,
+      pricePerCwt: record.pricePerCwt,
+      totalRevenue,
+      tagNumbers: record.tagNumbers,
+      buyer: record.buyer,
+      notes: record.notes,
+      operatorEmail: record.operatorEmail,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.partialSales.set(id, partialSale);
+
+    // Update pen to reduce cattle count
+    const updatedPen: Pen = {
+      ...pen,
+      current: pen.current - record.cattleCount,
+    };
+    this.pens.set(record.penId, updatedPen);
+
+    return partialSale;
+  }
+
+  async getPartialSalesByOperatorEmail(operatorEmail: string): Promise<PartialSale[]> {
+    return Array.from(this.partialSales.values()).filter(
+      sale => sale.operatorEmail === operatorEmail
     );
   }
 }

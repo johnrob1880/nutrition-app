@@ -285,3 +285,34 @@ export interface InsertTreatmentRecord {
   notes?: string;
   operatorEmail: string;
 }
+
+// Partial Sale Records  
+export interface PartialSale {
+  id: string;
+  operationId: number;
+  penId: string;
+  penName: string;
+  saleDate: string;
+  cattleCount: number;
+  finalWeight: number;
+  pricePerCwt: number;
+  totalRevenue: number;
+  tagNumbers?: string;
+  buyer?: string;
+  notes?: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface InsertPartialSale {
+  operationId: number;
+  penId: string;
+  saleDate: string;
+  cattleCount: number;
+  finalWeight: number;
+  pricePerCwt: number;
+  tagNumbers?: string;
+  buyer?: string;
+  notes?: string;
+  operatorEmail: string;
+}

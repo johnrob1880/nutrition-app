@@ -305,6 +305,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Partial Sales endpoints
+  app.post('/api/partial-sales', async (req, res) => {
+    try {
+      const partialSaleSchema = z.object({
+        operationId: z.number(),
+        penId: z.string(),
+        saleDate: z.string(),
+        cattleCount: z.number().positive(),
+        finalWeight: z.number().positive(),
+        pricePerCwt: z.number().positive(),
+        tagNumbers: z.string().optional(),
+        buyer: z.string().optional(),
+        notes: z.string().optional(),
+        operatorEmail: z.string().email(),
+      });
+
+      const validatedData = partialSaleSchema.parse(req.body);
+      const partialSale = await storage.recordPartialSale(validatedData);
+      res.status(201).json(partialSale);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error('Error recording partial sale:', error);
+      res.status(500).json({ message: error.message || 'Failed to record partial sale' });
+    }
+  });
+
+  app.get('/api/partial-sales/:operatorEmail', async (req, res) => {
+    try {
+      const { operatorEmail } = req.params;
+      const partialSales = await storage.getPartialSalesByOperatorEmail(operatorEmail);
+      res.json(partialSales);
+    } catch (error) {
+      console.error('Error fetching partial sales:', error);
+      res.status(500).json({ message: 'Failed to fetch partial sales' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
