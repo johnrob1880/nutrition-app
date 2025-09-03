@@ -14,6 +14,8 @@ import {
   Skull,
   Syringe,
   Zap,
+  FileText,
+  Clock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -794,6 +796,82 @@ export default function Pens({ operatorEmail }: PensProps) {
                 </div>
               </div>
             ))
+          )}
+
+          {/* Pending Closeout Reports Section */}
+          {soldPens.length > 0 && (
+            <div className="mt-8 bg-white rounded-lg shadow-sm">
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Pending Closeout Reports
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Nutritionist-generated performance reports for sold cattle
+                </p>
+              </div>
+              <div className="p-4 space-y-4">
+                {soldPens.map((pen) => {
+                  const sale = cattleSales?.find(s => s.penId === pen.id);
+                  const nutritionist = nutritionists?.find(n => n.id === pen.nutritionistId && n.status === "Active");
+                  
+                  return (
+                    <div key={pen.id} className="border rounded-lg p-4 bg-orange-50 border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium text-orange-900">{pen.name} - Closeout Report</h4>
+                          <p className="text-sm text-orange-700">
+                            Sold {sale ? new Date(sale.saleDate).toLocaleDateString() : 'Recently'}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2 text-orange-600">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-sm font-medium">Pending</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white rounded p-3 mb-3">
+                        <h5 className="text-sm font-medium text-gray-900 mb-2">Report Contents</h5>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• Feed efficiency analysis</li>
+                          <li>• Weight gain performance vs. projections</li>
+                          <li>• Cost per pound of gain breakdown</li>
+                          <li>• Feed conversion ratio summary</li>
+                          <li>• Recommendations for future lots</li>
+                        </ul>
+                      </div>
+
+                      {nutritionist ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <User className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{nutritionist.personalName}</p>
+                              <p className="text-xs text-gray-600">{nutritionist.businessName}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-orange-600 font-medium">Expected completion</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} 
+                              <span className="ml-1">(7 days)</span>
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-100 rounded p-3">
+                          <p className="text-sm text-gray-600">
+                            No active nutritionist assigned. Contact your nutritionist to generate this report.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
