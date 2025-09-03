@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Calendar, TrendingUp, Settings, Weight } from "lucide-react";
+import { ArrowLeft, Calendar, TrendingUp, Settings, Weight, Skull, Syringe, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import type { Pen, FeedingPlan, FeedingSchedule } from "@shared/schema";
+import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord } from "@shared/schema";
 
 interface PenOverviewProps {
   operatorEmail: string;
@@ -38,6 +38,16 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   // Get feeding plans
   const { data: feedingPlans } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
+  });
+
+  // Get death loss records
+  const { data: deathLosses } = useQuery<DeathLoss[]>({
+    queryKey: ["/api/death-loss", operatorEmail],
+  });
+
+  // Get treatment records
+  const { data: treatments } = useQuery<TreatmentRecord[]>({
+    queryKey: ["/api/treatments", operatorEmail],
   });
 
   const currentPen = pens?.find(pen => pen.id === penId);
@@ -288,6 +298,113 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                 <p className="text-sm">Schedules will appear here once they're assigned</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Activity Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Clock className="h-5 w-5" />
+              <span>Recent Activity</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              // Filter activities for this pen
+              const penDeathLosses = deathLosses?.filter(loss => loss.penId === penId) || [];
+              const penTreatments = treatments?.filter(treatment => treatment.penId === penId) || [];
+              
+              // Combine and sort activities by date
+              const allActivities = [
+                ...penDeathLosses.map(loss => ({
+                  type: 'death_loss' as const,
+                  date: loss.lossDate,
+                  createdAt: loss.createdAt,
+                  data: loss
+                })),
+                ...penTreatments.map(treatment => ({
+                  type: 'treatment' as const,
+                  date: treatment.treatmentDate,
+                  createdAt: treatment.createdAt,
+                  data: treatment
+                }))
+              ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+              if (allActivities.length === 0) {
+                return (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No recent activity recorded</p>
+                    <p className="text-sm">Death losses and treatments will appear here</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  {allActivities.map((activity, index) => (
+                    <div key={`${activity.type}-${activity.data.id}`} className="flex items-start space-x-3 p-4 rounded-lg border">
+                      {activity.type === 'death_loss' ? (
+                        <>
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Skull className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-red-900">Death Loss Recorded</h4>
+                              <span className="text-xs text-gray-500">
+                                {new Date(activity.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-sm text-gray-700">
+                              <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
+                              <p><span className="font-medium">Reason:</span> {activity.data.reason}</p>
+                              <p><span className="font-medium">Est. Weight:</span> {activity.data.estimatedWeight} lbs</p>
+                              {activity.data.notes && (
+                                <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Syringe className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-blue-900">Treatment Applied</h4>
+                              <span className="text-xs text-gray-500">
+                                {new Date(activity.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-sm text-gray-700">
+                              <p><span className="font-medium">Type:</span> {activity.data.treatmentType}</p>
+                              <p><span className="font-medium">Product:</span> {activity.data.product}</p>
+                              <p><span className="font-medium">Dosage:</span> {activity.data.dosage}</p>
+                              <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
+                              <p><span className="font-medium">By:</span> {activity.data.treatedBy}</p>
+                              {activity.data.notes && (
+                                <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {allActivities.length > 5 && (
+                    <div className="text-center">
+                      <Button variant="outline" size="sm">
+                        View All Activity
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>

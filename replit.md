@@ -158,6 +158,11 @@ The application follows a monorepo architecture with clear separation of concern
 - **January 13, 2025**: Added feeding plan details page accessible by clicking feed type links on pens page showing comprehensive plan information and complete feeding history with variance analysis
 - **January 13, 2025**: Renamed "Nutritionists" tab to "Team" in operation profile and added veterinarians section with mock Dr. Sarah Mitchell card
 - **January 13, 2025**: Removed ingredient category badges from schedules page to improve data alignment and visual consistency
+- **January 13, 2025**: Added comprehensive quick action system to pens page with dropdown menu for death loss and treatment recording
+- **January 13, 2025**: Created death loss tracking with reason categories, cattle count, estimated weight, and notes
+- **January 13, 2025**: Implemented treatment record system tracking vaccination, antibiotics, deworming, and other medical treatments
+- **January 13, 2025**: Added activity section to pen details page showing chronological history of death losses and treatments with visual indicators
+- **January 13, 2025**: Enhanced pen management with automatic cattle count updates when death losses are recorded
 
 ## Technical Considerations
 
