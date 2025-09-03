@@ -675,12 +675,15 @@ export default function Pens({ operatorEmail }: PensProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Feed Type:</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Feed Type:</span>
                       <Link href={`/feeding-plan/${pen.id}`}>
-                        <span className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer underline">
+                        <Badge 
+                          variant="secondary" 
+                          className="text-sm font-semibold px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer border border-blue-200"
+                        >
                           {pen.feedType}
-                        </span>
+                        </Badge>
                       </Link>
                     </div>
                     
