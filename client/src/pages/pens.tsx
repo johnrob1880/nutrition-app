@@ -11,6 +11,9 @@ import {
   Calendar,
   Users,
   User,
+  Skull,
+  Syringe,
+  MoreVertical,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,12 +25,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUpdatePenWeight } from "@/hooks/use-pen";
 import { useSellCattle } from "@/hooks/use-cattle-sale";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import CreatePenDialog from "@/components/create-pen-dialog";
@@ -36,7 +55,12 @@ import type {
   InsertCattleSale,
   CattleSale,
   Nutritionist,
+  DeathLoss,
+  TreatmentRecord,
+  InsertDeathLoss,
+  InsertTreatmentRecord,
 } from "@shared/schema";
+import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 
 interface PensProps {
   operatorEmail: string;
@@ -52,14 +76,21 @@ const cattleSaleSchema = z.object({
   saleDate: z.string().min(1, "Sale date is required"),
 });
 
+const deathLossSchema = insertDeathLossSchema.omit({ operatorEmail: true });
+const treatmentSchema = insertTreatmentSchema.omit({ operatorEmail: true });
+
 type WeightUpdateData = z.infer<typeof weightUpdateSchema>;
 type CattleSaleData = z.infer<typeof cattleSaleSchema>;
+type DeathLossData = z.infer<typeof deathLossSchema>;
+type TreatmentData = z.infer<typeof treatmentSchema>;
 
 export default function Pens({ operatorEmail }: PensProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPen, setSelectedPen] = useState<Pen | null>(null);
   const [isWeightDialogOpen, setIsWeightDialogOpen] = useState(false);
   const [isSellDialogOpen, setIsSellDialogOpen] = useState(false);
+  const [isDeathLossDialogOpen, setIsDeathLossDialogOpen] = useState(false);
+  const [isTreatmentDialogOpen, setIsTreatmentDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
 
@@ -94,6 +125,34 @@ export default function Pens({ operatorEmail }: PensProps) {
       finalWeight: 0,
       pricePerCwt: 0,
       saleDate: new Date().toISOString().split("T")[0],
+    },
+  });
+
+  // Death Loss Form
+  const deathLossForm = useForm<DeathLossData>({
+    resolver: zodResolver(deathLossSchema),
+    defaultValues: {
+      penId: "",
+      lossDate: new Date().toISOString().split('T')[0],
+      reason: "",
+      cattleCount: 1,
+      estimatedWeight: 0,
+      notes: "",
+    },
+  });
+
+  // Treatment Form
+  const treatmentForm = useForm<TreatmentData>({
+    resolver: zodResolver(treatmentSchema),
+    defaultValues: {
+      penId: "",
+      treatmentDate: new Date().toISOString().split('T')[0],
+      treatmentType: "",
+      product: "",
+      dosage: "",
+      cattleCount: 1,
+      treatedBy: operatorEmail,
+      notes: "",
     },
   });
 
@@ -235,6 +294,90 @@ export default function Pens({ operatorEmail }: PensProps) {
       toast({
         title: "Sale Failed",
         description: error.message || "Failed to process cattle sale",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Death Loss handlers
+  const openDeathLossDialog = (pen: Pen) => {
+    setSelectedPen(pen);
+    deathLossForm.setValue("penId", pen.id);
+    deathLossForm.setValue("estimatedWeight", pen.currentWeight);
+    setIsDeathLossDialogOpen(true);
+  };
+
+  const handleDeathLoss = async (data: DeathLossData) => {
+    if (!selectedPen) return;
+
+    try {
+      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
+      const operationData = await operation.json();
+
+      const deathLossData: InsertDeathLoss = {
+        ...data,
+        operationId: operationData.id,
+        operatorEmail,
+      };
+
+      await apiRequest("POST", "/api/death-loss", deathLossData);
+
+      // Invalidate pen data to refresh counts
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
+
+      toast({
+        title: "Death Loss Recorded",
+        description: `${data.cattleCount} head loss recorded for ${selectedPen.name}`,
+      });
+
+      setIsDeathLossDialogOpen(false);
+      deathLossForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Failed to Record",
+        description: error.message || "Failed to record death loss",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Treatment handlers
+  const openTreatmentDialog = (pen: Pen) => {
+    setSelectedPen(pen);
+    treatmentForm.setValue("penId", pen.id);
+    treatmentForm.setValue("cattleCount", pen.current);
+    setIsTreatmentDialogOpen(true);
+  };
+
+  const handleTreatment = async (data: TreatmentData) => {
+    if (!selectedPen) return;
+
+    try {
+      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
+      const operationData = await operation.json();
+
+      const treatmentData: InsertTreatmentRecord = {
+        ...data,
+        operationId: operationData.id,
+        operatorEmail,
+      };
+
+      await apiRequest("POST", "/api/treatments", treatmentData);
+
+      // Invalidate relevant queries for refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/treatments", operatorEmail] });
+
+      toast({
+        title: "Treatment Recorded",
+        description: `Treatment recorded for ${data.cattleCount} head in ${selectedPen.name}`,
+      });
+
+      setIsTreatmentDialogOpen(false);
+      treatmentForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Failed to Record",
+        description: error.message || "Failed to record treatment",
         variant: "destructive",
       });
     }
@@ -395,6 +538,25 @@ export default function Pens({ operatorEmail }: PensProps) {
                             <DollarSign className="h-3 w-3 mr-1" />
                             Sell
                           </Button>
+                        )}
+                        {pen.status === "Active" && pen.current > 0 && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline" className="text-xs">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => openDeathLossDialog(pen)}>
+                                <Skull className="h-4 w-4 mr-2" />
+                                Record Death Loss
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openTreatmentDialog(pen)}>
+                                <Syringe className="h-4 w-4 mr-2" />
+                                Record Treatment
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </div>
@@ -790,6 +952,235 @@ export default function Pens({ operatorEmail }: PensProps) {
               </Button>
               <Button type="submit" disabled={sellCattle.isPending}>
                 {sellCattle.isPending ? "Processing..." : "Sell Cattle"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Death Loss Dialog */}
+      <Dialog open={isDeathLossDialogOpen} onOpenChange={setIsDeathLossDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Death Loss</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={deathLossForm.handleSubmit(handleDeathLoss)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="lossDate">Date of Loss</Label>
+              <Input
+                id="lossDate"
+                type="date"
+                {...deathLossForm.register("lossDate")}
+              />
+              {deathLossForm.formState.errors.lossDate && (
+                <p className="text-sm text-red-600">
+                  {deathLossForm.formState.errors.lossDate.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason for Loss</Label>
+              <Select
+                value={deathLossForm.watch("reason")}
+                onValueChange={(value) => deathLossForm.setValue("reason", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Disease">Disease</SelectItem>
+                  <SelectItem value="Injury">Injury</SelectItem>
+                  <SelectItem value="Weather">Weather Related</SelectItem>
+                  <SelectItem value="Unknown">Unknown</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {deathLossForm.formState.errors.reason && (
+                <p className="text-sm text-red-600">
+                  {deathLossForm.formState.errors.reason.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cattleCount">Number of Head</Label>
+              <Input
+                id="cattleCount"
+                type="number"
+                min="1"
+                {...deathLossForm.register("cattleCount", { valueAsNumber: true })}
+              />
+              {deathLossForm.formState.errors.cattleCount && (
+                <p className="text-sm text-red-600">
+                  {deathLossForm.formState.errors.cattleCount.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="estimatedWeight">Estimated Weight (lbs)</Label>
+              <Input
+                id="estimatedWeight"
+                type="number"
+                min="1"
+                {...deathLossForm.register("estimatedWeight", { valueAsNumber: true })}
+              />
+              {deathLossForm.formState.errors.estimatedWeight && (
+                <p className="text-sm text-red-600">
+                  {deathLossForm.formState.errors.estimatedWeight.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                {...deathLossForm.register("notes")}
+                placeholder="Additional details about the loss..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDeathLossDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive">
+                Record Loss
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Treatment Dialog */}
+      <Dialog open={isTreatmentDialogOpen} onOpenChange={setIsTreatmentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Treatment</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={treatmentForm.handleSubmit(handleTreatment)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="treatmentDate">Treatment Date</Label>
+              <Input
+                id="treatmentDate"
+                type="date"
+                {...treatmentForm.register("treatmentDate")}
+              />
+              {treatmentForm.formState.errors.treatmentDate && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.treatmentDate.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="treatmentType">Treatment Type</Label>
+              <Select
+                value={treatmentForm.watch("treatmentType")}
+                onValueChange={(value) => treatmentForm.setValue("treatmentType", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select treatment type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Vaccination">Vaccination</SelectItem>
+                  <SelectItem value="Antibiotic">Antibiotic</SelectItem>
+                  <SelectItem value="Deworming">Deworming</SelectItem>
+                  <SelectItem value="Vitamin">Vitamin/Supplement</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {treatmentForm.formState.errors.treatmentType && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.treatmentType.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="product">Product/Medicine</Label>
+              <Input
+                id="product"
+                {...treatmentForm.register("product")}
+                placeholder="Product name or medicine used"
+              />
+              {treatmentForm.formState.errors.product && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.product.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dosage">Dosage</Label>
+              <Input
+                id="dosage"
+                {...treatmentForm.register("dosage")}
+                placeholder="Dosage amount and frequency"
+              />
+              {treatmentForm.formState.errors.dosage && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.dosage.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cattleCount">Number of Head Treated</Label>
+              <Input
+                id="cattleCount"
+                type="number"
+                min="1"
+                {...treatmentForm.register("cattleCount", { valueAsNumber: true })}
+              />
+              {treatmentForm.formState.errors.cattleCount && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.cattleCount.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="treatedBy">Treated By</Label>
+              <Input
+                id="treatedBy"
+                {...treatmentForm.register("treatedBy")}
+                placeholder="Name of person administering treatment"
+              />
+              {treatmentForm.formState.errors.treatedBy && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.treatedBy.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                {...treatmentForm.register("notes")}
+                placeholder="Additional treatment details..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTreatmentDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                Record Treatment
               </Button>
             </div>
           </form>

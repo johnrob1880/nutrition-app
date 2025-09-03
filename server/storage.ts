@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest, type DeathLoss, type InsertDeathLoss, type TreatmentRecord, type InsertTreatmentRecord } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -23,6 +23,12 @@ export interface IStorage {
   // Nutritionists
   getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]>;
   acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined>;
+  // Death Loss
+  recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss>;
+  getDeathLossByOperatorEmail(operatorEmail: string): Promise<DeathLoss[]>;
+  // Treatment Records
+  recordTreatment(record: InsertTreatmentRecord): Promise<TreatmentRecord>;
+  getTreatmentsByOperatorEmail(operatorEmail: string): Promise<TreatmentRecord[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -36,6 +42,10 @@ export class MemStorage implements IStorage {
   private saleId: number;
   private inviteCodes: Map<string, string>; // inviteCode -> operatorEmail
   private nutritionists: Map<string, Nutritionist>;
+  private deathLosses: Map<string, DeathLoss>;
+  private deathLossId: number;
+  private treatments: Map<string, TreatmentRecord>;
+  private treatmentId: number;
 
   constructor() {
     this.operations = new Map();
@@ -48,6 +58,10 @@ export class MemStorage implements IStorage {
     this.saleId = 1;
     this.inviteCodes = new Map();
     this.nutritionists = new Map();
+    this.deathLosses = new Map();
+    this.deathLossId = 1;
+    this.treatments = new Map();
+    this.treatmentId = 1;
     this.initializePensData();
     this.initializeInviteCodes();
     this.initializeNutritionistData();
@@ -782,6 +796,93 @@ export class MemStorage implements IStorage {
     sampleNutritionists.forEach(nutritionist => {
       this.nutritionists.set(nutritionist.id, nutritionist);
     });
+  }
+
+  // Death Loss methods
+  async recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss> {
+    const operation = Array.from(this.operations.values()).find(
+      op => op.operatorEmail === record.operatorEmail
+    );
+    if (!operation) {
+      throw new Error("Operation not found");
+    }
+
+    const pen = this.pens.get(record.penId);
+    if (!pen) {
+      throw new Error("Pen not found");
+    }
+
+    const deathLossId = `DEATH-${String(this.deathLossId++).padStart(3, '0')}`;
+    const deathLoss: DeathLoss = {
+      id: deathLossId,
+      operationId: operation.id,
+      penId: record.penId,
+      penName: pen.name,
+      lossDate: record.lossDate,
+      reason: record.reason,
+      cattleCount: record.cattleCount,
+      estimatedWeight: record.estimatedWeight,
+      notes: record.notes,
+      operatorEmail: record.operatorEmail,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update pen count
+    const updatedPen = {
+      ...pen,
+      current: Math.max(0, pen.current - record.cattleCount)
+    };
+    this.pens.set(pen.id, updatedPen);
+
+    this.deathLosses.set(deathLossId, deathLoss);
+    return deathLoss;
+  }
+
+  async getDeathLossByOperatorEmail(operatorEmail: string): Promise<DeathLoss[]> {
+    return Array.from(this.deathLosses.values()).filter(
+      loss => loss.operatorEmail === operatorEmail
+    );
+  }
+
+  // Treatment Record methods
+  async recordTreatment(record: InsertTreatmentRecord): Promise<TreatmentRecord> {
+    const operation = Array.from(this.operations.values()).find(
+      op => op.operatorEmail === record.operatorEmail
+    );
+    if (!operation) {
+      throw new Error("Operation not found");
+    }
+
+    const pen = this.pens.get(record.penId);
+    if (!pen) {
+      throw new Error("Pen not found");
+    }
+
+    const treatmentId = `TREAT-${String(this.treatmentId++).padStart(3, '0')}`;
+    const treatment: TreatmentRecord = {
+      id: treatmentId,
+      operationId: operation.id,
+      penId: record.penId,
+      penName: pen.name,
+      treatmentDate: record.treatmentDate,
+      treatmentType: record.treatmentType,
+      product: record.product,
+      dosage: record.dosage,
+      cattleCount: record.cattleCount,
+      treatedBy: record.treatedBy,
+      notes: record.notes,
+      operatorEmail: record.operatorEmail,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.treatments.set(treatmentId, treatment);
+    return treatment;
+  }
+
+  async getTreatmentsByOperatorEmail(operatorEmail: string): Promise<TreatmentRecord[]> {
+    return Array.from(this.treatments.values()).filter(
+      treatment => treatment.operatorEmail === operatorEmail
+    );
   }
 }
 

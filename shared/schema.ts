@@ -2,6 +2,29 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Zod schemas for validation
+export const insertDeathLossSchema = z.object({
+  penId: z.string(),
+  lossDate: z.string(),
+  reason: z.string(),
+  cattleCount: z.number().min(1),
+  estimatedWeight: z.number().min(1),
+  notes: z.string().optional(),
+  operatorEmail: z.string().email(),
+});
+
+export const insertTreatmentSchema = z.object({
+  penId: z.string(),
+  treatmentDate: z.string(),
+  treatmentType: z.string(),
+  product: z.string(),
+  dosage: z.string(),
+  cattleCount: z.number().min(1),
+  treatedBy: z.string(),
+  notes: z.string().optional(),
+  operatorEmail: z.string().email(),
+});
+
 export const operations = pgTable("operations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -197,5 +220,61 @@ export interface Nutritionist {
 
 export interface AcceptInvitationRequest {
   nutritionistId: string;
+  operatorEmail: string;
+}
+
+// Death Loss Records
+export interface DeathLoss {
+  id: string;
+  operationId: number;
+  penId: string;
+  penName: string;
+  lossDate: string;
+  reason: string;
+  cattleCount: number;
+  estimatedWeight: number;
+  notes?: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface InsertDeathLoss {
+  operationId: number;
+  penId: string;
+  lossDate: string;
+  reason: string;
+  cattleCount: number;
+  estimatedWeight: number;
+  notes?: string;
+  operatorEmail: string;
+}
+
+// Treatment Records
+export interface TreatmentRecord {
+  id: string;
+  operationId: number;
+  penId: string;
+  penName: string;
+  treatmentDate: string;
+  treatmentType: string;
+  product: string;
+  dosage: string;
+  cattleCount: number;
+  treatedBy: string;
+  notes?: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface InsertTreatmentRecord {
+  operationId: number;
+  penId: string;
+  treatmentDate: string;
+  treatmentType: string;
+  product: string;
+  dosage: string;
+  cattleCount: number;
+  treatedBy: string;
+  notes?: string;
   operatorEmail: string;
 }

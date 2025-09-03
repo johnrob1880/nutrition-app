@@ -261,6 +261,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Death Loss endpoints
+  app.post("/api/death-loss", async (req, res) => {
+    try {
+      const deathLoss = await storage.recordDeathLoss(req.body);
+      res.status(201).json(deathLoss);
+    } catch (error) {
+      console.error("Error recording death loss:", error);
+      res.status(500).json({ message: "Failed to record death loss" });
+    }
+  });
+
+  app.get("/api/death-loss/:operatorEmail", async (req, res) => {
+    try {
+      const { operatorEmail } = req.params;
+      const deathLosses = await storage.getDeathLossByOperatorEmail(operatorEmail);
+      res.json(deathLosses);
+    } catch (error) {
+      console.error("Error fetching death losses:", error);
+      res.status(500).json({ message: "Failed to fetch death losses" });
+    }
+  });
+
+  // Treatment Record endpoints
+  app.post("/api/treatments", async (req, res) => {
+    try {
+      const treatment = await storage.recordTreatment(req.body);
+      res.status(201).json(treatment);
+    } catch (error) {
+      console.error("Error recording treatment:", error);
+      res.status(500).json({ message: "Failed to record treatment" });
+    }
+  });
+
+  app.get("/api/treatments/:operatorEmail", async (req, res) => {
+    try {
+      const { operatorEmail } = req.params;
+      const treatments = await storage.getTreatmentsByOperatorEmail(operatorEmail);
+      res.json(treatments);
+    } catch (error) {
+      console.error("Error fetching treatments:", error);
+      res.status(500).json({ message: "Failed to fetch treatments" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
