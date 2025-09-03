@@ -204,11 +204,13 @@ export default function Dashboard({
                         }`}
                       ></div>
                       <div>
-                        <p className={`font-medium ${
-                          schedule.isCompleted ? 'text-green-700' : ''
-                        }`}>
-                          {schedule.penName}
-                        </p>
+                        <Link href={`/pen/${schedule.penId}`}>
+                          <p className={`font-medium hover:underline cursor-pointer ${
+                            schedule.isCompleted ? 'text-green-700 hover:text-green-800' : 'hover:text-primary'
+                          }`}>
+                            {schedule.penName}
+                          </p>
+                        </Link>
                         <p className="text-sm text-gray-600">
                           {schedule.feedType}
                         </p>
