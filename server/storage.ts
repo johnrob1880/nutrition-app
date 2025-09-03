@@ -73,13 +73,13 @@ export class MemStorage implements IStorage {
         feedType: "High Protein Mix",
         lastFed: "7:15 AM Today",
         operatorEmail: "johnrob1880@gmail.com",
+        nutritionistId: "NUT-001",
         cattleType: "Steers",
         startingWeight: 650,
         marketWeight: 1350,
         averageDailyGain: 3.2,
         isCrossbred: true,
         currentWeight: 890,
-        nutritionistId: "NUT-001", // Dr. Sarah Johnson (Active)
         weightHistory: [
           { date: "2025-01-01", weight: 650, recordedBy: "johnrob1880@gmail.com" },
           { date: "2025-01-13", weight: 890, recordedBy: "johnrob1880@gmail.com" }
@@ -100,7 +100,7 @@ export class MemStorage implements IStorage {
         averageDailyGain: 2.8,
         isCrossbred: false,
         currentWeight: 785,
-        nutritionistId: "NUT-002", // Mike Rodriguez (Active)
+        nutritionistId: "NUT-001",
         weightHistory: [
           { date: "2025-01-01", weight: 550, recordedBy: "johnrob1880@gmail.com" },
           { date: "2025-01-13", weight: 785, recordedBy: "johnrob1880@gmail.com" }
@@ -121,7 +121,6 @@ export class MemStorage implements IStorage {
         averageDailyGain: 3.0,
         isCrossbred: true,
         currentWeight: 600,
-        nutritionistId: undefined, // No nutritionist for maintenance pen
         weightHistory: [
           { date: "2025-01-01", weight: 600, recordedBy: "johnrob1880@gmail.com" }
         ]
@@ -192,6 +191,7 @@ export class MemStorage implements IStorage {
       averageDailyGain: 0, // Will be calculated over time
       isCrossbred: penData.isCrossbred,
       currentWeight: penData.startingWeight, // Start with starting weight
+      nutritionistId: penData.nutritionistId, // Store the selected nutritionist
       weightHistory: [{
         date: new Date().toISOString().split('T')[0],
         weight: penData.startingWeight,
