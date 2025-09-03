@@ -263,9 +263,22 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{currentPen.name}</h1>
-              <p className="text-gray-600">{currentPen.current} head of cattle</p>
+            <div className="flex items-center space-x-6">
+              <div>
+                <h1 className="text-2xl font-bold">{currentPen.name}</h1>
+                <p className="text-gray-600">{currentPen.cattleType} · {currentPen.status}</p>
+              </div>
+              {/* Prominent Head Count Display */}
+              <div className="bg-primary/10 border border-primary/20 rounded-lg px-6 py-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-primary">
+                    {currentPen.current}
+                  </div>
+                  <div className="text-sm font-semibold text-primary/80 uppercase tracking-wide">
+                    Head
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
