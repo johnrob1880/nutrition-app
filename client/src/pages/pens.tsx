@@ -818,7 +818,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                   const sale = cattleSales?.find(s => s.penId === pen.id);
                   // Get nutritionist from sale record first, then fall back to pen record
                   const nutritionistId = sale?.nutritionistId || pen.nutritionistId;
-                  const nutritionist = nutritionists?.find(n => n.id === nutritionistId && n.status === "Active");
+                  const nutritionist = nutritionists?.find(n => n.id === nutritionistId);
                   
                   return (
                     <div key={pen.id} className="border rounded-lg p-4 bg-orange-50 border-orange-200">
