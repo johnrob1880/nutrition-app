@@ -192,6 +192,9 @@ export default function Pens({ operatorEmail }: PensProps) {
         sale.cattleType.toLowerCase().includes(searchQuery.toLowerCase()),
     ) || [];
 
+  // Get sold pens (inactive pens with 0 cattle)
+  const soldPens = pens?.filter(pen => pen.status === "Inactive" && pen.current === 0) || [];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Active":
