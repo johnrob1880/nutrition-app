@@ -218,8 +218,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium text-lg">{projection.scheduleName}</h3>
-                          <Badge variant="secondary">{projection.feedType}</Badge>
+                          <h3 className="font-medium text-lg">{penPlan?.planName || 'Feeding Plan'}</h3>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
