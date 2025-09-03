@@ -75,7 +75,7 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
         <Tabs defaultValue="operation" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="operation">Operation Info</TabsTrigger>
-            <TabsTrigger value="nutritionists">Nutritionists</TabsTrigger>
+            <TabsTrigger value="nutritionists">Team</TabsTrigger>
           </TabsList>
           
           <TabsContent value="operation">

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { Building2, User } from "lucide-react";
+import { Building2, User, UserCheck, Plus } from "lucide-react";
 import type { Nutritionist, AcceptInvitationRequest } from "@shared/schema";
 
 interface NutritionistManagementProps {
@@ -149,6 +149,69 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
           ))}
         </div>
       )}
+
+      {/* Veterinarians Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold flex items-center">
+            <UserCheck className="h-5 w-5 mr-2" />
+            Veterinarians
+          </h2>
+          <p className="text-sm text-gray-600">Healthcare professionals for your operation</p>
+        </div>
+
+        <div className="p-4">
+          {/* Mock Veterinarian Card */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start space-x-4">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <UserCheck className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-lg font-semibold text-green-900">Dr. Sarah Mitchell</h3>
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                    Active
+                  </span>
+                </div>
+                <p className="text-green-700 font-medium">Rocky Mountain Veterinary Services</p>
+                <p className="text-sm text-green-600 mt-1">Large Animal Specialist</p>
+                
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="px-2 py-1 bg-white text-green-700 rounded border border-green-200">
+                    Cattle Health
+                  </span>
+                  <span className="px-2 py-1 bg-white text-green-700 rounded border border-green-200">
+                    Vaccination Programs
+                  </span>
+                  <span className="px-2 py-1 bg-white text-green-700 rounded border border-green-200">
+                    Emergency Care
+                  </span>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-green-600">Last Visit:</span>
+                    <span className="font-medium text-green-800">Dec 15, 2024</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="text-green-600">Next Scheduled:</span>
+                    <span className="font-medium text-green-800">Jan 20, 2025</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Veterinarian Button */}
+          <div className="mt-4">
+            <button className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors">
+              <Plus className="h-5 w-5 mx-auto mb-1" />
+              <span className="text-sm font-medium">Add Veterinarian</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
