@@ -8,6 +8,7 @@ import type {
   FeedingPlan,
   UpcomingScheduleChange,
   FeedingRecord,
+  Pen,
 } from "@shared/schema";
 
 interface DashboardProps {
@@ -43,10 +44,19 @@ export default function Dashboard({
     queryKey: ["/api/feeding-records", operatorEmail],
   });
 
-  // Extract today's active schedules from feeding plans
+  const { data: pens } = useQuery<Pen[]>({
+    queryKey: ["/api/pens", operatorEmail],
+  });
+
+  // Extract today's active schedules from feeding plans, but only for active pens
   const todaySchedules =
     feedingPlans
       ?.filter((plan) => plan.status === "Active")
+      .filter((plan) => {
+        // Only include plans for active pens with cattle
+        const pen = pens?.find(p => p.id === plan.penId);
+        return pen && pen.status === "Active" && pen.current > 0;
+      })
       .flatMap((plan) =>
         plan.schedules.map((schedule) => ({
           ...schedule,
