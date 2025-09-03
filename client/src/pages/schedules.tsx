@@ -187,10 +187,7 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                           <div className="grid grid-cols-1 gap-2">
                             {schedule.ingredients.map((ingredient, ingredientIndex) => (
                               <div key={ingredientIndex} className="flex justify-between items-center text-sm">
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {ingredient.category}
-                                  </Badge>
+                                <div className="flex items-center">
                                   <span>{ingredient.name}</span>
                                 </div>
                                 <div className="text-right">
