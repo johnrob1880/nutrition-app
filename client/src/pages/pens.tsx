@@ -137,6 +137,7 @@ export default function Pens({ operatorEmail }: PensProps) {
       reason: "",
       cattleCount: 1,
       estimatedWeight: 0,
+      tagNumbers: "",
       notes: "",
     },
   });
@@ -151,6 +152,7 @@ export default function Pens({ operatorEmail }: PensProps) {
       product: "",
       dosage: "",
       cattleCount: 1,
+      tagNumbers: "",
       treatedBy: operatorEmail,
       notes: "",
     },
@@ -1034,6 +1036,20 @@ export default function Pens({ operatorEmail }: PensProps) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="tagNumbers">Tag Numbers (Optional)</Label>
+              <Input
+                id="tagNumbers"
+                {...deathLossForm.register("tagNumbers")}
+                placeholder="Enter tag numbers separated by commas (e.g., 1234, 5678)"
+              />
+              {deathLossForm.formState.errors.tagNumbers && (
+                <p className="text-sm text-red-600">
+                  {deathLossForm.formState.errors.tagNumbers.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
               <Textarea
                 id="notes"
@@ -1157,6 +1173,20 @@ export default function Pens({ operatorEmail }: PensProps) {
               {treatmentForm.formState.errors.treatedBy && (
                 <p className="text-sm text-red-600">
                   {treatmentForm.formState.errors.treatedBy.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tagNumbers">Tag Numbers (Optional)</Label>
+              <Input
+                id="tagNumbers"
+                {...treatmentForm.register("tagNumbers")}
+                placeholder="Enter tag numbers separated by commas (e.g., 1234, 5678)"
+              />
+              {treatmentForm.formState.errors.tagNumbers && (
+                <p className="text-sm text-red-600">
+                  {treatmentForm.formState.errors.tagNumbers.message}
                 </p>
               )}
             </div>

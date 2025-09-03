@@ -9,6 +9,7 @@ export const insertDeathLossSchema = z.object({
   reason: z.string(),
   cattleCount: z.number().min(1),
   estimatedWeight: z.number().min(1),
+  tagNumbers: z.string().optional(),
   notes: z.string().optional(),
   operatorEmail: z.string().email(),
 });
@@ -20,6 +21,7 @@ export const insertTreatmentSchema = z.object({
   product: z.string(),
   dosage: z.string(),
   cattleCount: z.number().min(1),
+  tagNumbers: z.string().optional(),
   treatedBy: z.string(),
   notes: z.string().optional(),
   operatorEmail: z.string().email(),
@@ -233,6 +235,7 @@ export interface DeathLoss {
   reason: string;
   cattleCount: number;
   estimatedWeight: number;
+  tagNumbers?: string;
   notes?: string;
   operatorEmail: string;
   createdAt: string;
@@ -245,6 +248,7 @@ export interface InsertDeathLoss {
   reason: string;
   cattleCount: number;
   estimatedWeight: number;
+  tagNumbers?: string;
   notes?: string;
   operatorEmail: string;
 }
@@ -260,6 +264,7 @@ export interface TreatmentRecord {
   product: string;
   dosage: string;
   cattleCount: number;
+  tagNumbers?: string;
   treatedBy: string;
   notes?: string;
   operatorEmail: string;
@@ -274,6 +279,7 @@ export interface InsertTreatmentRecord {
   product: string;
   dosage: string;
   cattleCount: number;
+  tagNumbers?: string;
   treatedBy: string;
   notes?: string;
   operatorEmail: string;

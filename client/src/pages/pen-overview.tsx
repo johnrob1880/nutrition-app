@@ -361,6 +361,9 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                               <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
                               <p><span className="font-medium">Reason:</span> {activity.data.reason}</p>
                               <p><span className="font-medium">Est. Weight:</span> {activity.data.estimatedWeight} lbs</p>
+                              {activity.data.tagNumbers && (
+                                <p><span className="font-medium">Tag Numbers:</span> {activity.data.tagNumbers}</p>
+                              )}
                               {activity.data.notes && (
                                 <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
                               )}
@@ -384,6 +387,9 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                               <p><span className="font-medium">Product:</span> {activity.data.product}</p>
                               <p><span className="font-medium">Dosage:</span> {activity.data.dosage}</p>
                               <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
+                              {activity.data.tagNumbers && (
+                                <p><span className="font-medium">Tag Numbers:</span> {activity.data.tagNumbers}</p>
+                              )}
                               <p><span className="font-medium">By:</span> {activity.data.treatedBy}</p>
                               {activity.data.notes && (
                                 <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
