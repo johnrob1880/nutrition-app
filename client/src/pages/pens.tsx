@@ -674,46 +674,33 @@ export default function Pens({ operatorEmail }: PensProps) {
                     </div>
                   </div>
 
+                  {/* Feed Type and Nutritionist Card */}
+                  <div className="mt-3">
+                    <Link href={`/feeding-plan/${pen.id}`}>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 cursor-pointer transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-blue-900 text-sm mb-1">{pen.feedType}</h4>
+                            {(() => {
+                              const nutritionist = getNutritionistInfo(pen.nutritionistId);
+                              return nutritionist ? (
+                                <p className="text-xs text-blue-700">
+                                  by {nutritionist.personalName}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-blue-600">
+                                  No nutritionist assigned
+                                </p>
+                              );
+                            })()}
+                          </div>
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                    
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Feed Type:</span>
-                      <Link href={`/feeding-plan/${pen.id}`}>
-                        <Badge 
-                          variant="secondary" 
-                          className="text-sm font-semibold px-3 py-1 bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer border border-blue-200"
-                        >
-                          {pen.feedType}
-                        </Badge>
-                      </Link>
-                    </div>
-                    
-                    {/* Nutritionist Card */}
-                    {(() => {
-                      const nutritionist = getNutritionistInfo(pen.nutritionistId);
-                      return nutritionist ? (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-blue-900 truncate">{nutritionist.personalName}</p>
-                              <p className="text-xs text-blue-700 truncate">{nutritionist.businessName}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="w-4 h-4 text-white" />
-                            </div>
-                            <p className="text-sm text-gray-600">No nutritionist assigned</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                    
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Last Fed:</span>
                       <span className="font-medium">{pen.lastFed}</span>
