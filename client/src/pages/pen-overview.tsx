@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale } from "@shared/schema";
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -70,6 +71,11 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   const [isDeathLossDialogOpen, setIsDeathLossDialogOpen] = useState(false);
   const [isTreatmentDialogOpen, setIsTreatmentDialogOpen] = useState(false);
   const [isPartialSaleDialogOpen, setIsPartialSaleDialogOpen] = useState(false);
+  const [activityFilters, setActivityFilters] = useState({
+    death_loss: true,
+    treatment: true,
+    partial_sale: true,
+  });
   const { toast } = useToast();
 
   // Get pen data
@@ -574,6 +580,11 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                 }))
               ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+              // Filter activities based on checkbox selections
+              const filteredActivities = allActivities.filter(activity => 
+                activityFilters[activity.type]
+              );
+
               if (allActivities.length === 0) {
                 return (
                   <div className="text-center py-8 text-gray-500">
@@ -586,7 +597,68 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
 
               return (
                 <div className="space-y-4">
-                  {allActivities.map((activity, index) => (
+                  {/* Activity Filters */}
+                  <div className="flex flex-wrap gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="filter-death-loss"
+                        checked={activityFilters.death_loss}
+                        onCheckedChange={(checked) =>
+                          setActivityFilters(prev => ({ ...prev, death_loss: checked as boolean }))
+                        }
+                      />
+                      <label
+                        htmlFor="filter-death-loss"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center space-x-1"
+                      >
+                        <Skull className="h-4 w-4 text-red-600" />
+                        <span>Death Loss</span>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="filter-treatment"
+                        checked={activityFilters.treatment}
+                        onCheckedChange={(checked) =>
+                          setActivityFilters(prev => ({ ...prev, treatment: checked as boolean }))
+                        }
+                      />
+                      <label
+                        htmlFor="filter-treatment"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center space-x-1"
+                      >
+                        <Syringe className="h-4 w-4 text-blue-600" />
+                        <span>Treatments</span>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="filter-partial-sale"
+                        checked={activityFilters.partial_sale}
+                        onCheckedChange={(checked) =>
+                          setActivityFilters(prev => ({ ...prev, partial_sale: checked as boolean }))
+                        }
+                      />
+                      <label
+                        htmlFor="filter-partial-sale"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center space-x-1"
+                      >
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <span>Partial Sales</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {filteredActivities.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No activities match the selected filters</p>
+                      <p className="text-sm">Adjust the filters above to see more activities</p>
+                    </div>
+                  ) : (
+                    filteredActivities.map((activity, index) => (
                     <div key={`${activity.type}-${activity.data.id}`} className="flex items-start space-x-3 p-4 rounded-lg border">
                       {activity.type === 'death_loss' ? (
                         <>
@@ -671,9 +743,10 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                         </>
                       )}
                     </div>
-                  ))}
+                    ))
+                  )}
                   
-                  {allActivities.length > 5 && (
+                  {filteredActivities.length > 5 && (
                     <div className="text-center">
                       <Button variant="outline" size="sm">
                         View All Activity
