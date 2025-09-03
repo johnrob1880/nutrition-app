@@ -16,6 +16,7 @@ import Schedules from "@/pages/schedules";
 import OperationPage from "@/pages/operation";
 import Feeding from "@/pages/feeding";
 import FeedingDetails from "@/pages/feeding-details";
+import FeedingPlanDetails from "@/pages/feeding-plan";
 import BottomNav from "@/components/bottom-nav";
 import NotFound from "@/pages/not-found";
 
@@ -94,6 +95,9 @@ function AppContent() {
         } />
         <Route path="/pen/:penId" component={() => 
           <PenOverview operatorEmail={currentOperation} />
+        } />
+        <Route path="/feeding-plan/:penId" component={() => 
+          <FeedingPlanDetails operatorEmail={currentOperation} />
         } />
         <Route path="/schedules" component={() => 
           <Schedules operatorEmail={currentOperation} />

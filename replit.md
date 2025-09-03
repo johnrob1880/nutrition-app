@@ -155,6 +155,9 @@ The application follows a monorepo architecture with clear separation of concern
 - **January 13, 2025**: Updated operations page with tabs for operation info and nutritionist management with invitation acceptance functionality
 - **January 13, 2025**: Enhanced pen creation to require nutritionist selection from active nutritionists for feed type management
 - **January 13, 2025**: Added sample nutritionist invitations for testing with mixed statuses (invited and active)
+- **January 13, 2025**: Added feeding plan details page accessible by clicking feed type links on pens page showing comprehensive plan information and complete feeding history with variance analysis
+- **January 13, 2025**: Renamed "Nutritionists" tab to "Team" in operation profile and added veterinarians section with mock Dr. Sarah Mitchell card
+- **January 13, 2025**: Removed ingredient category badges from schedules page to improve data alignment and visual consistency
 
 ## Technical Considerations
 

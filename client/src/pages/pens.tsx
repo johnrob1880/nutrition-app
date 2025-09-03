@@ -431,7 +431,11 @@ export default function Pens({ operatorEmail }: PensProps) {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Feed Type:</span>
-                      <span className="font-medium">{pen.feedType}</span>
+                      <Link href={`/feeding-plan/${pen.id}`}>
+                        <span className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer underline">
+                          {pen.feedType}
+                        </span>
+                      </Link>
                     </div>
                     
                     {/* Nutritionist Card */}
