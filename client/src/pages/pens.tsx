@@ -816,7 +816,9 @@ export default function Pens({ operatorEmail }: PensProps) {
               <div className="p-4 space-y-4">
                 {soldPens.map((pen) => {
                   const sale = cattleSales?.find(s => s.penId === pen.id);
-                  const nutritionist = nutritionists?.find(n => n.id === pen.nutritionistId && n.status === "Active");
+                  // Get nutritionist from sale record first, then fall back to pen record
+                  const nutritionistId = sale?.nutritionistId || pen.nutritionistId;
+                  const nutritionist = nutritionists?.find(n => n.id === nutritionistId && n.status === "Active");
                   
                   return (
                     <div key={pen.id} className="border rounded-lg p-4 bg-orange-50 border-orange-200">
