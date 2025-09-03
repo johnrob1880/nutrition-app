@@ -227,6 +227,9 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                             <p className="font-medium">
                               {formatDate(projection.startDate)} - {formatDate(projection.endDate)}
                             </p>
+                            <p className="text-xs text-gray-500">
+                              {penPlan?.daysToFeed || 30} days total
+                            </p>
                           </div>
                           <div>
                             <p className="text-gray-600">Start Weight</p>
