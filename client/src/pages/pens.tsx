@@ -336,7 +336,9 @@ export default function Pens({ operatorEmail }: PensProps) {
               >
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">{pen.name}</h3>
+                    <Link href={`/pen/${pen.id}`}>
+                      <h3 className="text-lg font-semibold hover:text-blue-600 cursor-pointer">{pen.name}</h3>
+                    </Link>
                     <div className="flex items-center space-x-2">
                       <Badge className={getCattleTypeColor(pen.cattleType)}>
                         {pen.cattleType}

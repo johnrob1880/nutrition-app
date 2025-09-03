@@ -11,6 +11,7 @@ import Onboarding from "@/pages/onboarding";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Pens from "@/pages/pens";
+import PenOverview from "@/pages/pen-overview";
 import Schedules from "@/pages/schedules";
 import OperationPage from "@/pages/operation";
 import Feeding from "@/pages/feeding";
@@ -90,6 +91,9 @@ function AppContent() {
         } />
         <Route path="/pens" component={() => 
           <Pens operatorEmail={currentOperation} />
+        } />
+        <Route path="/pen/:penId" component={() => 
+          <PenOverview operatorEmail={currentOperation} />
         } />
         <Route path="/schedules" component={() => 
           <Schedules operatorEmail={currentOperation} />
