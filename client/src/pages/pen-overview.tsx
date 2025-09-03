@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, Calendar, TrendingUp, Settings, Weight, Skull, Syringe, Clock, Zap } from "lucide-react";
+import { ArrowLeft, Calendar, TrendingUp, Settings, Weight, Skull, Syringe, Clock, Zap, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord } from "@shared/schema";
+import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale } from "@shared/schema";
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,6 +77,11 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   // Get treatment records
   const { data: treatments } = useQuery<TreatmentRecord[]>({
     queryKey: ["/api/treatments", operatorEmail],
+  });
+
+  // Get partial sales
+  const { data: partialSales } = useQuery<PartialSale[]>({
+    queryKey: ["/api/partial-sales", operatorEmail],
   });
 
   const currentPen = pens?.find(pen => pen.id === penId);
@@ -478,6 +483,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
               // Filter activities for this pen
               const penDeathLosses = deathLosses?.filter(loss => loss.penId === penId) || [];
               const penTreatments = treatments?.filter(treatment => treatment.penId === penId) || [];
+              const penPartialSales = partialSales?.filter(sale => sale.penId === penId) || [];
               
               // Combine and sort activities by date
               const allActivities = [
@@ -492,6 +498,12 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                   date: treatment.treatmentDate,
                   createdAt: treatment.createdAt,
                   data: treatment
+                })),
+                ...penPartialSales.map(sale => ({
+                  type: 'partial_sale' as const,
+                  date: sale.saleDate,
+                  createdAt: sale.createdAt,
+                  data: sale
                 }))
               ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -500,7 +512,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                   <div className="text-center py-8 text-gray-500">
                     <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>No recent activity recorded</p>
-                    <p className="text-sm">Death losses and treatments will appear here</p>
+                    <p className="text-sm">Death losses, treatments, and partial sales will appear here</p>
                   </div>
                 );
               }
@@ -534,7 +546,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                             </div>
                           </div>
                         </>
-                      ) : (
+                      ) : activity.type === 'treatment' ? (
                         <>
                           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <Syringe className="w-5 h-5 text-blue-600" />
@@ -547,14 +559,43 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                               </span>
                             </div>
                             <div className="mt-1 text-sm text-gray-700">
-                              <p><span className="font-medium">Type:</span> {activity.data.treatmentType}</p>
-                              <p><span className="font-medium">Product:</span> {activity.data.product}</p>
-                              <p><span className="font-medium">Dosage:</span> {activity.data.dosage}</p>
+                              <p><span className="font-medium">Type:</span> {(activity.data as TreatmentRecord).treatmentType}</p>
+                              <p><span className="font-medium">Product:</span> {(activity.data as TreatmentRecord).product}</p>
+                              <p><span className="font-medium">Dosage:</span> {(activity.data as TreatmentRecord).dosage}</p>
                               <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
                               {activity.data.tagNumbers && (
                                 <p><span className="font-medium">Tag Numbers:</span> {activity.data.tagNumbers}</p>
                               )}
-                              <p><span className="font-medium">By:</span> {activity.data.treatedBy}</p>
+                              <p><span className="font-medium">By:</span> {(activity.data as TreatmentRecord).treatedBy}</p>
+                              {activity.data.notes && (
+                                <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-green-900">Partial Sale Recorded</h4>
+                              <span className="text-xs text-gray-500">
+                                {new Date(activity.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-sm text-gray-700">
+                              <p><span className="font-medium">Count:</span> {activity.data.cattleCount} head</p>
+                              <p><span className="font-medium">Weight:</span> {activity.data.finalWeight} lbs/head</p>
+                              <p><span className="font-medium">Price:</span> ${activity.data.pricePerCwt}/cwt</p>
+                              <p><span className="font-medium">Revenue:</span> ${activity.data.totalRevenue.toFixed(2)}</p>
+                              {activity.data.tagNumbers && (
+                                <p><span className="font-medium">Tag Numbers:</span> {activity.data.tagNumbers}</p>
+                              )}
+                              {activity.data.buyer && (
+                                <p><span className="font-medium">Buyer:</span> {activity.data.buyer}</p>
+                              )}
                               {activity.data.notes && (
                                 <p className="mt-1"><span className="font-medium">Notes:</span> {activity.data.notes}</p>
                               )}
