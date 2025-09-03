@@ -426,12 +426,11 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
                   <Button
                     variant="outline"
                     onClick={goToPreviousIngredient}
                     disabled={currentIngredientIndex === 0}
-                    className="flex-1"
                     size="sm"
                   >
                     Previous
@@ -440,7 +439,6 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                   {currentIngredientIndex < actualIngredients.length - 1 ? (
                     <Button
                       onClick={goToNextIngredient}
-                      className="flex-1"
                       size="sm"
                     >
                       Next
@@ -448,7 +446,6 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
                   ) : (
                     <Button
                       onClick={handleSubmit}
-                      className="flex-1"
                       size="sm"
                       disabled={submitFeeding.isPending || !allIngredientsCompleted}
                     >
