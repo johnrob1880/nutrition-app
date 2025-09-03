@@ -675,7 +675,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                   </div>
 
                   {/* Feed Type and Nutritionist Card */}
-                  <div className="mt-3">
+                  <div className="mt-3 mb-4">
                     <Link href={`/feeding-plan/${pen.id}`}>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 cursor-pointer transition-colors">
                         <div className="flex items-center justify-between">
