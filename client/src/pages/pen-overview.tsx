@@ -48,8 +48,20 @@ interface WeightProjection {
 const deathLossSchema = insertDeathLossSchema.omit({ operatorEmail: true });
 const treatmentSchema = insertTreatmentSchema.omit({ operatorEmail: true });
 
+const partialSaleSchema = z.object({
+  penId: z.string(),
+  saleDate: z.string().min(1, "Sale date is required"),
+  cattleCount: z.number().min(1, "Must sell at least 1 head"),
+  finalWeight: z.number().min(1, "Final weight must be positive"),
+  pricePerCwt: z.number().min(0.01, "Price per CWT must be positive"),
+  tagNumbers: z.string().optional(),
+  buyer: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 type DeathLossData = z.infer<typeof deathLossSchema>;
 type TreatmentData = z.infer<typeof treatmentSchema>;
+type PartialSaleData = z.infer<typeof partialSaleSchema>;
 
 export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   const { penId } = useParams();
@@ -57,6 +69,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeathLossDialogOpen, setIsDeathLossDialogOpen] = useState(false);
   const [isTreatmentDialogOpen, setIsTreatmentDialogOpen] = useState(false);
+  const [isPartialSaleDialogOpen, setIsPartialSaleDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Get pen data
@@ -113,6 +126,21 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
       cattleCount: currentPen?.current || 1,
       tagNumbers: "",
       treatedBy: operatorEmail,
+      notes: "",
+    },
+  });
+
+  // Partial Sale Form
+  const partialSaleForm = useForm<PartialSaleData>({
+    resolver: zodResolver(partialSaleSchema),
+    defaultValues: {
+      penId: penId || "",
+      saleDate: new Date().toISOString().split('T')[0],
+      cattleCount: 1,
+      finalWeight: currentPen?.currentWeight || currentPen?.marketWeight || 0,
+      pricePerCwt: 0,
+      tagNumbers: "",
+      buyer: "",
       notes: "",
     },
   });
@@ -222,6 +250,41 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
       toast({
         title: "Failed to Record",
         description: error.message || "Failed to record treatment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePartialSale = async (data: PartialSaleData) => {
+    if (!currentPen) return;
+
+    try {
+      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
+      const operationData = await operation.json();
+
+      const partialSaleData = {
+        ...data,
+        operationId: operationData.id,
+        operatorEmail,
+      };
+
+      await apiRequest("POST", "/api/partial-sales", partialSaleData);
+
+      // Invalidate relevant queries for refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/partial-sales", operatorEmail] });
+
+      toast({
+        title: "Partial Sale Recorded",
+        description: `${data.cattleCount} head sold from ${currentPen.name}`,
+      });
+
+      setIsPartialSaleDialogOpen(false);
+      partialSaleForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Failed to Record",
+        description: error.message || "Failed to record partial sale",
         variant: "destructive",
       });
     }
@@ -472,6 +535,10 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                     <DropdownMenuItem onClick={() => setIsTreatmentDialogOpen(true)}>
                       <Syringe className="h-4 w-4 mr-2" />
                       Record Treatment
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsPartialSaleDialogOpen(true)}>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Record Partial Sale
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -870,6 +937,143 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                 </Button>
                 <Button type="submit">
                   Record Treatment
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Partial Sale Dialog */}
+        <Dialog open={isPartialSaleDialogOpen} onOpenChange={setIsPartialSaleDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Record Partial Sale</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={partialSaleForm.handleSubmit(handlePartialSale)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="saleDate">Sale Date</Label>
+                <Input
+                  id="saleDate"
+                  type="date"
+                  {...partialSaleForm.register("saleDate")}
+                />
+                {partialSaleForm.formState.errors.saleDate && (
+                  <p className="text-sm text-red-600">
+                    {partialSaleForm.formState.errors.saleDate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cattleCount">Number of Head to Sell</Label>
+                <Input
+                  id="cattleCount"
+                  type="number"
+                  min="1"
+                  max={currentPen?.current || 1}
+                  {...partialSaleForm.register("cattleCount", { valueAsNumber: true })}
+                />
+                {partialSaleForm.formState.errors.cattleCount && (
+                  <p className="text-sm text-red-600">
+                    {partialSaleForm.formState.errors.cattleCount.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="finalWeight">Final Weight (lbs per head)</Label>
+                <Input
+                  id="finalWeight"
+                  type="number"
+                  min="1"
+                  {...partialSaleForm.register("finalWeight", { valueAsNumber: true })}
+                />
+                {partialSaleForm.formState.errors.finalWeight && (
+                  <p className="text-sm text-red-600">
+                    {partialSaleForm.formState.errors.finalWeight.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pricePerCwt">Price per CWT ($)</Label>
+                <Input
+                  id="pricePerCwt"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  {...partialSaleForm.register("pricePerCwt", { valueAsNumber: true })}
+                />
+                {partialSaleForm.formState.errors.pricePerCwt && (
+                  <p className="text-sm text-red-600">
+                    {partialSaleForm.formState.errors.pricePerCwt.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tagNumbers">Tag Numbers (Optional)</Label>
+                <Input
+                  id="tagNumbers"
+                  {...partialSaleForm.register("tagNumbers")}
+                  placeholder="Enter tag numbers separated by commas (e.g., 1234, 5678)"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="buyer">Buyer (Optional)</Label>
+                <Input
+                  id="buyer"
+                  {...partialSaleForm.register("buyer")}
+                  placeholder="Name of buyer or company"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  {...partialSaleForm.register("notes")}
+                  placeholder="Additional sale details..."
+                  rows={3}
+                />
+              </div>
+
+              {currentPen && (
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Revenue for this sale:</span>
+                      <span className="font-medium text-green-700">
+                        $
+                        {(
+                          ((partialSaleForm.watch("finalWeight") || 0) *
+                            (partialSaleForm.watch("pricePerCwt") || 0) *
+                            (partialSaleForm.watch("cattleCount") || 0)) /
+                          100
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Remaining in pen:</span>
+                      <span className="font-medium">
+                        {currentPen.current - (partialSaleForm.watch("cattleCount") || 0)} head
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsPartialSaleDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Record Sale
                 </Button>
               </div>
             </form>
