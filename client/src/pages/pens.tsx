@@ -680,21 +680,21 @@ export default function Pens({ operatorEmail }: PensProps) {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 cursor-pointer transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-blue-900 text-sm mb-1">{pen.feedType}</h4>
+                            <h3 className="font-bold text-blue-900 text-base mb-1">{pen.feedType}</h3>
                             {(() => {
                               const nutritionist = getNutritionistInfo(pen.nutritionistId);
                               return nutritionist ? (
-                                <p className="text-xs text-blue-700">
+                                <p className="text-sm text-blue-700">
                                   by {nutritionist.personalName}
                                 </p>
                               ) : (
-                                <p className="text-xs text-blue-600">
+                                <p className="text-sm text-blue-600">
                                   No nutritionist assigned
                                 </p>
                               );
                             })()}
                           </div>
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-5 w-5 text-blue-600" />
                         </div>
                       </div>
                     </Link>
