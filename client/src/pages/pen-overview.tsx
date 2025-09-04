@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale } from "@shared/schema";
+import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale, StaffMember } from "@shared/schema";
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -87,6 +87,12 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   // Get feeding plans
   const { data: feedingPlans } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
+  });
+
+  // Get staff members for treatment "treated by" selection
+  const { data: staffMembers = [] } = useQuery<StaffMember[]>({
+    queryKey: ["/api/staff", operatorEmail],
+    enabled: !!operatorEmail,
   });
 
   // Get death loss records
@@ -1005,11 +1011,26 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="treatedBy">Treated By</Label>
-                <Input
-                  id="treatedBy"
-                  {...treatmentForm.register("treatedBy")}
-                  placeholder="Name of person administering treatment"
-                />
+                <Select
+                  value={treatmentForm.watch("treatedBy") || ""}
+                  onValueChange={(value) => treatmentForm.setValue("treatedBy", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select staff member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {staffMembers
+                      .filter(member => member.status === 'active')
+                      .map((staff) => (
+                      <SelectItem key={staff.id} value={`${staff.firstName} ${staff.lastName}`}>
+                        {staff.firstName} {staff.lastName}
+                        {staff.role === 'owner' && (
+                          <span className="ml-2 text-xs text-gray-500">(Owner)</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {treatmentForm.formState.errors.treatedBy && (
                   <p className="text-sm text-red-600">
                     {treatmentForm.formState.errors.treatedBy.message}
