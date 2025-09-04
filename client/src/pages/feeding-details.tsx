@@ -79,7 +79,7 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
     if (isNaN(num)) return value.toString();
     // Check if it's a whole number (including cases like 24.0)
     if (num === Math.floor(num)) return Math.floor(num).toString();
-    return num.toFixed(1);
+    return num.toFixed(2);
   };
 
   const getVarianceIndicator = (planned: string, actual: string) => {
@@ -87,7 +87,7 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
     const actualNum = parseFloat(actual);
     const variance = ((actualNum - plannedNum) / plannedNum) * 100;
     
-    const formattedVariance = variance % 1 === 0 ? variance.toString() : variance.toFixed(1);
+    const formattedVariance = variance % 1 === 0 ? variance.toString() : variance.toFixed(2);
     
     if (Math.abs(variance) < 5) {
       return { 
@@ -110,7 +110,7 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
         icon: TrendingDown, 
         color: "text-red-600", 
         bgColor: "bg-red-50",
-        label: `Under by ${Math.abs(variance) % 1 === 0 ? Math.abs(variance).toString() : Math.abs(variance).toFixed(1)}%`,
+        label: `Under by ${Math.abs(variance) % 1 === 0 ? Math.abs(variance).toString() : Math.abs(variance).toFixed(2)}%`,
         variance: formattedVariance
       };
     }

@@ -64,7 +64,7 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
     if (isNaN(num)) return value.toString();
     // Check if it's a whole number (including cases like 24.0)
     if (num === Math.floor(num)) return Math.floor(num).toString();
-    return num.toFixed(1);
+    return num.toFixed(2);
   };
 
   const getVarianceColor = (planned: number, actual: number) => {
@@ -270,7 +270,7 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                                   {formatNumber(ingredient.actualAmount)} / {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                                 </span>
                                 <span className={`font-medium ${getVarianceColor(planned, actual)}`}>
-                                  {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(1)}%
+                                  {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(2)}%
                                 </span>
                               </div>
                             </div>
