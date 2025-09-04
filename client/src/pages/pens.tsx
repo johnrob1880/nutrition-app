@@ -1059,8 +1059,21 @@ export default function Pens({ operatorEmail }: PensProps) {
             <div className="space-y-2">
               <Label htmlFor="saleDate">Sale Date</Label>
               <DatePicker
-                value={saleForm.watch("saleDate") ? new Date(saleForm.watch("saleDate")) : undefined}
-                onChange={(date) => saleForm.setValue("saleDate", date ? date.toISOString().split('T')[0] : "")}
+                value={saleForm.watch("saleDate") ? (() => {
+                  const dateStr = saleForm.watch("saleDate");
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return new Date(year, month - 1, day);
+                })() : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    saleForm.setValue("saleDate", `${year}-${month}-${day}`);
+                  } else {
+                    saleForm.setValue("saleDate", "");
+                  }
+                }}
                 placeholder="Select sale date"
               />
               {saleForm.formState.errors.saleDate && (
@@ -1121,8 +1134,21 @@ export default function Pens({ operatorEmail }: PensProps) {
             <div className="space-y-2">
               <Label htmlFor="lossDate">Date of Loss</Label>
               <DatePicker
-                value={deathLossForm.watch("lossDate") ? new Date(deathLossForm.watch("lossDate")) : undefined}
-                onChange={(date) => deathLossForm.setValue("lossDate", date ? date.toISOString().split('T')[0] : "")}
+                value={deathLossForm.watch("lossDate") ? (() => {
+                  const dateStr = deathLossForm.watch("lossDate");
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return new Date(year, month - 1, day);
+                })() : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    deathLossForm.setValue("lossDate", `${year}-${month}-${day}`);
+                  } else {
+                    deathLossForm.setValue("lossDate", "");
+                  }
+                }}
                 placeholder="Select loss date"
               />
               {deathLossForm.formState.errors.lossDate && (
@@ -1236,8 +1262,21 @@ export default function Pens({ operatorEmail }: PensProps) {
             <div className="space-y-2">
               <Label htmlFor="treatmentDate">Treatment Date</Label>
               <DatePicker
-                value={treatmentForm.watch("treatmentDate") ? new Date(treatmentForm.watch("treatmentDate")) : undefined}
-                onChange={(date) => treatmentForm.setValue("treatmentDate", date ? date.toISOString().split('T')[0] : "")}
+                value={treatmentForm.watch("treatmentDate") ? (() => {
+                  const dateStr = treatmentForm.watch("treatmentDate");
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return new Date(year, month - 1, day);
+                })() : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    treatmentForm.setValue("treatmentDate", `${year}-${month}-${day}`);
+                  } else {
+                    treatmentForm.setValue("treatmentDate", "");
+                  }
+                }}
                 placeholder="Select treatment date"
               />
               {treatmentForm.formState.errors.treatmentDate && (
@@ -1378,8 +1417,21 @@ export default function Pens({ operatorEmail }: PensProps) {
             <div className="space-y-2">
               <Label htmlFor="saleDate">Sale Date</Label>
               <DatePicker
-                value={partialSaleForm.watch("saleDate") ? new Date(partialSaleForm.watch("saleDate")) : undefined}
-                onChange={(date) => partialSaleForm.setValue("saleDate", date ? date.toISOString().split('T')[0] : "")}
+                value={partialSaleForm.watch("saleDate") ? (() => {
+                  const dateStr = partialSaleForm.watch("saleDate");
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  return new Date(year, month - 1, day);
+                })() : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    partialSaleForm.setValue("saleDate", `${year}-${month}-${day}`);
+                  } else {
+                    partialSaleForm.setValue("saleDate", "");
+                  }
+                }}
                 placeholder="Select sale date"
               />
               {partialSaleForm.formState.errors.saleDate && (
