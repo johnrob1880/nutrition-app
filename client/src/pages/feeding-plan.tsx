@@ -62,7 +62,9 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
   const formatNumber = (value: string | number) => {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return value.toString();
-    return num % 1 === 0 ? num.toString() : num.toFixed(1);
+    // Check if it's a whole number (including cases like 24.0)
+    if (num === Math.floor(num)) return Math.floor(num).toString();
+    return num.toFixed(1);
   };
 
   const getVarianceColor = (planned: number, actual: number) => {
