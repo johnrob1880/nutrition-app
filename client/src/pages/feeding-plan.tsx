@@ -59,6 +59,12 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
     });
   };
 
+  const formatNumber = (value: string | number) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return value.toString();
+    return num % 1 === 0 ? num.toString() : num.toFixed(1);
+  };
+
   const getVarianceColor = (planned: number, actual: number) => {
     const variance = ((actual - planned) / planned) * 100;
     if (Math.abs(variance) <= 5) return "text-green-600";
@@ -242,7 +248,7 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                             record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0)
                           )}
                           <span className="text-sm text-gray-600">
-                            Total: {record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0)} lbs
+                            Total: {formatNumber(record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0))} lbs
                           </span>
                         </div>
                       </div>
@@ -259,10 +265,10 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                               <span className="font-medium">{ingredient.name}</span>
                               <div className="flex items-center space-x-2">
                                 <span className="text-gray-600">
-                                  {ingredient.actualAmount} / {ingredient.plannedAmount} {ingredient.unit}
+                                  {formatNumber(ingredient.actualAmount)} / {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                                 </span>
                                 <span className={`font-medium ${getVarianceColor(planned, actual)}`}>
-                                  {variance > 0 ? '+' : ''}{variance.toFixed(1)}%
+                                  {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(1)}%
                                 </span>
                               </div>
                             </div>

@@ -74,10 +74,18 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
     });
   };
 
+  const formatNumber = (value: string | number) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return value.toString();
+    return num % 1 === 0 ? num.toString() : num.toFixed(1);
+  };
+
   const getVarianceIndicator = (planned: string, actual: string) => {
     const plannedNum = parseFloat(planned);
     const actualNum = parseFloat(actual);
     const variance = ((actualNum - plannedNum) / plannedNum) * 100;
+    
+    const formattedVariance = variance % 1 === 0 ? variance.toString() : variance.toFixed(1);
     
     if (Math.abs(variance) < 5) {
       return { 
@@ -85,23 +93,23 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
         color: "text-green-600", 
         bgColor: "bg-green-50",
         label: "On Target",
-        variance: variance.toFixed(1)
+        variance: formattedVariance
       };
     } else if (variance > 0) {
       return { 
         icon: TrendingUp, 
         color: "text-orange-600", 
         bgColor: "bg-orange-50",
-        label: `Over by ${variance.toFixed(1)}%`,
-        variance: variance.toFixed(1)
+        label: `Over by ${formattedVariance}%`,
+        variance: formattedVariance
       };
     } else {
       return { 
         icon: TrendingDown, 
         color: "text-red-600", 
         bgColor: "bg-red-50",
-        label: `Under by ${Math.abs(variance).toFixed(1)}%`,
-        variance: variance.toFixed(1)
+        label: `Under by ${Math.abs(variance) % 1 === 0 ? Math.abs(variance).toString() : Math.abs(variance).toFixed(1)}%`,
+        variance: formattedVariance
       };
     }
   };
@@ -200,13 +208,13 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
                       <div>
                         <span className="text-gray-600">Planned:</span>
                         <div className="font-medium">
-                          {ingredient.plannedAmount} {ingredient.unit}
+                          {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                         </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Actual:</span>
                         <div className="font-medium">
-                          {ingredient.actualAmount} {ingredient.unit}
+                          {formatNumber(ingredient.actualAmount)} {ingredient.unit}
                         </div>
                       </div>
                     </div>
