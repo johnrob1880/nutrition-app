@@ -878,13 +878,13 @@ export default function Pens({ operatorEmail }: PensProps) {
             ))
           )}
 
-          {/* Pending Closeout Reports Section */}
+          {/* Closeout Reports Section */
           {soldPens.length > 0 && (
             <div className="mt-8 bg-white rounded-lg shadow-sm">
               <div className="p-4 border-b border-gray-100">
                 <h3 className="text-lg font-semibold flex items-center">
                   <FileText className="h-5 w-5 mr-2" />
-                  Pending Closeout Reports
+                  Closeout Reports
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   Nutritionist-generated performance reports for sold cattle
