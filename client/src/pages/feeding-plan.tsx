@@ -199,11 +199,16 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium text-gray-700">Ingredients:</h4>
                           {schedule.ingredients.map((ingredient, ingredientIndex) => (
-                            <div key={ingredientIndex} className="flex justify-between text-sm">
-                              <span>{ingredient.name}</span>
-                              <span className="font-medium">
-                                {ingredient.amount} {ingredient.unit} ({ingredient.percentage})
-                              </span>
+                            <div key={ingredientIndex} className="flex justify-between items-center text-sm">
+                              <span className="font-medium">{ingredient.name}</span>
+                              <div className="flex items-center space-x-3">
+                                <span className="font-mono text-right min-w-[80px]">
+                                  {formatNumber(ingredient.amount)} {ingredient.unit}
+                                </span>
+                                <span className="font-mono text-right min-w-[50px] text-gray-600">
+                                  ({ingredient.percentage})
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
