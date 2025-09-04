@@ -878,7 +878,7 @@ export default function Pens({ operatorEmail }: PensProps) {
             ))
           )}
 
-          {/* Closeout Reports Section */
+          {/* Closeout Reports Section */}
           {soldPens.length > 0 && (
             <div className="mt-8 bg-white rounded-lg shadow-sm">
               <div className="p-4 border-b border-gray-100">
