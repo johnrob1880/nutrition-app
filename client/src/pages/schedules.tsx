@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Search, Clock, Wheat, Scale, TrendingUp, Calendar, CheckCircle2, Timer } from "lucide-react";
+import {
+  Search,
+  Clock,
+  Wheat,
+  Scale,
+  TrendingUp,
+  Calendar,
+  CheckCircle2,
+  Timer,
+} from "lucide-react";
 import type { FeedingPlan } from "@shared/schema";
 
 interface SchedulesProps {
@@ -14,23 +23,24 @@ interface SchedulesProps {
 
 export default function Schedules({ operatorEmail }: SchedulesProps) {
   const [activeFilter, setActiveFilter] = useState("today");
-  
+
   const { data: feedingPlans, isLoading } = useQuery<FeedingPlan[]>({
     queryKey: ["/api/schedules", operatorEmail],
   });
 
-  const filteredPlans = feedingPlans?.filter(plan => {
-    switch (activeFilter) {
-      case "today":
-        return plan.status === "Active";
-      case "week":
-        return true;
-      case "all":
-        return true;
-      default:
-        return true;
-    }
-  }) || [];
+  const filteredPlans =
+    feedingPlans?.filter((plan) => {
+      switch (activeFilter) {
+        case "today":
+          return plan.status === "Active";
+        case "week":
+          return true;
+        case "all":
+          return true;
+        default:
+          return true;
+      }
+    }) || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -66,8 +76,12 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="px-6 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">Feeding Schedules</h1>
-          <p className="text-sm text-gray-600">Read-only view of feeding schedules from external system</p>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Feeding Schedules
+          </h1>
+          <p className="text-sm text-gray-600">
+            Overview of your feeding schedules
+          </p>
         </div>
       </div>
 
@@ -108,17 +122,19 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 ${getPenColor(index)} rounded-full`}></div>
+                    <div
+                      className={`w-4 h-4 ${getPenColor(index)} rounded-full`}
+                    ></div>
                     <div>
                       <CardTitle className="text-lg">{plan.planName}</CardTitle>
-                      <p className="text-sm text-gray-600">{plan.penName}</p>
+                      <p className="text-base font-semibold text-gray-900">{plan.penName}</p>
                     </div>
                   </div>
                   <Badge className={getStatusColor(plan.status)}>
                     {plan.status}
                   </Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
@@ -127,23 +143,27 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                     </div>
                     <div className="flex items-center space-x-1">
                       <Timer className="h-4 w-4" />
-                      <span>Day {plan.currentDay} of {plan.daysToFeed}</span>
+                      <span>
+                        Day {plan.currentDay} of {plan.daysToFeed}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mt-3">
                   <div className="flex justify-between text-sm mb-1">
                     <span>Progress</span>
-                    <span>{Math.round((plan.currentDay / plan.daysToFeed) * 100)}%</span>
+                    <span>
+                      {Math.round((plan.currentDay / plan.daysToFeed) * 100)}%
+                    </span>
                   </div>
-                  <Progress 
-                    value={(plan.currentDay / plan.daysToFeed) * 100} 
+                  <Progress
+                    value={(plan.currentDay / plan.daysToFeed) * 100}
                     className="h-2"
                   />
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -155,25 +175,32 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                     <p className="font-medium text-gray-500">{plan.id}</p>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3 flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
                     Daily Feeding Schedules
                   </h4>
-                  
+
                   <div className="space-y-3">
                     {plan.schedules.map((schedule, scheduleIndex) => (
-                      <div key={schedule.id} className="bg-gray-50 rounded-lg p-3">
+                      <div
+                        key={schedule.id}
+                        className="bg-gray-50 rounded-lg p-3"
+                      >
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <div className="font-medium">{schedule.time}</div>
-                            <div className="text-sm text-gray-600">Total: {schedule.totalAmount}</div>
+                            <div className="text-sm text-gray-600">
+                              Total: {schedule.totalAmount}
+                            </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm text-gray-600">Nutrition</div>
+                            <div className="text-sm text-gray-600">
+                              Nutrition
+                            </div>
                             <div className="text-xs space-x-2">
                               <span>P: {schedule.totalNutrition.protein}</span>
                               <span>F: {schedule.totalNutrition.fat}</span>
@@ -181,21 +208,32 @@ export default function Schedules({ operatorEmail }: SchedulesProps) {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">Ingredients:</p>
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Ingredients:
+                          </p>
                           <div className="grid grid-cols-1 gap-2">
-                            {schedule.ingredients.map((ingredient, ingredientIndex) => (
-                              <div key={ingredientIndex} className="flex justify-between items-center text-sm">
-                                <div className="flex items-center">
-                                  <span>{ingredient.name}</span>
+                            {schedule.ingredients.map(
+                              (ingredient, ingredientIndex) => (
+                                <div
+                                  key={ingredientIndex}
+                                  className="flex justify-between items-center text-sm"
+                                >
+                                  <div className="flex items-center">
+                                    <span>{ingredient.name}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-medium">
+                                      {ingredient.amount} {ingredient.unit}
+                                    </span>
+                                    <span className="text-gray-500 ml-2">
+                                      ({ingredient.percentage})
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="text-right">
-                                  <span className="font-medium">{ingredient.amount} {ingredient.unit}</span>
-                                  <span className="text-gray-500 ml-2">({ingredient.percentage})</span>
-                                </div>
-                              </div>
-                            ))}
+                              ),
+                            )}
                           </div>
                         </div>
                       </div>
