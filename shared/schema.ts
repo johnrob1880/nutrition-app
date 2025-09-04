@@ -212,6 +212,7 @@ export interface DashboardStats {
   totalPens: number;
   totalCattle: number;
   activeSchedules: number;
+  staffCount: number;
   avgFeedPerDay: string;
   lastSync: string;
 }

@@ -634,14 +634,23 @@ export class MemStorage implements IStorage {
   async getDashboardStats(operatorEmail: string): Promise<DashboardStats> {
     const pens = await this.getPensByOperatorEmail(operatorEmail);
     const feedingPlans = await this.getFeedingPlansByOperatorEmail(operatorEmail);
+    const operation = await this.getOperationByEmail(operatorEmail);
     
     const totalCattle = pens.reduce((sum, pen) => sum + pen.current, 0);
     const activeSchedules = feedingPlans.filter(plan => plan.status === 'Active').length;
+    
+    // Get staff count for the operation
+    let staffCount = 0;
+    if (operation) {
+      const staffMembers = await this.getStaffMembersByOperationId(operation.id);
+      staffCount = staffMembers.length;
+    }
     
     return {
       totalPens: pens.length,
       totalCattle,
       activeSchedules,
+      staffCount,
       avgFeedPerDay: "342 lbs",
       lastSync: "15 minutes ago"
     };
