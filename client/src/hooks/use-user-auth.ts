@@ -46,12 +46,14 @@ export function useUserAuth(): UserAuth {
   };
 }
 
-export function hasPermission(userRole: 'owner' | 'staff' | null, requiredPermission: 'invite_staff' | 'manage_operation'): boolean {
+export function hasPermission(userRole: 'owner' | 'staff' | null, requiredPermission: 'invite_staff' | 'manage_operation' | 'sell_cattle' | 'partial_sale'): boolean {
   if (!userRole) return false;
   
   switch (requiredPermission) {
     case 'invite_staff':
     case 'manage_operation':
+    case 'sell_cattle':
+    case 'partial_sale':
       return userRole === 'owner';
     default:
       return false;

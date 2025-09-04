@@ -53,6 +53,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import CreatePenDialog from "@/components/create-pen-dialog";
+import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 import type {
   Pen,
   InsertCattleSale,
@@ -110,6 +111,7 @@ export default function Pens({ operatorEmail }: PensProps) {
   const [isPartialSaleDialogOpen, setIsPartialSaleDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
+  const { role } = useUserAuth();
 
   const { data: pens, isLoading: isPensLoading } = useQuery<Pen[]>({
     queryKey: ["/api/pens", operatorEmail],
@@ -586,10 +588,12 @@ export default function Pens({ operatorEmail }: PensProps) {
                               <Syringe className="h-4 w-4 mr-2" />
                               Record Treatment
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openPartialSaleDialog(pen)}>
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Record Partial Sale
-                            </DropdownMenuItem>
+                            {hasPermission(role, 'partial_sale') && (
+                              <DropdownMenuItem onClick={() => openPartialSaleDialog(pen)}>
+                                <DollarSign className="h-4 w-4 mr-2" />
+                                Record Partial Sale
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
@@ -639,7 +643,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                             Update
                           </Button>
                         )}
-                        {pen.status === "Active" && pen.current > 0 && (
+                        {pen.status === "Active" && pen.current > 0 && hasPermission(role, 'sell_cattle') && (
                           <Button
                             size="sm"
                             variant="outline"

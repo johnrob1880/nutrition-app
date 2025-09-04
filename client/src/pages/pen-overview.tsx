@@ -32,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface PenOverviewProps {
   operatorEmail: string;
@@ -78,6 +79,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
     partial_sale: true,
   });
   const { toast } = useToast();
+  const { role } = useUserAuth();
 
   // Get pen data
   const { data: pens } = useQuery<Pen[]>({
@@ -549,10 +551,12 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                       <Syringe className="h-4 w-4 mr-2" />
                       Record Treatment
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsPartialSaleDialogOpen(true)}>
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Record Partial Sale
-                    </DropdownMenuItem>
+                    {hasPermission(role, 'partial_sale') && (
+                      <DropdownMenuItem onClick={() => setIsPartialSaleDialogOpen(true)}>
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Record Partial Sale
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
