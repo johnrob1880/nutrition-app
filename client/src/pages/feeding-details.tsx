@@ -209,13 +209,13 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">Planned:</span>
-                        <div className="font-medium">
+                        <div className="font-medium font-mono text-right">
                           {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                         </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Actual:</span>
-                        <div className="font-medium">
+                        <div className="font-medium font-mono text-right">
                           {formatNumber(ingredient.actualAmount)} {ingredient.unit}
                         </div>
                       </div>

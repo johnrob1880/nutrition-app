@@ -249,7 +249,7 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                             parseFloat(record.plannedAmount),
                             record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0)
                           )}
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 font-mono">
                             Total: {formatNumber(record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0))} lbs
                           </span>
                         </div>
@@ -265,11 +265,11 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                           return (
                             <div key={index} className="flex justify-between items-center text-sm">
                               <span className="font-medium">{ingredient.name}</span>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-gray-600">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-gray-600 font-mono text-right min-w-[80px]">
                                   {formatNumber(ingredient.actualAmount)} / {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                                 </span>
-                                <span className={`font-medium ${getVarianceColor(planned, actual)}`}>
+                                <span className={`font-medium font-mono text-right min-w-[60px] ${getVarianceColor(planned, actual)}`}>
                                   {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(2)}%
                                 </span>
                               </div>
