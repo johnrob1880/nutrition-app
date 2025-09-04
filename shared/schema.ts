@@ -44,6 +44,69 @@ export const insertOperationSchema = createInsertSchema(operations).omit({
 export type InsertOperation = z.infer<typeof insertOperationSchema>;
 export type Operation = typeof operations.$inferSelect;
 
+// Staff members table for team management
+export const staffMembers = pgTable("staff_members", {
+  id: serial("id").primaryKey(),
+  operationId: integer("operation_id").notNull(),
+  email: text("email").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  role: text("role", { enum: ["owner", "staff"] }).notNull().default("staff"),
+  status: text("status", { enum: ["invited", "active"] }).notNull().default("invited"),
+  invitedAt: timestamp("invited_at").notNull().defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
+  invitedBy: text("invited_by").notNull(), // Email of who sent the invitation
+});
+
+// Staff invitation tokens for secure email verification
+export const staffInvitations = pgTable("staff_invitations", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  operationId: integer("operation_id").notNull(),
+  email: text("email").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  invitedBy: text("invited_by").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStaffMemberSchema = createInsertSchema(staffMembers).omit({
+  id: true,
+  invitedAt: true,
+  acceptedAt: true,
+});
+
+export const insertStaffInvitationSchema = createInsertSchema(staffInvitations).omit({
+  id: true,
+  token: true,
+  expiresAt: true,
+  usedAt: true,
+  createdAt: true,
+});
+
+export type InsertStaffMember = z.infer<typeof insertStaffMemberSchema>;
+export type StaffMember = typeof staffMembers.$inferSelect;
+export type InsertStaffInvitation = z.infer<typeof insertStaffInvitationSchema>;
+export type StaffInvitation = typeof staffInvitations.$inferSelect;
+
+// Invitation request schema for frontend forms
+export const inviteStaffSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export type InviteStaffForm = z.infer<typeof inviteStaffSchema>;
+
+// Accept invitation schema
+export const acceptStaffInvitationSchema = z.object({
+  token: z.string().min(1, "Invitation token is required"),
+});
+
+export type AcceptStaffInvitationForm = z.infer<typeof acceptStaffInvitationSchema>;
+
 // External system data types (read-only)
 export interface WeightRecord {
   date: string;

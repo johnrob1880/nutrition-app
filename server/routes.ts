@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type CreatePenRequest } from "@shared/schema";
+import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type CreatePenRequest, inviteStaffSchema, acceptStaffInvitationSchema } from "@shared/schema";
 import { z } from "zod";
+import { sendStaffInvitationEmail } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get operation by email
@@ -341,6 +342,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching partial sales:', error);
       res.status(500).json({ message: 'Failed to fetch partial sales' });
+    }
+  });
+
+  // Staff Management endpoints
+  
+  // Invite staff member
+  app.post('/api/staff/invite', async (req, res) => {
+    try {
+      const validatedData = inviteStaffSchema.parse(req.body);
+      const { operatorEmail } = req.body; // Current user's email
+      
+      // Verify the current user is the operation owner
+      const operation = await storage.getOperationByEmail(operatorEmail);
+      if (!operation) {
+        return res.status(404).json({ message: 'Operation not found' });
+      }
+
+      // Check if staff member already exists
+      const existingStaff = await storage.getStaffMemberByEmail(validatedData.email);
+      if (existingStaff) {
+        return res.status(400).json({ message: 'Staff member with this email already exists' });
+      }
+
+      const invitation = await storage.inviteStaffMember({
+        operationId: operation.id,
+        email: validatedData.email,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        invitedBy: operatorEmail,
+      });
+      
+      // Send invitation email
+      const emailSent = await sendStaffInvitationEmail({
+        to: validatedData.email,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        operationName: operation.name,
+        invitedBy: operatorEmail,
+        invitationToken: invitation.token,
+      });
+      
+      if (!emailSent) {
+        console.warn('Failed to send invitation email, but invitation was created');
+      }
+      
+      res.status(201).json({ ...invitation, emailSent });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      console.error('Error inviting staff member:', error);
+      res.status(500).json({ message: 'Failed to invite staff member' });
+    }
+  });
+
+  // Get staff members for operation
+  app.get('/api/staff/:operatorEmail', async (req, res) => {
+    try {
+      const { operatorEmail } = req.params;
+      
+      // Get operation to find operation ID
+      const operation = await storage.getOperationByEmail(operatorEmail);
+      if (!operation) {
+        return res.status(404).json({ message: 'Operation not found' });
+      }
+
+      const staffMembers = await storage.getStaffMembersByOperationId(operation.id);
+      res.json(staffMembers);
+    } catch (error) {
+      console.error('Error fetching staff members:', error);
+      res.status(500).json({ message: 'Failed to fetch staff members' });
+    }
+  });
+
+  // Accept staff invitation
+  app.post('/api/staff/accept-invitation', async (req, res) => {
+    try {
+      const validatedData = acceptStaffInvitationSchema.parse(req.body);
+      
+      const staffMember = await storage.acceptStaffInvitation(validatedData.token);
+      if (!staffMember) {
+        return res.status(400).json({ message: 'Invalid or expired invitation token' });
+      }
+      
+      res.json(staffMember);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Invalid data', errors: error.errors });
+      }
+      console.error('Error accepting staff invitation:', error);
+      res.status(500).json({ message: 'Failed to accept invitation' });
+    }
+  });
+
+  // Get user role and operation access
+  app.get('/api/user-role/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      const userRole = await storage.getUserRole(email);
+      
+      if (!userRole) {
+        return res.status(404).json({ message: 'User not found or no access' });
+      }
+      
+      res.json(userRole);
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      res.status(500).json({ message: 'Failed to fetch user role' });
     }
   });
 

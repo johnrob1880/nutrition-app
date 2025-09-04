@@ -34,21 +34,38 @@ export default function Login({ onLoginSuccess, onSwitchToOnboarding }: LoginPro
   const onSubmit = async (data: LoginForm) => {
     setIsCheckingEmail(true);
     try {
-      // Check if operation exists for this email
-      const response = await fetch(`/api/operation/${data.operatorEmail}`);
+      // Check user role (owner or staff)
+      const roleResponse = await fetch(`/api/user-role/${data.operatorEmail}`);
       
-      if (response.ok) {
+      if (roleResponse.ok) {
+        const userRole = await roleResponse.json();
+        
+        // Store user information in localStorage
+        localStorage.setItem('userRole', userRole.role);
+        localStorage.setItem('operationId', userRole.operationId.toString());
+        
         toast({
           title: "Login successful!",
-          description: "Welcome back to CattleNutrition Pro",
+          description: `Welcome back to CattleNutrition Pro${userRole.role === 'staff' ? ' (Staff Access)' : ''}`,
         });
         onLoginSuccess(data.operatorEmail);
-      } else if (response.status === 404) {
-        toast({
-          title: "Operation not found",
-          description: "No operation found for this email. Please check your email or create a new operation.",
-          variant: "destructive",
-        });
+      } else if (roleResponse.status === 404) {
+        // Check if this is an operation owner that needs to be set up
+        const operationResponse = await fetch(`/api/operation/${data.operatorEmail}`);
+        
+        if (operationResponse.ok) {
+          toast({
+            title: "Login successful!",
+            description: "Welcome back to CattleNutrition Pro",
+          });
+          onLoginSuccess(data.operatorEmail);
+        } else {
+          toast({
+            title: "Account not found",
+            description: "No account found for this email. Please check your email or create a new operation.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Login failed",

@@ -17,6 +17,7 @@ import OperationPage from "@/pages/operation";
 import Feeding from "@/pages/feeding";
 import FeedingDetails from "@/pages/feeding-details";
 import FeedingPlanDetails from "@/pages/feeding-plan";
+import AcceptInvitation from "@/pages/accept-invitation";
 import BottomNav from "@/components/bottom-nav";
 import NotFound from "@/pages/not-found";
 
@@ -48,6 +49,8 @@ function AppContent() {
 
   const handleLogout = () => {
     localStorage.removeItem("operatorEmail");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("operationId");
     setCurrentOperation(null);
     setShowOnboarding(false);
     // Clear query cache to ensure fresh data on next login
@@ -112,6 +115,12 @@ function AppContent() {
           <FeedingDetails operatorEmail={currentOperation} />
         } />
         <Route component={NotFound} />
+      </Switch>
+      
+      {/* Special route for invitation acceptance - doesn't require authentication */}
+      <Switch>
+        <Route path="/accept-invitation" component={AcceptInvitation} />
+        <Route path="*" component={() => null} />
       </Switch>
       
       <BottomNav currentOperation={currentOperation} />

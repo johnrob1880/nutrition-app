@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Edit, HelpCircle, Mail, RefreshCw, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NutritionistManagement from "@/components/nutritionist-management";
+import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface OperationProps {
   operation: Operation;
@@ -27,6 +28,8 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const updateOperation = useUpdateOperation();
+  const { role } = useUserAuth();
+  const canManageOperation = hasPermission(role, 'manage_operation');
 
   const form = useForm<InsertOperation>({
     resolver: zodResolver(insertOperationSchema),
@@ -84,7 +87,7 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
               <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Operation Information</h2>
-              {!isEditing && (
+              {!isEditing && canManageOperation && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -94,6 +97,11 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
+              )}
+              {!canManageOperation && (
+                <div className="text-xs text-gray-500">
+                  Staff Access - View Only
+                </div>
               )}
             </div>
           </div>

@@ -1,11 +1,19 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import { Building2, User, UserCheck, Plus } from "lucide-react";
-import type { Nutritionist, AcceptInvitationRequest } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Building2, User, UserCheck, Plus, Mail, Users } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Nutritionist, AcceptInvitationRequest, StaffMember, InviteStaffForm } from "@shared/schema";
+import { inviteStaffSchema } from "@shared/schema";
+import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface NutritionistManagementProps {
   operatorEmail: string;
@@ -13,11 +21,52 @@ interface NutritionistManagementProps {
 
 export default function NutritionistManagement({ operatorEmail }: NutritionistManagementProps) {
   const { toast } = useToast();
+  const { role } = useUserAuth();
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
   // Fetch nutritionists
   const { data: nutritionists = [], isLoading } = useQuery<Nutritionist[]>({
     queryKey: ["/api/nutritionists", operatorEmail],
     enabled: !!operatorEmail,
+  });
+
+  // Fetch staff members
+  const { data: staffMembers = [], isLoading: isStaffLoading } = useQuery<StaffMember[]>({
+    queryKey: ["/api/staff", operatorEmail],
+    enabled: !!operatorEmail,
+  });
+
+  // Staff invitation form
+  const inviteForm = useForm<InviteStaffForm>({
+    resolver: zodResolver(inviteStaffSchema),
+    defaultValues: {
+      email: '',
+      firstName: '',
+      lastName: '',
+    },
+  });
+
+  // Staff invitation mutation
+  const inviteStaffMutation = useMutation({
+    mutationFn: async (formData: InviteStaffForm) => {
+      return await apiRequest('POST', '/api/staff/invite', { ...formData, operatorEmail });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/staff', operatorEmail] });
+      toast({
+        title: 'Invitation sent!',
+        description: 'Staff member has been invited to join your operation.',
+      });
+      inviteForm.reset();
+      setIsInviteDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to send invitation',
+        description: error.message || 'Please try again',
+        variant: 'destructive',
+      });
+    },
   });
 
   // Accept invitation mutation
@@ -63,92 +112,263 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
     acceptMutation.mutate(nutritionistId);
   };
 
-  if (isLoading) {
+  if (isLoading || isStaffLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Nutritionists</h3>
-        </div>
         <div className="text-center py-8 text-gray-500">
-          Loading nutritionists...
+          Loading team information...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold">Nutritionists</h3>
-          <p className="text-sm text-gray-600">Nutritionist invitations are managed by the external system</p>
+    <div className="space-y-6">
+      {/* Staff Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                Staff Members
+              </h2>
+              <p className="text-sm text-gray-600">Team members who can perform pen actions and record feedings</p>
+            </div>
+            {hasPermission(role, 'invite_staff') && (
+              <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="flex items-center space-x-1">
+                    <Plus className="h-4 w-4" />
+                    <span>Invite Staff</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Invite Staff Member</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={inviteForm.handleSubmit((data) => inviteStaffMutation.mutate(data))} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="staff@example.com"
+                        {...inviteForm.register('email')}
+                      />
+                      {inviteForm.formState.errors.email && (
+                        <p className="text-sm text-red-600">
+                          {inviteForm.formState.errors.email.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        placeholder="John"
+                        {...inviteForm.register('firstName')}
+                      />
+                      {inviteForm.formState.errors.firstName && (
+                        <p className="text-sm text-red-600">
+                          {inviteForm.formState.errors.firstName.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        placeholder="Doe"
+                        {...inviteForm.register('lastName')}
+                      />
+                      {inviteForm.formState.errors.lastName && (
+                        <p className="text-sm text-red-600">
+                          {inviteForm.formState.errors.lastName.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-md">
+                      <h4 className="text-sm font-medium text-blue-900 mb-1">Staff Permissions</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Record cattle feeding</li>
+                        <li>• Update pen weights</li>
+                        <li>• Record death loss and treatments</li>
+                        <li>• View all operation data</li>
+                      </ul>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsInviteDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={inviteStaffMutation.isPending}
+                      >
+                        {inviteStaffMutation.isPending ? 'Sending...' : 'Send Invitation'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
+
+        <div className="p-4">
+          {staffMembers.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No staff members yet</p>
+              {hasPermission(role, 'invite_staff') ? (
+                <p className="text-sm text-gray-400">
+                  Invite team members to help manage your operation
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  Only the operation owner can invite staff members
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {staffMembers.map((staff) => (
+                <Card key={staff.id} className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          staff.role === 'owner' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                          <User className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-sm">
+                            {staff.firstName} {staff.lastName}
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {staff.email}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge 
+                          variant={staff.role === 'owner' ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {staff.role === 'owner' ? 'Owner' : 'Staff'}
+                        </Badge>
+                        <Badge 
+                          variant={staff.status === 'active' ? 'default' : 'outline'}
+                          className="text-xs"
+                        >
+                          {staff.status === 'invited' ? 'Pending' : 'Active'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {staff.status === 'active' && staff.acceptedAt && (
+                    <CardContent className="pt-0 pb-3">
+                      <p className="text-xs text-gray-500">
+                        Joined {new Date(staff.acceptedAt).toLocaleDateString()}
+                      </p>
+                    </CardContent>
+                  )}
+                  {staff.status === 'invited' && (
+                    <CardContent className="pt-0 pb-3">
+                      <p className="text-xs text-gray-500">
+                        Invited {new Date(staff.invitedAt).toLocaleDateString()}
+                      </p>
+                    </CardContent>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+      {/* Nutritionists Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center">
+                <Building2 className="h-5 w-5 mr-2" />
+                Nutritionists
+              </h2>
+              <p className="text-sm text-gray-600">Nutritionist invitations are managed by the external system</p>
+            </div>
+          </div>
+        </div>
 
-      {nutritionists.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
+        <div className="p-4">
+
+          {nutritionists.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">No nutritionist invitations yet</p>
-              <p className="text-sm text-gray-400 mb-6">
+              <p className="text-sm text-gray-400">
                 Nutritionist invitations will appear here when sent by the external system
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {nutritionists.map((nutritionist) => (
-            <Card key={nutritionist.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <User className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-base">{nutritionist.personalName}</CardTitle>
-                    <CardDescription className="flex items-center space-x-2">
-                      <Building2 className="h-4 w-4" />
-                      <span>{nutritionist.businessName}</span>
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="text-xs">
-                    ID: {nutritionist.id}
-                  </Badge>
-                  <div className="flex items-center space-x-2">
-                    <Badge 
-                      variant={nutritionist.status === 'Active' ? 'default' : 'outline'} 
-                      className="text-xs"
-                    >
-                      {nutritionist.status}
-                    </Badge>
-                    {nutritionist.status === 'Invited' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleAcceptInvitation(nutritionist.id)}
-                        disabled={acceptMutation.isPending}
-                        className="h-6 px-2 text-xs"
-                      >
-                        {acceptMutation.isPending ? "Accepting..." : "Accept"}
-                      </Button>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {nutritionists.map((nutritionist) => (
+                <Card key={nutritionist.id}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-blue-100 p-2 rounded-full">
+                        <User className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-base">{nutritionist.personalName}</CardTitle>
+                        <CardDescription className="flex items-center space-x-2">
+                          <Building2 className="h-4 w-4" />
+                          <span>{nutritionist.businessName}</span>
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="text-xs">
+                        ID: {nutritionist.id}
+                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge 
+                          variant={nutritionist.status === 'Active' ? 'default' : 'outline'} 
+                          className="text-xs"
+                        >
+                          {nutritionist.status}
+                        </Badge>
+                        {nutritionist.status === 'Invited' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleAcceptInvitation(nutritionist.id)}
+                            disabled={acceptMutation.isPending}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {acceptMutation.isPending ? "Accepting..." : "Accept"}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {nutritionist.status === 'Active' && nutritionist.acceptedAt && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Accepted {new Date(nutritionist.acceptedAt).toLocaleDateString()}
+                      </p>
                     )}
-                  </div>
-                </div>
-                {nutritionist.status === 'Active' && nutritionist.acceptedAt && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Accepted {new Date(nutritionist.acceptedAt).toLocaleDateString()}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Veterinarians Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">

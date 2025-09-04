@@ -1,4 +1,4 @@
-import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest, type DeathLoss, type InsertDeathLoss, type TreatmentRecord, type InsertTreatmentRecord, type PartialSale, type InsertPartialSale } from "@shared/schema";
+import { operations, type Operation, type InsertOperation, type Pen, type CreatePenRequest, type FeedingPlan, type FeedingSchedule, type DashboardStats, type FeedIngredient, type UpdateWeightRequest, type WeightRecord, type UpcomingScheduleChange, type FeedingRecord, type InsertFeedingRecord, type CattleSale, type InsertCattleSale, type Nutritionist, type AcceptInvitationRequest, type DeathLoss, type InsertDeathLoss, type TreatmentRecord, type InsertTreatmentRecord, type PartialSale, type InsertPartialSale, type StaffMember, type InsertStaffMember, type StaffInvitation, type InsertStaffInvitation } from "@shared/schema";
 
 export interface IStorage {
   getOperation(id: number): Promise<Operation | undefined>;
@@ -32,6 +32,12 @@ export interface IStorage {
   // Partial Sales
   recordPartialSale(record: InsertPartialSale): Promise<PartialSale>;
   getPartialSalesByOperatorEmail(operatorEmail: string): Promise<PartialSale[]>;
+  // Staff Management
+  inviteStaffMember(invitation: InsertStaffInvitation): Promise<StaffInvitation>;
+  getStaffMembersByOperationId(operationId: number): Promise<StaffMember[]>;
+  acceptStaffInvitation(token: string): Promise<StaffMember | undefined>;
+  getStaffMemberByEmail(email: string): Promise<StaffMember | undefined>;
+  getUserRole(email: string): Promise<{ role: 'owner' | 'staff', operationId: number } | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -51,6 +57,10 @@ export class MemStorage implements IStorage {
   private treatmentId: number;
   private partialSales: Map<string, PartialSale>;
   private partialSaleId: number;
+  private staffMembers: Map<number, StaffMember>;
+  private staffMemberId: number;
+  private staffInvitations: Map<string, StaffInvitation>;
+  private staffInvitationId: number;
 
   constructor() {
     this.operations = new Map();
@@ -69,9 +79,14 @@ export class MemStorage implements IStorage {
     this.treatmentId = 1;
     this.partialSales = new Map();
     this.partialSaleId = 1;
+    this.staffMembers = new Map();
+    this.staffMemberId = 1;
+    this.staffInvitations = new Map();
+    this.staffInvitationId = 1;
     this.initializePensData();
     this.initializeInviteCodes();
     this.initializeNutritionistData();
+    this.initializeStaffData();
   }
 
   private initializeInviteCodes() {
@@ -163,16 +178,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createOperation(insertOperation: InsertOperation): Promise<Operation> {
-    const id = this.currentId++;
-    const operation: Operation = { 
-      ...insertOperation, 
-      id,
-      setupDate: new Date()
-    };
-    this.operations.set(id, operation);
-    return operation;
-  }
 
   async updateOperation(id: number, updateData: Partial<InsertOperation>): Promise<Operation | undefined> {
     const operation = this.operations.get(id);
@@ -940,6 +945,133 @@ export class MemStorage implements IStorage {
     return Array.from(this.partialSales.values()).filter(
       sale => sale.operatorEmail === operatorEmail
     );
+  }
+
+  private initializeStaffData() {
+    // Initialize operation owners as staff members when operations are created
+    // This will be called when operations are created in createOperation method
+  }
+
+  // Staff Management Methods
+  async inviteStaffMember(invitation: InsertStaffInvitation): Promise<StaffInvitation> {
+    const id = this.staffInvitationId++;
+    const token = `inv_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    const staffInvitation: StaffInvitation = {
+      id,
+      token,
+      operationId: invitation.operationId,
+      email: invitation.email,
+      firstName: invitation.firstName,
+      lastName: invitation.lastName,
+      invitedBy: invitation.invitedBy,
+      expiresAt,
+      usedAt: null,
+      createdAt: new Date(),
+    };
+
+    this.staffInvitations.set(token, staffInvitation);
+    
+    // Also create pending staff member record
+    const staffMemberId = this.staffMemberId++;
+    const pendingStaffMember: StaffMember = {
+      id: staffMemberId,
+      operationId: invitation.operationId,
+      email: invitation.email,
+      firstName: invitation.firstName,
+      lastName: invitation.lastName,
+      role: 'staff',
+      status: 'invited',
+      invitedAt: new Date(),
+      acceptedAt: null,
+      invitedBy: invitation.invitedBy,
+    };
+    
+    this.staffMembers.set(staffMemberId, pendingStaffMember);
+    return staffInvitation;
+  }
+
+  async getStaffMembersByOperationId(operationId: number): Promise<StaffMember[]> {
+    return Array.from(this.staffMembers.values()).filter(
+      member => member.operationId === operationId
+    );
+  }
+
+  async acceptStaffInvitation(token: string): Promise<StaffMember | undefined> {
+    const invitation = this.staffInvitations.get(token);
+    if (!invitation || invitation.usedAt || invitation.expiresAt < new Date()) {
+      return undefined;
+    }
+
+    // Mark invitation as used
+    invitation.usedAt = new Date();
+    this.staffInvitations.set(token, invitation);
+
+    // Update staff member status
+    const staffMember = Array.from(this.staffMembers.values()).find(
+      member => member.operationId === invitation.operationId && 
+                member.email === invitation.email
+    );
+    
+    if (staffMember) {
+      staffMember.status = 'active';
+      staffMember.acceptedAt = new Date();
+      this.staffMembers.set(staffMember.id, staffMember);
+      return staffMember;
+    }
+    
+    return undefined;
+  }
+
+  async getStaffMemberByEmail(email: string): Promise<StaffMember | undefined> {
+    return Array.from(this.staffMembers.values()).find(
+      member => member.email === email
+    );
+  }
+
+  async getUserRole(email: string): Promise<{ role: 'owner' | 'staff', operationId: number } | undefined> {
+    // Check if user is an operation owner
+    const operation = await this.getOperationByEmail(email);
+    if (operation) {
+      return { role: 'owner', operationId: operation.id };
+    }
+
+    // Check if user is a staff member
+    const staffMember = await this.getStaffMemberByEmail(email);
+    if (staffMember && staffMember.status === 'active') {
+      return { role: 'staff', operationId: staffMember.operationId };
+    }
+
+    return undefined;
+  }
+
+  // Override createOperation to add owner as initial staff member
+  async createOperation(insertOperation: InsertOperation): Promise<Operation> {
+    const id = this.currentId++;
+    const operation: Operation = { 
+      ...insertOperation, 
+      id,
+      setupDate: new Date()
+    };
+    this.operations.set(id, operation);
+    
+    // Create owner as initial staff member
+    const ownerStaffMember: StaffMember = {
+      id: this.staffMemberId++,
+      operationId: id,
+      email: insertOperation.operatorEmail,
+      firstName: 'Operation', // Placeholder - will be updated when user provides real name
+      lastName: 'Owner',
+      role: 'owner',
+      status: 'active',
+      invitedAt: new Date(),
+      acceptedAt: new Date(),
+      invitedBy: insertOperation.operatorEmail, // Self-invited
+    };
+    
+    this.staffMembers.set(ownerStaffMember.id, ownerStaffMember);
+    return operation;
   }
 }
 
