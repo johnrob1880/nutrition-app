@@ -24,6 +24,8 @@ export default function Onboarding({ onComplete, onSwitchToLogin }: OnboardingPr
     defaultValues: {
       inviteCode: "",
       operatorEmail: "",
+      firstName: "",
+      lastName: "",
       name: "",
       location: "",
     },
@@ -142,6 +144,50 @@ export default function Onboarding({ onComplete, onSwitchToLogin }: OnboardingPr
                 {form.formState.errors.operatorEmail.message}
               </p>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label
+                htmlFor="firstName"
+                className="text-sm font-medium text-gray-700 mb-2"
+              >
+                First Name *
+              </Label>
+              <Input
+                id="firstName"
+                type="text"
+                placeholder="John"
+                {...form.register("firstName")}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              {form.formState.errors.firstName && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.firstName.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label
+                htmlFor="lastName"
+                className="text-sm font-medium text-gray-700 mb-2"
+              >
+                Last Name *
+              </Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder="Smith"
+                {...form.register("lastName")}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              {form.formState.errors.lastName && (
+                <p className="text-sm text-red-600 mt-1">
+                  {form.formState.errors.lastName.message}
+                </p>
+              )}
+            </div>
           </div>
 
           <div>

@@ -31,6 +31,8 @@ export const operations = pgTable("operations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   operatorEmail: text("operator_email").notNull().unique(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
   location: text("location").notNull(),
   inviteCode: text("invite_code").notNull(),
   setupDate: timestamp("setup_date").notNull().defaultNow(),

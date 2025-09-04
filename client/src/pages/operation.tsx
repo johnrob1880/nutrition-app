@@ -36,6 +36,8 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
     defaultValues: {
       name: operation.name,
       operatorEmail: operation.operatorEmail,
+      firstName: operation.firstName,
+      lastName: operation.lastName,
       location: operation.location,
       inviteCode: operation.inviteCode,
     },
@@ -109,6 +111,36 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
           <div className="p-4">
             {isEditing ? (
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName" className="text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      {...form.register("firstName")}
+                      className="w-full"
+                    />
+                    {form.formState.errors.firstName && (
+                      <p className="text-sm text-red-600 mt-1">{form.formState.errors.firstName.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="lastName" className="text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      {...form.register("lastName")}
+                      className="w-full"
+                    />
+                    {form.formState.errors.lastName && (
+                      <p className="text-sm text-red-600 mt-1">{form.formState.errors.lastName.message}</p>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-1">
                     Operation Name
@@ -175,6 +207,11 @@ export default function OperationPage({ operation, stats, onLogout }: OperationP
               </form>
             ) : (
               <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1">Owner</Label>
+                  <p className="text-gray-900 font-medium">{operation.firstName} {operation.lastName}</p>
+                </div>
+
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-1">Operation Name</Label>
                   <p className="text-gray-900 font-medium">{operation.name}</p>
