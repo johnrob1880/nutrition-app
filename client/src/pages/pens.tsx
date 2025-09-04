@@ -18,6 +18,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -1057,10 +1058,10 @@ export default function Pens({ operatorEmail }: PensProps) {
 
             <div className="space-y-2">
               <Label htmlFor="saleDate">Sale Date</Label>
-              <Input
-                id="saleDate"
-                type="date"
-                {...saleForm.register("saleDate")}
+              <DatePicker
+                value={saleForm.watch("saleDate") ? new Date(saleForm.watch("saleDate")) : undefined}
+                onChange={(date) => saleForm.setValue("saleDate", date ? date.toISOString().split('T')[0] : "")}
+                placeholder="Select sale date"
               />
               {saleForm.formState.errors.saleDate && (
                 <p className="text-sm text-red-600">
@@ -1119,10 +1120,10 @@ export default function Pens({ operatorEmail }: PensProps) {
           <form onSubmit={deathLossForm.handleSubmit(handleDeathLoss)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="lossDate">Date of Loss</Label>
-              <Input
-                id="lossDate"
-                type="date"
-                {...deathLossForm.register("lossDate")}
+              <DatePicker
+                value={deathLossForm.watch("lossDate") ? new Date(deathLossForm.watch("lossDate")) : undefined}
+                onChange={(date) => deathLossForm.setValue("lossDate", date ? date.toISOString().split('T')[0] : "")}
+                placeholder="Select loss date"
               />
               {deathLossForm.formState.errors.lossDate && (
                 <p className="text-sm text-red-600">
@@ -1234,10 +1235,10 @@ export default function Pens({ operatorEmail }: PensProps) {
           <form onSubmit={treatmentForm.handleSubmit(handleTreatment)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="treatmentDate">Treatment Date</Label>
-              <Input
-                id="treatmentDate"
-                type="date"
-                {...treatmentForm.register("treatmentDate")}
+              <DatePicker
+                value={treatmentForm.watch("treatmentDate") ? new Date(treatmentForm.watch("treatmentDate")) : undefined}
+                onChange={(date) => treatmentForm.setValue("treatmentDate", date ? date.toISOString().split('T')[0] : "")}
+                placeholder="Select treatment date"
               />
               {treatmentForm.formState.errors.treatmentDate && (
                 <p className="text-sm text-red-600">
@@ -1376,10 +1377,10 @@ export default function Pens({ operatorEmail }: PensProps) {
           <form onSubmit={partialSaleForm.handleSubmit(handlePartialSale)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="saleDate">Sale Date</Label>
-              <Input
-                id="saleDate"
-                type="date"
-                {...partialSaleForm.register("saleDate")}
+              <DatePicker
+                value={partialSaleForm.watch("saleDate") ? new Date(partialSaleForm.watch("saleDate")) : undefined}
+                onChange={(date) => partialSaleForm.setValue("saleDate", date ? date.toISOString().split('T')[0] : "")}
+                placeholder="Select sale date"
               />
               {partialSaleForm.formState.errors.saleDate && (
                 <p className="text-sm text-red-600">
