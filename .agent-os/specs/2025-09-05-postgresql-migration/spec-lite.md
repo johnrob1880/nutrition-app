@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Migrate from in-memory storage to PostgreSQL database using a gradual migration strategy, implementing Docker for local development and Drizzle ORM for database operations. The migration enables data persistence, concurrent multi-user access, and includes development seeding with sample operation data, preparing the platform for production deployment while maintaining system stability during transition.

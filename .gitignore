@@ -10,6 +10,7 @@ vite.config.ts.*
 .env.local
 .env.development
 .env.production
+.env.test
 
 # Database
 postgres-data/
@@ -22,3 +23,6 @@ postgres-data/
 # Logs
 *.log
 npm-debug.log*
+
+# Claude Settings
+.claude/settings.local.json
