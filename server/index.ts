@@ -1,10 +1,16 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { StorageFactory } from "./storage/StorageFactory";
+import { createSessionConfig, getSessionStoreConfig } from "./config/session";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session configuration
+app.use(createSessionConfig());
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,6 +43,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize storage and log which provider is being used
+  const storageConfig = StorageFactory.getStorageConfig();
+  log(`🗄️  Storage: ${storageConfig.type.toUpperCase()} ${storageConfig.type === 'postgresql' ? '(PostgreSQL)' : '(In-Memory)'}`);
+  
+  // Log session store configuration
+  const sessionConfig = getSessionStoreConfig();
+  log(`🔐 Sessions: ${sessionConfig.database} ${sessionConfig.persistent ? '(Persistent)' : '(Memory)'}`);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -62,8 +76,6 @@ app.use((req, res, next) => {
   const port = 5000;
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
   });

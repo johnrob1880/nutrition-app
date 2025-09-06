@@ -3,9 +3,103 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type CreatePenRequest, inviteStaffSchema, acceptStaffInvitationSchema } from "@shared/schema";
 import { z } from "zod";
-import { sendStaffInvitationEmail } from "./emailService";
+// Email service is imported dynamically to avoid SENDGRID_API_KEY requirement during testing
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication middleware
+  function requireAuth(req: any, res: any, next: any) {
+    if (!req.session || !req.session.email) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    next();
+  }
+
+  // Session-based authentication routes
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+
+      // Verify the user exists (either as operation owner or staff member)
+      const userRole = await storage.getUserRole(email);
+      if (!userRole) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Store user info in session
+      req.session.email = email;
+      req.session.userId = userRole.operationId.toString();
+      req.session.operationId = userRole.operationId;
+      req.session.role = userRole.role;
+
+      // Force save session
+      req.session.save((err: any) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).json({ message: 'Failed to create session' });
+        }
+        
+        res.json({
+          success: true,
+          user: {
+            email: email,
+            role: userRole.role,
+            operationId: userRole.operationId
+          },
+          sessionId: req.sessionID
+        });
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req: any, res: any) => {
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Failed to logout' });
+      }
+      res.clearCookie('nutrition.sid');
+      res.json({ success: true });
+    });
+  });
+
+  app.get('/api/auth/session', (req: any, res: any) => {
+    if (req.session && req.session.email) {
+      res.json({
+        isAuthenticated: true,
+        user: {
+          email: req.session.email,
+          role: req.session.role,
+          operationId: req.session.operationId
+        },
+        sessionId: req.sessionID
+      });
+    } else {
+      res.json({
+        isAuthenticated: false,
+        user: null,
+        sessionId: req.sessionID
+      });
+    }
+  });
+
+  // Check session validity
+  app.get('/api/auth/check', requireAuth, (req: any, res: any) => {
+    res.json({
+      valid: true,
+      user: {
+        email: req.session.email,
+        role: req.session.role,
+        operationId: req.session.operationId
+      }
+    });
+  });
   // Get operation by email
   app.get("/api/operation/:email", async (req, res) => {
     try {
@@ -374,6 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send invitation email
+      const { sendStaffInvitationEmail } = await import("./emailService");
       const emailSent = await sendStaffInvitationEmail({
         to: validatedData.email,
         firstName: validatedData.firstName,
