@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { PostgreSQLStorageProvider } from './PostgreSQLStorageProvider';
 import { getDb, closeConnection, testConnection } from '../db/connection';
-import { operations, staffMembers, pens, feedingRecords, deathLosses, treatmentRecords, weightRecords, cattleSales, feedingPlans, staffInvitations } from '../db/schema';
+import { operations, staffMembers, pens, feedingRecords, deathLosses, treatmentRecords, weightRecords, cattleSales, feedingPlans, staffInvitations } from '@shared/schema';
 import type { InsertOperation, CreatePenRequest, InsertFeedingRecord, InsertDeathLoss, InsertTreatmentRecord } from '@shared/schema';
 
 // Load test environment variables

@@ -1,6 +1,6 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { getDb, executeWithRetry } from '../db/connection';
-import * as schema from '../db/schema';
+import * as schema from '@shared/schema';
 import { IStorageProvider } from './IStorageProvider';
 import type {
   Operation,
@@ -44,6 +44,13 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
   // Helper method for executing with retry
   async executeWithRetry<T>(fn: () => Promise<T>): Promise<T> {
     return executeWithRetry(fn);
+  }
+
+  // Helper method to calculate days on feed
+  private calculateDaysOnFeed(startDate: Date | string, endDate?: Date | string): number {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+    return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   }
 
   // Operation Management
@@ -137,10 +144,11 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         isCrossbred: pen.isCrossbred || false,
         currentWeight: pen.currentWeight,
         weightHistory: [],
-        daysOnFeed: pen.daysOnFeed || 0,
+        daysOnFeed: pen.startDate ? this.calculateDaysOnFeed(pen.startDate, pen.endDate) : 0,
         feedConversion: pen.feedConversion || 0,
         projectedCloseoutDate: pen.projectedCloseoutDate || '',
-        estimatedValue: pen.estimatedValue || 0
+        estimatedValue: pen.estimatedValue || 0,
+        nutritionistId: pen.nutritionistId
       })) as Pen[];
     });
   }
@@ -180,10 +188,11 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         isCrossbred: pen.isCrossbred || false,
         currentWeight: pen.currentWeight,
         weightHistory: [],
-        daysOnFeed: pen.daysOnFeed || 0,
+        daysOnFeed: pen.startDate ? this.calculateDaysOnFeed(pen.startDate, pen.endDate) : 0,
         feedConversion: pen.feedConversion || 0,
         projectedCloseoutDate: pen.projectedCloseoutDate || '',
-        estimatedValue: pen.estimatedValue || 0
+        estimatedValue: pen.estimatedValue || 0,
+        nutritionistId: pen.nutritionistId
       } as Pen;
     });
   }
@@ -235,10 +244,11 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         isCrossbred: pen.isCrossbred || false,
         currentWeight: pen.currentWeight,
         weightHistory: [],
-        daysOnFeed: pen.daysOnFeed || 0,
+        daysOnFeed: pen.startDate ? this.calculateDaysOnFeed(pen.startDate, pen.endDate) : 0,
         feedConversion: pen.feedConversion || 0,
         projectedCloseoutDate: pen.projectedCloseoutDate || '',
-        estimatedValue: pen.estimatedValue || 0
+        estimatedValue: pen.estimatedValue || 0,
+        nutritionistId: pen.nutritionistId
       } as Pen;
     });
   }
@@ -246,72 +256,165 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
   // Feeding Management
   async createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord> {
     return this.executeWithRetry(async () => {
+      // Get current date/time for the feeding
+      const feedingTime = new Date();
+      const feedingDate = feedingTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Calculate total actual amount from ingredients
+      const totalActualAmount = record.actualIngredients.reduce((sum, ing) => 
+        sum + parseFloat(ing.actualAmount), 0
+      );
+      
       const result = await this.db
         .insert(schema.feedingRecords)
         .values({
           penId: record.penId,
-          feedingDate: record.feedingDate,
-          feedType: record.feedType,
-          amount: record.amount,
-          unit: record.unit,
-          ingredients: record.ingredients as any,
-          fedBy: record.fedBy,
-          notes: record.notes,
+          scheduleId: record.scheduleId, // Add missing scheduleId
+          plannedAmount: record.plannedAmount, // Add missing plannedAmount  
+          feedingTime: feedingTime, // Add missing feedingTime
+          feedingDate: feedingDate,
+          feedType: 'Mixed Feed', // Default feed type
+          amount: totalActualAmount,
+          unit: 'lbs', // Default unit
+          ingredients: record.actualIngredients as any,
+          fedBy: record.operatorEmail, // Use operator email as fed by for now
+          notes: `Feeding completed for schedule ${record.scheduleId}`,
           operatorEmail: record.operatorEmail,
         })
         .returning();
       
       return {
-        id: result[0].id,
-        ...record
+        id: result[0].id.toString(),
+        operationId: record.operationId,
+        penId: record.penId,
+        scheduleId: record.scheduleId,
+        plannedAmount: record.plannedAmount,
+        actualIngredients: record.actualIngredients,
+        feedingTime: feedingTime.toISOString(),
+        operatorEmail: record.operatorEmail,
+        createdAt: result[0].createdAt.toISOString(),
       } as FeedingRecord;
     });
   }
 
   async getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]> {
     return this.executeWithRetry(async () => {
+      // Get the operation for this operator to get the correct operation ID
+      const operation = await this.getOperationByEmail(operatorEmail);
+      if (!operation) {
+        return [];
+      }
+
       const results = await this.db
         .select()
         .from(schema.feedingRecords)
         .where(eq(schema.feedingRecords.operatorEmail, operatorEmail));
       
-      return results.map(record => ({
-        id: record.id,
-        penId: record.penId,
-        feedingDate: record.feedingDate,
-        feedType: record.feedType,
-        amount: record.amount,
-        unit: record.unit,
-        ingredients: record.ingredients as FeedIngredient[],
-        fedBy: record.fedBy,
-        notes: record.notes || undefined,
-        operatorEmail: record.operatorEmail,
-      })) as FeedingRecord[];
+      return results.map(record => {
+        // Convert database ingredients to ActualIngredient format
+        const ingredients = record.ingredients as any[] || [];
+        const actualIngredients = ingredients.map(ing => ({
+          name: ing.name || '',
+          plannedAmount: ing.plannedAmount || ing.amount || '0',
+          actualAmount: ing.actualAmount || ing.amount || '0', 
+          unit: ing.unit || 'lbs',
+          category: ing.category || 'Feedstuff'
+        }));
+
+        return {
+          id: record.id.toString(),
+          operationId: operation.id,
+          penId: record.penId,
+          scheduleId: record.scheduleId, // Use actual scheduleId from database
+          plannedAmount: record.plannedAmount || '0', // Use actual plannedAmount from database
+          actualIngredients: actualIngredients,
+          feedingTime: record.feedingTime?.toISOString() || new Date().toISOString(), // Use actual feedingTime from database
+          operatorEmail: record.operatorEmail,
+          createdAt: record.createdAt?.toISOString() || new Date().toISOString()
+        } as FeedingRecord;
+      });
     });
   }
 
   async getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]> {
     return this.executeWithRetry(async () => {
       const results = await this.db
-        .select()
+        .select({
+          id: schema.feedingPlans.id,
+          penId: schema.feedingPlans.penId,
+          name: schema.feedingPlans.name,
+          operatorEmail: schema.feedingPlans.operatorEmail,
+          ingredients: schema.feedingPlans.ingredients,
+          totalCostPerTon: schema.feedingPlans.totalCostPerTon,
+          proteinContent: schema.feedingPlans.proteinContent,
+          energyContent: schema.feedingPlans.energyContent,
+          dailyFeedAmount: schema.feedingPlans.dailyFeedAmount,
+          estimatedDailyGain: schema.feedingPlans.estimatedDailyGain,
+          feedConversionRatio: schema.feedingPlans.feedConversionRatio,
+          createdDate: schema.feedingPlans.createdDate,
+          lastModified: schema.feedingPlans.lastModified,
+          notes: schema.feedingPlans.notes,
+          penName: schema.pens.name,
+          feedType: schema.pens.feedType,
+          penCurrent: schema.pens.current,
+        })
         .from(schema.feedingPlans)
+        .leftJoin(schema.pens, eq(schema.feedingPlans.penId, schema.pens.id))
         .where(eq(schema.feedingPlans.operatorEmail, operatorEmail));
       
       return results.map(plan => ({
         id: plan.id.toString(),
         penId: plan.penId.toString(),
-        name: plan.name,
+        penName: plan.penName || 'Unknown Pen',
+        planName: plan.name,
+        startDate: plan.createdDate,
+        daysToFeed: 120, // Default value, could be calculated
+        currentDay: 30, // Default value, could be calculated
+        status: 'Active' as const,
+        feedType: plan.feedType || 'Mixed Feed',
+        schedules: (() => {
+          // Keep ingredient amounts as total amounts to match totalAmount field
+          const totalIngredients = plan.ingredients as any[] || [];
+          const cattleCount = plan.penCurrent || 1; // Use pen's current cattle count
+          
+          // Calculate half of total ingredients for each feeding (morning/evening split)
+          const halfPortionIngredients = totalIngredients.map(ing => {
+            const fullDayAmount = parseFloat(ing.amount || '0');
+            const halfAmount = (fullDayAmount / 2).toFixed(2);
+            return {
+              ...ing,
+              amount: halfAmount // Half of daily amount for each feeding session
+            };
+          });
+
+          return [
+            {
+              id: `${plan.id}-morning`,
+              time: '07:00',
+              totalAmount: `${Math.round(plan.dailyFeedAmount ? plan.dailyFeedAmount / 2 : 850)} lbs`,
+              ingredients: halfPortionIngredients as FeedIngredient[],
+              totalNutrition: {
+                protein: `${plan.proteinContent || 0}%`,
+                fat: '3.5%', // Default value
+                fiber: '18%', // Default value
+                moisture: '12%' // Default value
+              }
+            },
+            {
+              id: `${plan.id}-evening`,
+              time: '16:00',
+              totalAmount: `${Math.round(plan.dailyFeedAmount ? plan.dailyFeedAmount / 2 : 850)} lbs`,
+              ingredients: halfPortionIngredients as FeedIngredient[],
+              totalNutrition: {
+                protein: `${plan.proteinContent || 0}%`,
+                fat: '3.5%', // Default value
+                fiber: '18%', // Default value
+                moisture: '12%' // Default value
+              }
+            }
+          ];
+        })(),
         operatorEmail: plan.operatorEmail,
-        ingredients: plan.ingredients as FeedIngredient[],
-        totalCostPerTon: plan.totalCostPerTon || 0,
-        proteinContent: plan.proteinContent || 0,
-        energyContent: plan.energyContent || 0,
-        dailyFeedAmount: plan.dailyFeedAmount || 0,
-        estimatedDailyGain: plan.estimatedDailyGain || 0,
-        feedConversionRatio: plan.feedConversionRatio || 0,
-        createdDate: plan.createdDate,
-        lastModified: plan.lastModified,
-        notes: plan.notes || '',
       })) as FeedingPlan[];
     });
   }
@@ -350,13 +453,22 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         staffCount = staff.length;
       }
 
+      // Get active schedules count (feeding plans that are active)
+      const feedingPlans = await this.getFeedingPlansByOperatorEmail(operatorEmail);
+      const activeSchedules = feedingPlans.length;
+
+      // Calculate average feed per day from feeding plans
+      const avgFeedPerDay = feedingPlans.length > 0
+        ? (feedingPlans.reduce((sum, plan) => sum + (plan.dailyFeedAmount || 0), 0) / feedingPlans.length).toFixed(2)
+        : '0';
+
       return {
         totalPens: pens.length,
-        totalCapacity,
-        currentCattle,
-        utilizationRate: totalCapacity > 0 ? (currentCattle / totalCapacity) * 100 : 0,
-        averageWeight,
-        staffCount
+        totalCattle: currentCattle, // Fix: use totalCattle instead of currentCattle
+        activeSchedules,
+        staffCount,
+        avgFeedPerDay: `${avgFeedPerDay} lbs`,
+        lastSync: new Date().toISOString()
       };
     });
   }
@@ -364,25 +476,73 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
   // Cattle Sales
   async sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale> {
     return this.executeWithRetry(async () => {
+      // Get the pen to determine head count and other details
+      const pen = await this.db
+        .select()
+        .from(schema.pens)
+        .where(eq(schema.pens.id, saleRecord.penId))
+        .limit(1);
+      
+      if (!pen.length) {
+        throw new Error('Pen not found');
+      }
+
+      const penData = pen[0];
+      const headCount = penData.current;
+      const totalRevenue = (saleRecord.finalWeight * saleRecord.pricePerCwt * headCount) / 100;
+      
+      // Calculate days on feed and average daily gain
+      const startDate = new Date(penData.startDate);
+      const saleDate = new Date(saleRecord.saleDate);
+      const daysOnFeed = Math.floor((saleDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const totalGain = saleRecord.finalWeight - penData.startingWeight;
+      const averageDailyGain = daysOnFeed > 0 ? totalGain / daysOnFeed : 0;
+
+      // Insert the sale record
       const result = await this.db
         .insert(schema.cattleSales)
         .values({
           penId: saleRecord.penId,
           saleDate: saleRecord.saleDate,
-          headCount: saleRecord.headCount,
-          averageWeight: saleRecord.averageWeight,
+          headCount: headCount,
+          averageWeight: saleRecord.finalWeight,
           pricePerCwt: saleRecord.pricePerCwt,
-          totalRevenue: saleRecord.totalRevenue,
-          buyerName: saleRecord.buyerName,
-          transportCost: saleRecord.transportCost,
-          notes: saleRecord.notes,
+          totalRevenue: totalRevenue,
+          daysOnFeed: daysOnFeed,
+          averageDailyGain: averageDailyGain,
+          buyerName: null,
+          transportCost: null,
+          notes: null,
           operatorEmail: saleRecord.operatorEmail,
         })
         .returning();
       
+      // Update the pen to mark it as sold (Inactive with 0 cattle)
+      await this.db
+        .update(schema.pens)
+        .set({
+          current: 0,
+          status: 'Inactive',
+        })
+        .where(eq(schema.pens.id, saleRecord.penId));
+      
       return {
-        id: result[0].id,
-        ...saleRecord
+        id: result[0].id.toString(),
+        operationId: saleRecord.operationId,
+        penId: saleRecord.penId,
+        penName: penData.name,
+        finalWeight: saleRecord.finalWeight,
+        pricePerCwt: saleRecord.pricePerCwt,
+        totalRevenue: totalRevenue,
+        cattleCount: headCount,
+        cattleType: penData.cattleType,
+        startingWeight: penData.startingWeight,
+        averageDailyGain: parseFloat(averageDailyGain.toFixed(2)),
+        daysOnFeed: daysOnFeed,
+        nutritionistId: penData.nutritionistId || undefined,
+        saleDate: saleRecord.saleDate,
+        operatorEmail: saleRecord.operatorEmail,
+        createdAt: result[0].createdAt.toISOString(),
       } as CattleSale;
     });
   }
@@ -394,19 +554,54 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         .from(schema.cattleSales)
         .where(eq(schema.cattleSales.operatorEmail, operatorEmail));
       
-      return results.map(sale => ({
-        id: sale.id,
-        penId: sale.penId,
-        saleDate: sale.saleDate,
-        headCount: sale.headCount,
-        averageWeight: sale.averageWeight,
-        pricePerCwt: sale.pricePerCwt,
-        totalRevenue: sale.totalRevenue,
-        buyerName: sale.buyerName || undefined,
-        transportCost: sale.transportCost || undefined,
-        notes: sale.notes || undefined,
-        operatorEmail: sale.operatorEmail,
-      })) as CattleSale[];
+      // Get operation data
+      const operations = await this.db
+        .select()
+        .from(schema.operations)
+        .where(eq(schema.operations.operatorEmail, operatorEmail))
+        .limit(1);
+      
+      const operationId = operations[0]?.id || 0;
+      
+      // Get all pen IDs from sales
+      const penIds = [...new Set(results.map(sale => sale.penId))];
+      
+      // Fetch pen data for all sold pens
+      const pens = penIds.length > 0 ? await this.db
+        .select()
+        .from(schema.pens)
+        .where(inArray(schema.pens.id, penIds.map(id => parseInt(id)))) : [];
+      
+      // Create a map of pen data - ensure consistent string keys
+      const penMap = new Map(pens.map(pen => [pen.id.toString(), pen]));
+      
+      return results.map(sale => {
+        const pen = penMap.get(sale.penId);
+        
+        // Use stored values from the sale record instead of recalculating
+        const daysOnFeed = sale.daysOnFeed || 0;
+        const averageDailyGain = sale.averageDailyGain || 0;
+        
+        return {
+          id: sale.id.toString(),
+          operationId: operationId,
+          penId: sale.penId,
+          penName: pen?.name || 'Unknown Pen',
+          finalWeight: sale.averageWeight,
+          pricePerCwt: sale.pricePerCwt,
+          totalRevenue: sale.totalRevenue,
+          cattleCount: sale.headCount,
+          cattleType: pen?.cattleType || 'Unknown',
+          startingWeight: pen?.startingWeight || 0,
+          averageDailyGain: averageDailyGain,
+          daysOnFeed: daysOnFeed,
+          nutritionistId: pen?.nutritionistId || undefined,
+          saleDate: sale.saleDate,
+          penStartDate: pen?.startDate ? new Date(pen.startDate).toISOString().split('T')[0] : undefined,
+          operatorEmail: sale.operatorEmail,
+          createdAt: sale.createdAt.toISOString(),
+        } as CattleSale;
+      });
     });
   }
 
@@ -479,6 +674,7 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         tagNumbers: loss.tagNumbers || undefined,
         notes: loss.notes || undefined,
         operatorEmail: loss.operatorEmail,
+        createdAt: loss.createdAt?.toISOString() || new Date(loss.lossDate + 'T08:00:00.000Z').toISOString(),
       })) as DeathLoss[];
     });
   }
@@ -528,6 +724,7 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         treatedBy: treatment.treatedBy,
         notes: treatment.notes || undefined,
         operatorEmail: treatment.operatorEmail,
+        createdAt: treatment.createdAt?.toISOString() || new Date(treatment.treatmentDate + 'T08:00:00.000Z').toISOString(),
       })) as TreatmentRecord[];
     });
   }
@@ -540,8 +737,8 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         .values({
           penId: record.penId,
           saleDate: record.saleDate,
-          headCount: record.headCount,
-          averageWeight: record.averageWeight,
+          headCount: record.cattleCount,
+          averageWeight: record.finalWeight,
           pricePerCwt: record.pricePerCwt,
           totalRevenue: record.totalRevenue,
           tagNumbers: record.tagNumbers,
@@ -568,13 +765,14 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         id: sale.id,
         penId: sale.penId,
         saleDate: sale.saleDate,
-        headCount: sale.headCount,
-        averageWeight: sale.averageWeight,
+        cattleCount: sale.headCount,
+        finalWeight: sale.averageWeight,
         pricePerCwt: sale.pricePerCwt,
         totalRevenue: sale.totalRevenue,
         tagNumbers: sale.tagNumbers || undefined,
         notes: sale.notes || undefined,
         operatorEmail: sale.operatorEmail,
+        createdAt: sale.createdAt?.toISOString() || new Date(sale.saleDate + 'T08:00:00.000Z').toISOString(),
       })) as PartialSale[];
     });
   }

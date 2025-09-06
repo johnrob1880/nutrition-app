@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { seedDatabase, clearDatabase, generateSeedData } from '../db/seed';
 import { getDb, closeConnection } from '../db/connection';
-import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers } from '../db/schema';
+import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers } from '@shared/schema';
 import { count, eq } from 'drizzle-orm';
 
 describe('Database Seeding', () => {

@@ -1,6 +1,6 @@
 import { getDb } from './connection';
 import { sql } from 'drizzle-orm';
-import { session } from './schema';
+import { session } from '@shared/schema';
 
 /**
  * Session Migration and Maintenance Utilities

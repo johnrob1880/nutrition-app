@@ -1,5 +1,5 @@
 import { getDb, closeConnection, executeWithRetry } from './connection';
-import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers } from './schema';
+import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers } from '@shared/schema';
 import { InMemoryStorageProvider } from '../storage/InMemoryStorageProvider';
 import { eq } from 'drizzle-orm';
 

@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { SessionMigration } from '../db/sessionMigration';
 import { getDb, closeConnection, testConnection } from '../db/connection';
-import { session } from '../db/schema';
+import { session } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
 // Load test environment variables

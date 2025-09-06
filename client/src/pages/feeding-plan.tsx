@@ -246,41 +246,45 @@ export default function FeedingPlanDetails({ operatorEmail }: FeedingPlanDetails
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
                           <span className="font-medium">
-                            {formatDate(record.feedingTime)} at {formatTime(record.feedingTime.split('T')[1])}
+                            {record.feedingTime ? `${formatDate(record.feedingTime)} at ${formatTime(record.feedingTime.split('T')[1])}` : 'Date not available'}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2">
                           {getVarianceIcon(
                             parseFloat(record.plannedAmount),
-                            record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0)
+                            record.actualIngredients?.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0) || 0
                           )}
                           <span className="text-sm text-gray-600 font-mono">
-                            Total: {formatNumber(record.actualIngredients.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0))} lbs
+                            Total: {formatNumber(record.actualIngredients?.reduce((sum, ing) => sum + parseFloat(ing.actualAmount), 0) || 0)} lbs
                           </span>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <h4 className="text-sm font-semibold text-gray-700">Ingredient Details:</h4>
-                        {record.actualIngredients.map((ingredient, index) => {
-                          const planned = parseFloat(ingredient.plannedAmount);
-                          const actual = parseFloat(ingredient.actualAmount);
-                          const variance = ((actual - planned) / planned) * 100;
-                          
-                          return (
-                            <div key={index} className="flex justify-between items-center text-sm">
-                              <span className="font-medium">{ingredient.name}</span>
-                              <div className="flex items-center space-x-3">
-                                <span className="text-gray-600 font-mono text-right min-w-[80px]">
-                                  {formatNumber(ingredient.actualAmount)} / {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
-                                </span>
-                                <span className={`font-medium font-mono text-right min-w-[60px] ${getVarianceColor(planned, actual)}`}>
-                                  {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(2)}%
-                                </span>
+                        {(record.actualIngredients?.length > 0) ? (
+                          record.actualIngredients.map((ingredient, index) => {
+                            const planned = parseFloat(ingredient.plannedAmount);
+                            const actual = parseFloat(ingredient.actualAmount);
+                            const variance = ((actual - planned) / planned) * 100;
+                            
+                            return (
+                              <div key={index} className="flex justify-between items-center text-sm">
+                                <span className="font-medium">{ingredient.name}</span>
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-gray-600 font-mono text-right min-w-[80px]">
+                                    {formatNumber(ingredient.actualAmount)} / {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
+                                  </span>
+                                  <span className={`font-medium font-mono text-right min-w-[60px] ${getVarianceColor(planned, actual)}`}>
+                                    {variance > 0 ? '+' : ''}{variance % 1 === 0 ? variance.toString() : variance.toFixed(2)}%
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })
+                        ) : (
+                          <div className="text-sm text-gray-500 italic">No ingredient details available</div>
+                        )}
                       </div>
                     </div>
                   ))}

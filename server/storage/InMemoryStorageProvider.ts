@@ -105,16 +105,20 @@ export class InMemoryStorageProvider implements IStorageProvider {
         operatorEmail: "johnrob1880@gmail.com",
         capacity: 100,
         current: 85,
+        status: "Active",
+        lastFed: "2025-09-06T14:30:00Z",
         cattleType: "Steers",
         startingWeight: 650,
         currentWeight: 850,
         marketWeight: 1200,
         feedType: "High Energy",
+        isCrossbred: false,
         daysOnFeed: 120,
         averageDailyGain: 3.2,
-        feedConversion: 6.8,
-        projectedCloseoutDate: "2025-12-15",
-        estimatedValue: 127500
+        startDate: "2025-05-09T08:00:00Z",
+        endDate: undefined,
+        weightHistory: [],
+        nutritionistId: undefined
       },
       {
         id: "2",
@@ -250,13 +254,14 @@ export class InMemoryStorageProvider implements IStorageProvider {
   async createPen(penData: CreatePenRequest): Promise<Pen> {
     const newPen: Pen = {
       ...penData,
-      id: this.penIdCounter++.toString(),
+      id: (this.penIdCounter++).toString(),
       currentWeight: penData.startingWeight,
       daysOnFeed: 0,
       averageDailyGain: 0,
       feedConversion: 0,
       projectedCloseoutDate: "",
-      estimatedValue: 0
+      estimatedValue: 0,
+      nutritionistId: penData.nutritionistId
     };
 
     this.pens.set(newPen.id, newPen);

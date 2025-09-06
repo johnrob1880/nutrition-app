@@ -410,6 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cattleCount: z.number().positive(),
         finalWeight: z.number().positive(),
         pricePerCwt: z.number().positive(),
+        totalRevenue: z.number(),
         tagNumbers: z.string().optional(),
         buyer: z.string().optional(),
         notes: z.string().optional(),

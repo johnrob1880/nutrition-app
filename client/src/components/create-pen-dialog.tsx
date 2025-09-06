@@ -231,10 +231,10 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
               </SelectTrigger>
               <SelectContent>
                 {nutritionists
-                  .filter(nutritionist => nutritionist.status === 'Active')
+                  .filter(nutritionist => nutritionist.status === 'active')
                   .map((nutritionist) => (
-                    <SelectItem key={nutritionist.id} value={nutritionist.id}>
-                      {nutritionist.personalName} - {nutritionist.businessName}
+                    <SelectItem key={nutritionist.id} value={nutritionist.id.toString()}>
+                      {nutritionist.name} - {nutritionist.company}
                     </SelectItem>
                   ))}
               </SelectContent>
