@@ -66,7 +66,8 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
   useEffect(() => {
     if (currentSchedule && currentPen && actualIngredients.length === 0) {
       const initialIngredients = currentSchedule.ingredients.map(ingredient => {
-        const totalPlannedAmount = calculateTotalAmount(ingredient.amount, currentPen.current);
+        // ingredient.amount is already total amount for the feeding session
+        const totalPlannedAmount = ingredient.amount;
         return {
           name: ingredient.name,
           plannedAmount: totalPlannedAmount,
@@ -177,10 +178,12 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
     }
 
     // Convert total amounts back to per-head amounts for storage
-    const perHeadIngredients = actualIngredients.map(ingredient => ({
+    // Don't convert to per-head amounts - send total amounts to server
+    const feedingIngredients = actualIngredients.map(ingredient => ({
       ...ingredient,
-      actualAmount: calculatePerHeadAmount(ingredient.actualAmount, currentPen.current),
-      plannedAmount: calculatePerHeadAmount(ingredient.plannedAmount, currentPen.current),
+      // Keep the total amounts as they are
+      actualAmount: ingredient.actualAmount,
+      plannedAmount: ingredient.plannedAmount,
     }));
 
     const feedingRecord: InsertFeedingRecord = {
@@ -188,7 +191,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
       penId: penId!,
       scheduleId: scheduleId!,
       plannedAmount: currentSchedule.totalAmount,
-      actualIngredients: perHeadIngredients,
+      actualIngredients: feedingIngredients,
       operatorEmail,
     };
 

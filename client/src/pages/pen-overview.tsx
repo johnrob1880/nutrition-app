@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale, StaffMember } from "@shared/schema";
+import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale, StaffMember, Nutritionist } from "@shared/schema";
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -112,8 +112,16 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
     queryKey: ["/api/partial-sales", operatorEmail],
   });
 
+  // Get nutritionists
+  const { data: nutritionists } = useQuery<Nutritionist[]>({
+    queryKey: ["/api/nutritionists", operatorEmail],
+  });
+
   const currentPen = pens?.find(pen => pen.id === penId);
   const penPlan = feedingPlans?.find(plan => plan.penId === penId);
+  const penNutritionist = currentPen?.nutritionistId 
+    ? nutritionists?.find(nutritionist => nutritionist.id.toString() === currentPen.nutritionistId)
+    : undefined;
 
   // Death Loss Form
   const deathLossForm = useForm<DeathLossData>({
@@ -277,8 +285,23 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
       const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
       const operationData = await operation.json();
 
+      let totalRevenue = (data.finalWeight * data.pricePerCwt * data.cattleCount) / 100;
+      
+      // Handle NaN or invalid calculations
+      if (isNaN(totalRevenue) || !isFinite(totalRevenue)) {
+        totalRevenue = 0;
+      }
+      
+      console.log('Partial sale data:', {
+        finalWeight: data.finalWeight,
+        pricePerCwt: data.pricePerCwt,
+        cattleCount: data.cattleCount,
+        calculatedRevenue: totalRevenue
+      });
+      
       const partialSaleData = {
         ...data,
+        totalRevenue,
         operationId: operationData.id,
         operatorEmail,
       };
@@ -311,6 +334,22 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
       day: 'numeric', 
       year: 'numeric' 
     });
+  };
+
+  const formatDateTime = (dateString: string) => {
+    // Since we're now using createdAt timestamps, all strings should be full datetime
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+    return `${dateStr} ${timeStr}`;
   };
 
   const formatWeight = (weight: number) => {
@@ -454,7 +493,19 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium text-lg">{penPlan?.planName || 'Feeding Plan'}</h3>
+                          <div>
+                            <h3 className="font-medium text-lg">{penPlan?.planName || 'Feeding Plan'}</h3>
+                            {penNutritionist ? (
+                              <p className="text-sm text-gray-600">
+                                Nutritionist: {penNutritionist.name}
+                                {penNutritionist.company && ` (${penNutritionist.company})`}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                Nutritionist: Unassigned
+                              </p>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -589,7 +640,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                   createdAt: sale.createdAt,
                   data: sale
                 }))
-              ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
               // Filter activities based on checkbox selections
               const filteredActivities = allActivities.filter(activity => 
@@ -680,7 +731,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-red-900">Death Loss Recorded</h4>
                               <span className="text-xs text-gray-500">
-                                {new Date(activity.date).toLocaleDateString()}
+                                {formatDateTime(activity.createdAt)}
                               </span>
                             </div>
                             <div className="mt-1 text-sm text-gray-700">
@@ -705,7 +756,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-blue-900">Treatment Applied</h4>
                               <span className="text-xs text-gray-500">
-                                {new Date(activity.date).toLocaleDateString()}
+                                {formatDateTime(activity.createdAt)}
                               </span>
                             </div>
                             <div className="mt-1 text-sm text-gray-700">
@@ -732,7 +783,7 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-semibold text-green-900">Partial Sale Recorded</h4>
                               <span className="text-xs text-gray-500">
-                                {new Date(activity.date).toLocaleDateString()}
+                                {formatDateTime(activity.createdAt)}
                               </span>
                             </div>
                             <div className="mt-1 text-sm text-gray-700">

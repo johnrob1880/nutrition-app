@@ -72,7 +72,7 @@ export default function Dashboard({
   
   // Filter today's feeding records
   const todayFeedingRecords = feedingRecords?.filter(record => 
-    record.feedingTime.startsWith(today)
+    record.feedingTime?.startsWith(today)
   ) || [];
 
   // Determine which schedules are completed and get feeding record IDs
@@ -144,7 +144,7 @@ export default function Dashboard({
           <div className="bg-white rounded-lg p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl font-bold text-secondary">
-                {stats?.totalCattle || 0}
+                {(stats as any)?.currentCattle || stats?.totalCattle || 0}
               </span>
               <Building className="h-5 w-5 text-gray-400" />
             </div>

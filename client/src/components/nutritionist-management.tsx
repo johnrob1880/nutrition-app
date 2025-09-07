@@ -96,7 +96,7 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
       queryClient.invalidateQueries({ queryKey: ["/api/nutritionists", operatorEmail] });
       toast({
         title: "Invitation accepted!",
-        description: `${updatedNutritionist.personalName} can now manage feed types for your pens.`,
+        description: `${updatedNutritionist.name} can now manage feed types for your pens.`,
       });
     },
     onError: (error: any) => {
@@ -235,39 +235,23 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
               )}
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 w-full min-w-0">
               {staffMembers.map((staff) => (
                 <Card key={staff.id} className="border-l-4 border-l-blue-500">
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          staff.role === 'owner' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                          <User className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-sm">
-                            {staff.firstName} {staff.lastName}
-                          </CardTitle>
-                          <CardDescription className="text-xs">
-                            {staff.email}
-                          </CardDescription>
-                        </div>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        staff.role === 'owner' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        <User className="h-4 w-4" />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge 
-                          variant={staff.role === 'owner' ? 'default' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {staff.role === 'owner' ? 'Owner' : 'Staff'}
-                        </Badge>
-                        <Badge 
-                          variant={staff.status === 'active' ? 'default' : 'outline'}
-                          className="text-xs"
-                        >
-                          {staff.status === 'invited' ? 'Pending' : 'Active'}
-                        </Badge>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-sm">
+                          {staff.firstName} {staff.lastName}
+                        </CardTitle>
+                        <CardDescription className="text-xs truncate">
+                          {staff.email}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -316,7 +300,7 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 w-full min-w-0">
               {nutritionists.map((nutritionist) => (
                 <Card key={nutritionist.id}>
                   <CardHeader className="pb-3">
@@ -325,40 +309,29 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
                         <User className="h-5 w-5 text-blue-600" />
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-base">{nutritionist.personalName}</CardTitle>
+                        <CardTitle className="text-base">{nutritionist.name}</CardTitle>
                         <CardDescription className="flex items-center space-x-2">
                           <Building2 className="h-4 w-4" />
-                          <span>{nutritionist.businessName}</span>
+                          <span>{nutritionist.company}</span>
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-xs">
-                        ID: {nutritionist.id}
-                      </Badge>
-                      <div className="flex items-center space-x-2">
-                        <Badge 
-                          variant={nutritionist.status === 'Active' ? 'default' : 'outline'} 
-                          className="text-xs"
+                    {nutritionist.status === 'pending' && (
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptInvitation(nutritionist.id)}
+                          disabled={acceptMutation.isPending}
+                          className="h-6 px-2 text-xs"
                         >
-                          {nutritionist.status}
-                        </Badge>
-                        {nutritionist.status === 'Invited' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAcceptInvitation(nutritionist.id)}
-                            disabled={acceptMutation.isPending}
-                            className="h-6 px-2 text-xs"
-                          >
-                            {acceptMutation.isPending ? "Accepting..." : "Accept"}
-                          </Button>
-                        )}
+                          {acceptMutation.isPending ? "Accepting..." : "Accept"}
+                        </Button>
                       </div>
-                    </div>
-                    {nutritionist.status === 'Active' && nutritionist.acceptedAt && (
-                      <p className="text-xs text-gray-500 mt-2">
+                    )}
+                    {nutritionist.status === 'active' && nutritionist.acceptedAt && (
+                      <p className="text-xs text-gray-500">
                         Accepted {new Date(nutritionist.acceptedAt).toLocaleDateString()}
                       </p>
                     )}

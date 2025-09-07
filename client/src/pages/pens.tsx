@@ -201,7 +201,7 @@ export default function Pens({ operatorEmail }: PensProps) {
   // Helper function to get nutritionist info
   const getNutritionistInfo = (nutritionistId?: string) => {
     if (!nutritionistId || !nutritionists) return null;
-    return nutritionists.find((n) => n.id === nutritionistId);
+    return nutritionists.find((n) => n.id.toString() === nutritionistId);
   };
 
   // Filter active pens (status Active or Maintenance with current > 0)
@@ -211,7 +211,7 @@ export default function Pens({ operatorEmail }: PensProps) {
   const filteredActivePens = activePens.filter((pen) => {
     const nutritionist = getNutritionistInfo(pen.nutritionistId);
     const nutritionistName = nutritionist
-      ? `${nutritionist.personalName} ${nutritionist.businessName}`
+      ? `${nutritionist.name} ${nutritionist.company}`
       : "";
 
     return (
@@ -697,7 +697,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                               const nutritionist = getNutritionistInfo(pen.nutritionistId);
                               return nutritionist ? (
                                 <p className="text-sm text-blue-700">
-                                  by {nutritionist.personalName}
+                                  by {nutritionist.name}
                                 </p>
                               ) : (
                                 <p className="text-sm text-blue-600">
@@ -854,22 +854,18 @@ export default function Pens({ operatorEmail }: PensProps) {
 
                   {/* Additional Details */}
                   <div className="space-y-2">
+                    {sale.penStartDate && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Pen Start Date:</span>
+                        <span className="font-medium">
+                          {new Date(sale.penStartDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Sale Date:</span>
                       <span className="font-medium">
                         {new Date(sale.saleDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Record Created:</span>
-                      <span className="font-medium">
-                        {new Date(sale.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Sale ID:</span>
-                      <span className="font-medium font-mono text-xs">
-                        {sale.id}
                       </span>
                     </div>
                   </div>
@@ -895,7 +891,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                   const sale = cattleSales?.find(s => s.penId === pen.id);
                   // Get nutritionist from sale record first, then fall back to pen record
                   const nutritionistId = sale?.nutritionistId || pen.nutritionistId;
-                  const nutritionist = nutritionists?.find(n => n.id === nutritionistId);
+                  const nutritionist = nutritionists?.find(n => n.id.toString() === nutritionistId);
                   
                   return (
                     <div key={pen.id} className="border rounded-lg p-4 bg-orange-50 border-orange-200">
@@ -930,8 +926,8 @@ export default function Pens({ operatorEmail }: PensProps) {
                               <User className="h-4 w-4 text-blue-600" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{nutritionist.personalName}</p>
-                              <p className="text-xs text-gray-600">{nutritionist.businessName}</p>
+                              <p className="text-sm font-medium text-gray-900">{nutritionist.name}</p>
+                              <p className="text-xs text-gray-600">{nutritionist.company}</p>
                             </div>
                           </div>
                           <div className="text-right">

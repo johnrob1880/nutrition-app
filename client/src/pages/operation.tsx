@@ -5,6 +5,7 @@ import {
   insertOperationSchema,
   type InsertOperation,
   type Operation,
+  type DashboardStats,
 } from "@shared/schema";
 import { useUpdateOperation } from "@/hooks/use-operation";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,7 @@ import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface OperationProps {
   operation: Operation;
-  stats?: {
-    totalPens: number;
-    totalCattle: number;
-    activeSchedules: number;
-    avgFeedPerDay: string;
-    lastSync: string;
-  };
+  stats?: DashboardStats;
   onLogout: () => void;
 }
 

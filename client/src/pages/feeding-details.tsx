@@ -190,7 +190,7 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
                 
                 return (
                   <div 
-                    key={index} 
+                    key={`${ingredient.name}-${index}`} 
                     className={`p-4 rounded-lg border ${variance.bgColor}`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -208,14 +208,14 @@ export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Planned:</span>
-                        <div className="font-medium font-mono text-right">
+                        <div className="text-gray-600 mb-1">Planned:</div>
+                        <div className="font-medium font-mono">
                           {formatNumber(ingredient.plannedAmount)} {ingredient.unit}
                         </div>
                       </div>
                       <div>
-                        <span className="text-gray-600">Actual:</span>
-                        <div className="font-medium font-mono text-right">
+                        <div className="text-gray-600 mb-1">Actual:</div>
+                        <div className="font-medium font-mono">
                           {formatNumber(ingredient.actualAmount)} {ingredient.unit}
                         </div>
                       </div>
