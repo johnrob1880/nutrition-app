@@ -57,6 +57,8 @@ export const useAuth = () => {
           isLoading: false,
         });
         return { success: true };
+      } else {
+        return { success: false, error: 'Login failed' };
       }
     } catch (error: any) {
       return { success: false, error: error.message };

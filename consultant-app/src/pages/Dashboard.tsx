@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InvitationManager } from '@/components/InvitationManager';
 import { Users, UserPlus, Settings, BarChart3, Bell, RefreshCw } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { data: dashboardData, loading: dashboardLoading, refresh: refreshDashboard } = useDashboard();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'invitations'>('dashboard');
+  const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
     await logout();
+    setLocation('/login');
   };
 
   return (

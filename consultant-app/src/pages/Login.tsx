@@ -45,7 +45,10 @@ export const Login: React.FC = () => {
       const result = await login(credentials);
       
       if (result?.success) {
-        setLocation('/dashboard');
+        // Add a small delay to ensure auth state is updated before redirect
+        setTimeout(() => {
+          setLocation('/dashboard');
+        }, 100);
       } else {
         setLoginError(result?.error || 'Login failed');
       }
