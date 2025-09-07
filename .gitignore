@@ -15,6 +15,7 @@ vite.config.ts.*
 # Database
 postgres-data/
 *.sql.backup
+backups/
 
 # IDE
 .vscode/

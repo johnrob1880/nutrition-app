@@ -15,6 +15,12 @@
     "db:seed": "tsx server/db/seed.ts",
     "db:migrate": "tsx server/db/migrate.ts",
     "db:migrate:verify": "tsx server/db/migrate.ts verify",
+    "db:backup": "tsx server/db/backup.ts",
+    "db:backup:json": "tsx server/db/backup.ts json",
+    "db:backup:list": "tsx server/db/backup.ts list",
+    "db:backup:cleanup": "tsx server/db/backup.ts cleanup",
+    "db:restore": "tsx server/db/restore.ts",
+    "db:restore:json": "tsx server/db/restore.ts json",
     "dev:docker": "npm run docker:up && npm run dev",
     "test": "vitest",
     "test:run": "vitest run"
