@@ -6,6 +6,13 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: './server/test/setup.ts',
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true
+      }
+    },
+    fileParallelism: false,
   },
   resolve: {
     alias: {

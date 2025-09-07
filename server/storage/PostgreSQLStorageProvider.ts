@@ -256,43 +256,59 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
   // Feeding Management
   async createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord> {
     return this.executeWithRetry(async () => {
-      // Get current date/time for the feeding
-      const feedingTime = new Date();
-      const feedingDate = feedingTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+      // Get current date/time for the feeding, use provided values if available
+      const feedingTime = record.feedingTime || new Date();
+      const feedingDate = record.feedingDate || feedingTime.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Use the ingredients from actualIngredients if available, otherwise use ingredients
+      const ingredientsToUse = record.actualIngredients || record.ingredients || [];
       
       // Calculate total actual amount from ingredients
-      const totalActualAmount = record.actualIngredients.reduce((sum, ing) => 
-        sum + parseFloat(ing.actualAmount), 0
-      );
+      let totalActualAmount = record.amount;
+      if (!totalActualAmount && record.actualIngredients?.length > 0) {
+        totalActualAmount = record.actualIngredients.reduce((sum, ing) => 
+          sum + parseFloat(ing.actualAmount), 0
+        );
+      }
+      if (!totalActualAmount) {
+        totalActualAmount = 0;
+      }
       
       const result = await this.db
         .insert(schema.feedingRecords)
         .values({
           penId: record.penId,
-          scheduleId: record.scheduleId, // Add missing scheduleId
-          plannedAmount: record.plannedAmount, // Add missing plannedAmount  
-          feedingTime: feedingTime, // Add missing feedingTime
+          scheduleId: record.scheduleId || 'default-schedule', 
+          plannedAmount: record.plannedAmount || totalActualAmount.toString(),  
+          feedingTime: feedingTime,
           feedingDate: feedingDate,
-          feedType: 'Mixed Feed', // Default feed type
+          feedType: record.feedType || 'Mixed Feed',
           amount: totalActualAmount,
-          unit: 'lbs', // Default unit
-          ingredients: record.actualIngredients as any,
-          fedBy: record.operatorEmail, // Use operator email as fed by for now
-          notes: `Feeding completed for schedule ${record.scheduleId}`,
+          unit: record.unit || 'lbs',
+          ingredients: ingredientsToUse as any,
+          fedBy: record.fedBy || record.operatorEmail,
+          notes: record.notes || `Feeding completed for schedule ${record.scheduleId || 'default-schedule'}`,
           operatorEmail: record.operatorEmail,
         })
         .returning();
       
       return {
         id: result[0].id.toString(),
-        operationId: record.operationId,
+        operationId: record.operationId || 0,
         penId: record.penId,
-        scheduleId: record.scheduleId,
-        plannedAmount: record.plannedAmount,
-        actualIngredients: record.actualIngredients,
+        scheduleId: record.scheduleId || result[0].scheduleId,
+        plannedAmount: record.plannedAmount || result[0].plannedAmount,
+        actualIngredients: record.actualIngredients || [],
         feedingTime: feedingTime.toISOString(),
         operatorEmail: record.operatorEmail,
         createdAt: result[0].createdAt.toISOString(),
+        feedingDate: result[0].feedingDate,
+        feedType: result[0].feedType,
+        amount: result[0].amount,
+        unit: result[0].unit,
+        ingredients: result[0].ingredients as any,
+        fedBy: result[0].fedBy,
+        notes: result[0].notes,
       } as FeedingRecord;
     });
   }

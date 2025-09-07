@@ -5,6 +5,38 @@ import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingReco
 import { z } from "zod";
 // Email service is imported dynamically to avoid SENDGRID_API_KEY requirement during testing
 
+// JWT Authentication imports
+import { 
+  registerConsultant, 
+  login, 
+  refreshToken, 
+  logout, 
+  verifyEmail, 
+  resendEmailVerification 
+} from "./auth/controller";
+import { 
+  getConsultantProfile,
+  updateConsultantProfile,
+  getConsultantDashboard 
+} from "./auth/consultant-controller";
+import {
+  createInvitation,
+  getInvitations,
+  resendInvitation,
+  cancelInvitation,
+  getInvitationByToken,
+  acceptInvitation,
+  declineInvitation
+} from "./auth/invitation-controller";
+import { 
+  registrationRateLimit, 
+  loginRateLimit, 
+  emailVerificationRateLimit, 
+  corsMiddleware,
+  authenticateJWT,
+  requireConsultant 
+} from "./auth/middleware";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication middleware
   function requireAuth(req: any, res: any, next: any) {
@@ -100,6 +132,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
+
+  // JWT Authentication Routes (with CORS and rate limiting)
+  app.use('/api/jwt-auth', corsMiddleware);
+  
+  // Consultant registration
+  app.post('/api/jwt-auth/register/consultant', registrationRateLimit, registerConsultant);
+  
+  // JWT User login
+  app.post('/api/jwt-auth/login', loginRateLimit, login);
+  
+  // Token refresh
+  app.post('/api/jwt-auth/refresh', refreshToken);
+  
+  // JWT Logout (revoke refresh token)
+  app.post('/api/jwt-auth/logout', logout);
+  
+  // Email verification
+  app.post('/api/jwt-auth/verify-email', emailVerificationRateLimit, verifyEmail);
+  
+  // Resend email verification
+  app.post('/api/jwt-auth/resend-verification', emailVerificationRateLimit, resendEmailVerification);
+
+  // Consultant Profile Routes
+  app.get('/api/consultant/profile', authenticateJWT, requireConsultant, getConsultantProfile);
+  app.put('/api/consultant/profile', authenticateJWT, requireConsultant, updateConsultantProfile);
+  app.get('/api/consultant/dashboard', authenticateJWT, requireConsultant, getConsultantDashboard);
+
+  // Consultant Invitation Management Routes
+  app.post('/api/consultant/invitations', authenticateJWT, requireConsultant, createInvitation);
+  app.get('/api/consultant/invitations', authenticateJWT, requireConsultant, getInvitations);
+  app.put('/api/consultant/invitations/:id/resend', authenticateJWT, requireConsultant, resendInvitation);
+  app.delete('/api/consultant/invitations/:id', authenticateJWT, requireConsultant, cancelInvitation);
+
+  // Public Invitation Routes (for producers)
+  app.get('/api/invitations/:token', getInvitationByToken);
+  app.post('/api/invitations/:token/accept', acceptInvitation);
+  app.post('/api/invitations/:token/decline', declineInvitation);
+
   // Get operation by email
   app.get("/api/operation/:email", async (req, res) => {
     try {

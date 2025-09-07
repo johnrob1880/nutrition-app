@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, jsonb, real, varchar } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -28,6 +28,115 @@ export const insertTreatmentSchema = z.object({
   operatorEmail: z.string().email(),
 });
 
+// Unified authentication system tables
+
+// Users table - unified authentication for consultants, producers, and staff
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 20 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  userType: text("user_type", { enum: ["consultant", "producer", "staff"] }).notNull(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Consultant profiles - professional information for consultants
+export const consultantProfiles = pgTable("consultant_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  fullName: varchar("full_name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  specialization: text("specialization", { enum: ["nutritionist", "veterinarian"] }).notNull(),
+  credentials: text("credentials"),
+  profilePhoto: text("profile_photo"),
+  profileCompletePercentage: integer("profile_complete_percentage").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Refresh tokens for JWT authentication
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Email verification tokens
+export const emailVerifications = pgTable("email_verifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Consultant to producer invitations
+export const consultantProducerInvitations = pgTable("consultant_producer_invitations", {
+  id: serial("id").primaryKey(),
+  consultantId: integer("consultant_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  producerEmail: varchar("producer_email", { length: 255 }).notNull(),
+  producerId: integer("producer_id").references(() => users.id, { onDelete: "set null" }),
+  invitationToken: varchar("invitation_token", { length: 255 }).notNull().unique(),
+  customMessage: text("custom_message"),
+  status: text("status", { enum: ["pending", "accepted", "declined", "expired"] }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  declinedAt: timestamp("declined_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Active relationships between consultants and producers
+export const consultantProducerRelationships = pgTable("consultant_producer_relationships", {
+  id: serial("id").primaryKey(),
+  consultantId: integer("consultant_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  producerId: integer("producer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  operationId: integer("operation_id").references(() => operations.id, { onDelete: "cascade" }),
+  permissions: jsonb("permissions").notNull().default({ view: true, edit: false, admin: false }),
+  establishedAt: timestamp("established_at").notNull().defaultNow(),
+});
+
+// Validation schemas for new authentication tables
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertConsultantProfileSchema = createInsertSchema(consultantProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  profileCompletePercentage: true,
+});
+
+export const consultantRegistrationSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be at most 20 characters").regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters").regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter, one lowercase letter, and one number"),
+  fullName: z.string().min(1, "Full name is required"),
+  specialization: z.enum(["nutritionist", "veterinarian"], { required_error: "Please select a specialization" }),
+});
+
+export const loginSchema = z.object({
+  username: z.string().optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(1, "Password is required"),
+}).refine(data => data.username || data.email, {
+  message: "Either username or email is required",
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type ConsultantProfile = typeof consultantProfiles.$inferSelect;
+export type InsertConsultantProfile = z.infer<typeof insertConsultantProfileSchema>;
+export type ConsultantRegistration = z.infer<typeof consultantRegistrationSchema>;
+export type LoginCredentials = z.infer<typeof loginSchema>;
+
 export const operations = pgTable("operations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -37,6 +146,7 @@ export const operations = pgTable("operations", {
   location: text("location").notNull(),
   inviteCode: text("invite_code").notNull(),
   setupDate: timestamp("setup_date").notNull().defaultNow(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }), // Migration field to link with users table
 });
 
 export const insertOperationSchema = createInsertSchema(operations).omit({
@@ -244,11 +354,19 @@ export interface ActualIngredient {
 }
 
 export interface InsertFeedingRecord {
-  operationId: number;
+  operationId?: number;
   penId: string;
-  scheduleId: string;
-  plannedAmount: string;
-  actualIngredients: ActualIngredient[];
+  scheduleId?: string;
+  plannedAmount?: string;
+  feedingTime?: Date;
+  feedingDate?: string;
+  feedType?: string;
+  amount?: number;
+  unit?: string;
+  ingredients?: any[];
+  actualIngredients?: ActualIngredient[];
+  fedBy?: string;
+  notes?: string;
   operatorEmail: string;
 }
 
