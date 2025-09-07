@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement a unified user authentication system with username/password and JWT tokens, supporting multiple user types (consultant, producer, staff) to enable nutrition and veterinary consultants to create professional profiles and connect with cattle producers. Consultants can register with credentials, create profiles, and invite producers via email to manage their nutrition programs.

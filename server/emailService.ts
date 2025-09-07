@@ -1,11 +1,14 @@
 import { MailService } from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
+// Don't require SendGrid API key in test environment
+if (!process.env.SENDGRID_API_KEY && process.env.NODE_ENV !== 'test') {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
 }
 
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+if (process.env.SENDGRID_API_KEY) {
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 interface StaffInvitationEmailParams {
   to: string;
@@ -18,6 +21,12 @@ interface StaffInvitationEmailParams {
 
 export async function sendStaffInvitationEmail(params: StaffInvitationEmailParams): Promise<boolean> {
   const { to, firstName, lastName, operationName, invitedBy, invitationToken } = params;
+  
+  // In test environment, just return true without sending actual emails
+  if (process.env.NODE_ENV === 'test') {
+    console.log(`TEST MODE: Would send invitation email to ${to} for ${operationName}`);
+    return true;
+  }
   
   // Create invitation link (in production this would be your domain)
   const invitationLink = `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}/accept-invitation?token=${invitationToken}`;

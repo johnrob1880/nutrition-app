@@ -15,6 +15,7 @@ describe('Database Configuration', () => {
   describe('validateDatabaseConfig', () => {
     it('should return valid config when DATABASE_URL is provided', () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/testdb';
+      delete process.env.STORAGE_TYPE; // Ensure it uses the default
       
       const config = validateDatabaseConfig();
       
@@ -24,6 +25,7 @@ describe('Database Configuration', () => {
     });
 
     it('should use memory storage by default when STORAGE_TYPE is not set', () => {
+      delete process.env.STORAGE_TYPE; // Ensure it's not set
       const config = validateDatabaseConfig();
       
       expect(config.storageType).toBe('memory');

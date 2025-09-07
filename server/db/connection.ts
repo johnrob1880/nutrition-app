@@ -90,6 +90,17 @@ export async function executeWithRetry<T>(
       lastError = error as Error;
       console.warn(`Database operation failed (attempt ${i + 1}/${maxRetries}):`, error);
       
+      // Don't retry certain types of errors that won't succeed on retry
+      const pgError = error as any;
+      if (pgError.code === '23505' || // unique_violation
+          pgError.code === '23503' || // foreign_key_violation  
+          pgError.code === '23502' || // not_null_violation
+          pgError.code === '23514' || // check_violation
+          pgError.code === '42P01' || // undefined_table
+          pgError.code === '42703') { // undefined_column
+        throw error;
+      }
+      
       if (i < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
       }
