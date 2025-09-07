@@ -1,5 +1,6 @@
 import { Route, Switch, Redirect } from 'wouter';
 import { AuthGuard } from '@/components/AuthGuard';
+import { Landing } from '@/pages/Landing';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { Dashboard } from '@/pages/Dashboard';
@@ -28,9 +29,11 @@ function App() {
           </AuthGuard>
         </Route>
 
-        {/* Root redirect */}
+        {/* Landing page */}
         <Route path="/">
-          <Redirect to="/dashboard" />
+          <AuthGuard requireAuth={false}>
+            <Landing />
+          </AuthGuard>
         </Route>
 
         {/* 404 fallback */}

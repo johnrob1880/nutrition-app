@@ -16,6 +16,19 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
+  
+  // Handle redirects in useEffect to avoid setState during render
+  React.useEffect(() => {
+    // Redirect to login if auth is required but user is not authenticated
+    if (requireAuth && !isAuthenticated && !isLoading) {
+      setLocation('/login');
+    }
+    
+    // Redirect authenticated users away from auth pages
+    if (!requireAuth && isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [requireAuth, isAuthenticated, isLoading, setLocation]);
 
   // Show loading while checking auth status
   if (isLoading) {
@@ -28,9 +41,8 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     );
   }
 
-  // Redirect to login if auth is required but user is not authenticated
+  // Don't render anything while redirecting to login
   if (requireAuth && !isAuthenticated) {
-    setLocation('/login');
     return null;
   }
 
@@ -46,9 +58,8 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     );
   }
 
-  // Redirect authenticated users away from auth pages
+  // Don't render anything while redirecting authenticated users away from auth pages
   if (!requireAuth && isAuthenticated) {
-    setLocation('/dashboard');
     return null;
   }
 

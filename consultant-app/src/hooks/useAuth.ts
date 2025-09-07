@@ -49,6 +49,7 @@ export const useAuth = () => {
   const login = async (credentials: { username?: string; email?: string; password: string }) => {
     try {
       const response = await api.login(credentials);
+      
       if (response.success) {
         setStoredUser(response.user);
         setAuthState({

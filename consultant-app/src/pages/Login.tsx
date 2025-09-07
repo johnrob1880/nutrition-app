@@ -18,10 +18,17 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+
+  // Redirect to dashboard when authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      window.location.href = '/dashboard';
+    }
+  }, [isAuthenticated]);
 
   const {
     register,
@@ -45,10 +52,7 @@ export const Login: React.FC = () => {
       const result = await login(credentials);
       
       if (result?.success) {
-        // Add a small delay to ensure auth state is updated before redirect
-        setTimeout(() => {
-          setLocation('/dashboard');
-        }, 100);
+        // Auth state will update and useEffect will handle redirect
       } else {
         setLoginError(result?.error || 'Login failed');
       }
@@ -60,8 +64,8 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-white to-green-300 flex items-center justify-center px-4">
+      <Card className="w-full max-w-md bg-white border-green-100">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-gray-900">
             Welcome Back
@@ -71,7 +75,7 @@ export const Login: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="on">
             {loginError && (
               <div className="flex items-center space-x-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                 <AlertCircle className="w-4 h-4" />
@@ -86,6 +90,7 @@ export const Login: React.FC = () => {
                 {...register('identifier')}
                 placeholder="Enter username or email"
                 className={errors.identifier ? 'border-red-500' : ''}
+                autoComplete="username"
               />
               {errors.identifier && (
                 <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>
@@ -100,6 +105,7 @@ export const Login: React.FC = () => {
                 {...register('password')}
                 placeholder="Enter your password"
                 className={errors.password ? 'border-red-500' : ''}
+                autoComplete="current-password"
               />
               {errors.password && (
                 <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
