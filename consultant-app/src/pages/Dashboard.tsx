@@ -15,13 +15,13 @@ export const Dashboard: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    setLocation('/login');
+    window.location.reload();
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -32,7 +32,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Button 
-                  variant={activeTab === 'dashboard' ? 'default' : 'outline'} 
+                  variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'} 
                   size="sm"
                   onClick={() => setActiveTab('dashboard')}
                 >
@@ -40,7 +40,7 @@ export const Dashboard: React.FC = () => {
                   Dashboard
                 </Button>
                 <Button 
-                  variant={activeTab === 'invitations' ? 'default' : 'outline'} 
+                  variant={activeTab === 'invitations' ? 'secondary' : 'ghost'} 
                   size="sm"
                   onClick={() => setActiveTab('invitations')}
                 >
@@ -54,7 +54,7 @@ export const Dashboard: React.FC = () => {
                   <p className="text-sm font-medium text-gray-900">{user?.username}</p>
                   <p className="text-xs text-gray-500 capitalize">{user?.userType}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleLogout}>
                   Logout
                 </Button>
               </div>
@@ -82,7 +82,7 @@ export const Dashboard: React.FC = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card>
+              <Card className="border-gray-300 shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -97,7 +97,7 @@ export const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-gray-300 shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pending Invitations</CardTitle>
                   <UserPlus className="h-4 w-4 text-muted-foreground" />
@@ -112,7 +112,7 @@ export const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-gray-300 shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Operations Managed</CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
@@ -127,7 +127,7 @@ export const Dashboard: React.FC = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="border-gray-300 shadow-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Profile Complete</CardTitle>
                   <Settings className="h-4 w-4 text-muted-foreground" />
@@ -145,34 +145,40 @@ export const Dashboard: React.FC = () => {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Get Started</CardTitle>
-              <CardDescription>
-                Complete these steps to begin managing clients
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Complete Your Profile</h4>
-                  <p className="text-sm text-gray-600">Add credentials and contact information</p>
-                </div>
-                <Button size="sm">Complete</Button>
-              </div>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Invite Your First Client</h4>
-                  <p className="text-sm text-gray-600">Send an invitation to a producer</p>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setActiveTab('invitations')}>
-                  Invite
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {(!dashboardData?.profileComplete || (dashboardData?.stats.activeClients === 0 && dashboardData?.stats.pendingInvitations === 0)) && (
+            <Card className="border-gray-300 shadow-none">
+              <CardHeader>
+                <CardTitle>Get Started</CardTitle>
+                <CardDescription>
+                  Complete these steps to begin managing clients
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!dashboardData?.profileComplete && (
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Complete Your Profile</h4>
+                      <p className="text-sm text-gray-600">Add credentials and contact information</p>
+                    </div>
+                    <Button size="sm">Complete</Button>
+                  </div>
+                )}
+                {(dashboardData?.stats.activeClients === 0 && dashboardData?.stats.pendingInvitations === 0) && (
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Invite Your First Client</h4>
+                      <p className="text-sm text-gray-600">Send an invitation to a producer</p>
+                    </div>
+                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setActiveTab('invitations')}>
+                      Invite
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          <Card>
+          <Card className="border-gray-300 shadow-none">
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>
