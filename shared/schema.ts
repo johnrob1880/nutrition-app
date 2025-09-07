@@ -80,10 +80,11 @@ export const consultantProducerInvitations = pgTable("consultant_producer_invita
   id: serial("id").primaryKey(),
   consultantId: integer("consultant_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   producerEmail: varchar("producer_email", { length: 255 }).notNull(),
+  producerName: varchar("producer_name", { length: 255 }).notNull(),
   producerId: integer("producer_id").references(() => users.id, { onDelete: "set null" }),
-  invitationToken: varchar("invitation_token", { length: 255 }).notNull().unique(),
-  customMessage: text("custom_message"),
-  status: text("status", { enum: ["pending", "accepted", "declined", "expired"] }).notNull(),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  message: text("message"),
+  status: text("status", { enum: ["pending", "accepted", "declined", "expired"] }).notNull().default("pending"),
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   declinedAt: timestamp("declined_at"),
@@ -97,7 +98,9 @@ export const consultantProducerRelationships = pgTable("consultant_producer_rela
   producerId: integer("producer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   operationId: integer("operation_id").references(() => operations.id, { onDelete: "cascade" }),
   permissions: jsonb("permissions").notNull().default({ view: true, edit: false, admin: false }),
+  status: text("status", { enum: ["active", "inactive", "suspended"] }).notNull().default("active"),
   establishedAt: timestamp("established_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Validation schemas for new authentication tables
