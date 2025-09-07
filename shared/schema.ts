@@ -223,6 +223,43 @@ export const acceptStaffInvitationSchema = z.object({
 
 export type AcceptStaffInvitationForm = z.infer<typeof acceptStaffInvitationSchema>;
 
+// Consultant-Producer Relationship schemas
+export const relationshipPermissionsSchema = z.object({
+  view: z.boolean().default(true),
+  edit: z.boolean().default(false),
+  admin: z.boolean().default(false)
+});
+
+export const createRelationshipSchema = z.object({
+  invitationId: z.number().positive(),
+  operationId: z.number().positive(),
+  permissions: relationshipPermissionsSchema
+});
+
+export const updateRelationshipSchema = z.object({
+  permissions: relationshipPermissionsSchema
+});
+
+export const relationshipStatusSchema = z.enum(['active', 'inactive', 'suspended']);
+
+// Validation schemas for invitation flow
+export const inviteProducerSchema = z.object({
+  producerEmail: z.string().email("Please enter a valid email address"),
+  producerName: z.string().min(1, "Producer name is required"),
+  message: z.string().optional()
+});
+
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1, "Invitation token is required"),
+  permissions: relationshipPermissionsSchema.optional()
+});
+
+export type RelationshipPermissions = z.infer<typeof relationshipPermissionsSchema>;
+export type CreateRelationship = z.infer<typeof createRelationshipSchema>;
+export type UpdateRelationship = z.infer<typeof updateRelationshipSchema>;
+export type InviteProducer = z.infer<typeof inviteProducerSchema>;
+export type AcceptInvitation = z.infer<typeof acceptInvitationSchema>;
+
 // External system data types (read-only)
 export interface WeightRecord {
   date: string;

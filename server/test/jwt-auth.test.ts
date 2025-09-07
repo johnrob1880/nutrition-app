@@ -17,7 +17,7 @@ const skipIfNotPostgres = process.env.STORAGE_TYPE !== 'postgresql' || !process.
 describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
   let app: express.Application;
   let db: ReturnType<typeof getDb>;
-  const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+  const JWT_SECRET = process.env.JWT_SECRET;
 
   beforeAll(async () => {
     // Ensure database is accessible
@@ -202,7 +202,10 @@ describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
       expect(response.body.accessToken).toBeDefined();
 
       // Verify JWT token structure
-      const decoded = jwt.verify(response.body.accessToken, JWT_SECRET) as any;
+      const decoded = jwt.verify(response.body.accessToken, JWT_SECRET, {
+        issuer: 'nutrition-app',
+        audience: 'nutrition-app-users',
+      }) as any;
       expect(decoded.userId).toBe(user.id);
       expect(decoded.userType).toBe(user.user_type);
     });
@@ -281,7 +284,10 @@ describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
       const { accessToken } = response.body;
       
       // Verify access token
-      const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
+      const decoded = jwt.verify(accessToken, JWT_SECRET, {
+        issuer: 'nutrition-app',
+        audience: 'nutrition-app-users',
+      }) as any;
       expect(decoded.userId).toBe(user.id);
       expect(decoded.userType).toBe('consultant');
       expect(decoded.exp).toBeGreaterThan(Date.now() / 1000);
@@ -388,7 +394,10 @@ describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
         .post('/api/auth/login')
         .send({ username: 'testuser', password: 'TestPassword123' });
 
-      const consultantToken = jwt.verify(consultantResponse.body.accessToken, JWT_SECRET) as any;
+      const consultantToken = jwt.verify(consultantResponse.body.accessToken, JWT_SECRET, {
+        issuer: 'nutrition-app',
+        audience: 'nutrition-app-users',
+      }) as any;
       expect(consultantToken.userType).toBe('consultant');
 
       // Test producer login
@@ -396,7 +405,10 @@ describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
         .post('/api/auth/login')
         .send({ username: 'producer', password: 'TestPassword123' });
 
-      const producerToken = jwt.verify(producerResponse.body.accessToken, JWT_SECRET) as any;
+      const producerToken = jwt.verify(producerResponse.body.accessToken, JWT_SECRET, {
+        issuer: 'nutrition-app',
+        audience: 'nutrition-app-users',
+      }) as any;
       expect(producerToken.userType).toBe('producer');
 
       // Test staff login
@@ -404,7 +416,10 @@ describe.skipIf(skipIfNotPostgres)('JWT Authentication System', () => {
         .post('/api/auth/login')
         .send({ username: 'staff', password: 'TestPassword123' });
 
-      const staffToken = jwt.verify(staffResponse.body.accessToken, JWT_SECRET) as any;
+      const staffToken = jwt.verify(staffResponse.body.accessToken, JWT_SECRET, {
+        issuer: 'nutrition-app',
+        audience: 'nutrition-app-users',
+      }) as any;
       expect(staffToken.userType).toBe('staff');
     });
   });

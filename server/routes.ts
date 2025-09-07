@@ -28,16 +28,58 @@ import {
   acceptInvitation,
   declineInvitation
 } from "./auth/invitation-controller";
+import {
+  createRelationship,
+  getRelationships,
+  updateRelationshipPermissions,
+  suspendRelationship,
+  reactivateRelationship,
+  deleteRelationship,
+  getRelationshipDetails
+} from "./auth/relationship-controller";
 import { 
   registrationRateLimit, 
   loginRateLimit, 
   emailVerificationRateLimit, 
   corsMiddleware,
   authenticateJWT,
-  requireConsultant 
+  requireConsultant,
+  invitationRateLimit,
+  apiRateLimit 
 } from "./auth/middleware";
+import { 
+  validationSchemas, 
+  handleValidationErrors, 
+  createActivityLogger,
+  csrfProtection,
+  getCSRFToken 
+} from "./security/security";
+import {
+  requireRelationshipManagement,
+  requireRelationshipOwnership
+} from "./middleware/relationshipAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint (no authentication required)
+  app.get('/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.version
+    });
+  });
+
+  // API Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.version
+    });
+  });
+
   // Authentication middleware
   function requireAuth(req: any, res: any, next: any) {
     if (!req.session || !req.session.email) {
@@ -133,42 +175,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // JWT Authentication Routes (with CORS and rate limiting)
+  // CSRF Token endpoint
+  app.get('/api/csrf-token', getCSRFToken);
+
+  // JWT Authentication Routes (with CORS, rate limiting, validation, and logging)
   app.use('/api/jwt-auth', corsMiddleware);
   
   // Consultant registration
-  app.post('/api/jwt-auth/register/consultant', registrationRateLimit, registerConsultant);
+  app.post('/api/jwt-auth/register/consultant', 
+    registrationRateLimit,
+    validationSchemas.consultantRegistration,
+    handleValidationErrors,
+    createActivityLogger('CONSULTANT_REGISTRATION'),
+    registerConsultant
+  );
   
   // JWT User login
-  app.post('/api/jwt-auth/login', loginRateLimit, login);
+  app.post('/api/jwt-auth/login', 
+    loginRateLimit,
+    validationSchemas.login,
+    handleValidationErrors,
+    createActivityLogger('USER_LOGIN'),
+    login
+  );
   
   // Token refresh
-  app.post('/api/jwt-auth/refresh', refreshToken);
+  app.post('/api/jwt-auth/refresh', 
+    createActivityLogger('TOKEN_REFRESH'),
+    refreshToken
+  );
   
   // JWT Logout (revoke refresh token)
-  app.post('/api/jwt-auth/logout', logout);
+  app.post('/api/jwt-auth/logout', 
+    createActivityLogger('USER_LOGOUT'),
+    logout
+  );
   
   // Email verification
-  app.post('/api/jwt-auth/verify-email', emailVerificationRateLimit, verifyEmail);
+  app.post('/api/jwt-auth/verify-email', 
+    emailVerificationRateLimit,
+    validationSchemas.emailVerification,
+    handleValidationErrors,
+    createActivityLogger('EMAIL_VERIFICATION'),
+    verifyEmail
+  );
   
   // Resend email verification
-  app.post('/api/jwt-auth/resend-verification', emailVerificationRateLimit, resendEmailVerification);
+  app.post('/api/jwt-auth/resend-verification', 
+    emailVerificationRateLimit,
+    createActivityLogger('RESEND_EMAIL_VERIFICATION'),
+    resendEmailVerification
+  );
 
-  // Consultant Profile Routes
-  app.get('/api/consultant/profile', authenticateJWT, requireConsultant, getConsultantProfile);
-  app.put('/api/consultant/profile', authenticateJWT, requireConsultant, updateConsultantProfile);
-  app.get('/api/consultant/dashboard', authenticateJWT, requireConsultant, getConsultantDashboard);
+  // Consultant Profile Routes (with API rate limiting and logging)
+  app.use('/api/consultant', apiRateLimit);
+  
+  app.get('/api/consultant/profile', 
+    authenticateJWT, 
+    requireConsultant, 
+    createActivityLogger('PROFILE_VIEW'),
+    getConsultantProfile
+  );
+  
+  app.put('/api/consultant/profile', 
+    authenticateJWT, 
+    requireConsultant,
+    validationSchemas.profileUpdate,
+    handleValidationErrors,
+    createActivityLogger('PROFILE_UPDATE'),
+    updateConsultantProfile
+  );
+  
+  app.get('/api/consultant/dashboard', 
+    authenticateJWT, 
+    requireConsultant, 
+    createActivityLogger('DASHBOARD_VIEW'),
+    getConsultantDashboard
+  );
 
   // Consultant Invitation Management Routes
-  app.post('/api/consultant/invitations', authenticateJWT, requireConsultant, createInvitation);
-  app.get('/api/consultant/invitations', authenticateJWT, requireConsultant, getInvitations);
-  app.put('/api/consultant/invitations/:id/resend', authenticateJWT, requireConsultant, resendInvitation);
-  app.delete('/api/consultant/invitations/:id', authenticateJWT, requireConsultant, cancelInvitation);
+  app.post('/api/consultant/invitations', 
+    authenticateJWT, 
+    requireConsultant,
+    invitationRateLimit,
+    validationSchemas.invitation,
+    handleValidationErrors,
+    createActivityLogger('INVITATION_CREATED'),
+    createInvitation
+  );
+  
+  app.get('/api/consultant/invitations', 
+    authenticateJWT, 
+    requireConsultant,
+    createActivityLogger('INVITATIONS_VIEWED'),
+    getInvitations
+  );
+  
+  app.put('/api/consultant/invitations/:id/resend', 
+    authenticateJWT, 
+    requireConsultant,
+    invitationRateLimit,
+    createActivityLogger('INVITATION_RESENT'),
+    resendInvitation
+  );
+  
+  app.delete('/api/consultant/invitations/:id', 
+    authenticateJWT, 
+    requireConsultant,
+    createActivityLogger('INVITATION_CANCELLED'),
+    cancelInvitation
+  );
 
-  // Public Invitation Routes (for producers)
-  app.get('/api/invitations/:token', getInvitationByToken);
-  app.post('/api/invitations/:token/accept', acceptInvitation);
-  app.post('/api/invitations/:token/decline', declineInvitation);
+  // Public Invitation Routes (for producers) - with logging
+  app.get('/api/invitations/:token', 
+    createActivityLogger('INVITATION_VIEWED'),
+    getInvitationByToken
+  );
+  
+  app.post('/api/invitations/:token/accept', 
+    createActivityLogger('INVITATION_ACCEPTED'),
+    acceptInvitation
+  );
+  
+  app.post('/api/invitations/:token/decline', 
+    createActivityLogger('INVITATION_DECLINED'),
+    declineInvitation
+  );
+
+  // Consultant-Producer Relationship Management Routes
+  app.post('/api/consultant/relationships', authenticateJWT, createRelationship);
+  app.get('/api/consultant/relationships', authenticateJWT, requireRelationshipManagement(), getRelationships);
+  app.get('/api/consultant/relationships/:id', authenticateJWT, requireRelationshipOwnership(), getRelationshipDetails);
+  app.put('/api/consultant/relationships/:id', authenticateJWT, requireRelationshipOwnership(), updateRelationshipPermissions);
+  app.patch('/api/consultant/relationships/:id/suspend', authenticateJWT, requireRelationshipOwnership(), suspendRelationship);
+  app.patch('/api/consultant/relationships/:id/reactivate', authenticateJWT, requireRelationshipOwnership(), reactivateRelationship);
+  app.delete('/api/consultant/relationships/:id', authenticateJWT, requireRelationshipOwnership(), deleteRelationship);
 
   // Get operation by email
   app.get("/api/operation/:email", async (req, res) => {

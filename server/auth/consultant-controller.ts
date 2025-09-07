@@ -200,6 +200,27 @@ export async function getConsultantDashboard(req: Request, res: Response) {
         )
       );
 
+    // Get relationship status breakdown
+    const [suspendedRelationshipsResult] = await db
+      .select({ count: count() })
+      .from(consultantProducerRelationships)
+      .where(
+        and(
+          eq(consultantProducerRelationships.consultantId, consultantId),
+          eq(consultantProducerRelationships.status, 'suspended')
+        )
+      );
+
+    const [inactiveRelationshipsResult] = await db
+      .select({ count: count() })
+      .from(consultantProducerRelationships)
+      .where(
+        and(
+          eq(consultantProducerRelationships.consultantId, consultantId),
+          eq(consultantProducerRelationships.status, 'inactive')
+        )
+      );
+
     // Calculate profile completeness
     let profileCompleteness = 0;
     if (profile) {
@@ -225,10 +246,24 @@ export async function getConsultantDashboard(req: Request, res: Response) {
       .from(consultantProducerInvitations)
       .where(eq(consultantProducerInvitations.consultantId, consultantId))
       .orderBy(consultantProducerInvitations.createdAt)
-      .limit(5);
+      .limit(10);
+
+    // Get recent relationship activity
+    const recentRelationships = await db
+      .select({
+        id: consultantProducerRelationships.id,
+        establishedAt: consultantProducerRelationships.establishedAt,
+        status: consultantProducerRelationships.status,
+        producerId: consultantProducerRelationships.producerId
+      })
+      .from(consultantProducerRelationships)
+      .innerJoin(users, eq(consultantProducerRelationships.producerId, users.id))
+      .where(eq(consultantProducerRelationships.consultantId, consultantId))
+      .orderBy(consultantProducerRelationships.establishedAt)
+      .limit(10);
 
     // Create recent activity from invitations
-    const recentActivity = recentInvitations.map(invitation => {
+    const invitationActivity = recentInvitations.map(invitation => {
       if (invitation.status === 'accepted' && invitation.acceptedAt) {
         return {
           id: `invitation-accepted-${invitation.id}`,
@@ -246,13 +281,30 @@ export async function getConsultantDashboard(req: Request, res: Response) {
       }
     });
 
+    // Create recent activity from relationships
+    const relationshipActivity = recentRelationships.map(relationship => ({
+      id: `relationship-${relationship.status}-${relationship.id}`,
+      type: 'relationship_established' as const,
+      description: `New client relationship established`,
+      timestamp: relationship.establishedAt.toISOString()
+    }));
+
+    // Combine and sort all activities
+    const recentActivity = [...invitationActivity, ...relationshipActivity];
+
     const dashboardData = {
       profile,
       stats: {
         activeClients: Number(activeClientsResult.count),
         pendingInvitations: Number(pendingInvitationsResult.count),
         operationsManaged: Number(activeClientsResult.count), // Same as active clients for now
-        profileCompleteness
+        profileCompleteness,
+        // Relationship status breakdown
+        suspendedRelationships: Number(suspendedRelationshipsResult.count),
+        inactiveRelationships: Number(inactiveRelationshipsResult.count),
+        totalRelationships: Number(activeClientsResult.count) + 
+                          Number(suspendedRelationshipsResult.count) + 
+                          Number(inactiveRelationshipsResult.count)
       },
       recentActivity: recentActivity.sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()

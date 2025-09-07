@@ -29,7 +29,7 @@ interface CreateInvitationData {
 }
 
 export const InvitationManager: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { } = useAuth();
   
   // Get token from localStorage (same as useAuth does internally)
   const token = localStorage.getItem('accessToken');

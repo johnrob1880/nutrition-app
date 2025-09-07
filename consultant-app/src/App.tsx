@@ -1,9 +1,11 @@
-import { Route, Switch, Redirect } from 'wouter';
+import { Route, Switch } from 'wouter';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Landing } from '@/pages/Landing';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { Dashboard } from '@/pages/Dashboard';
+import { Invitations } from '@/pages/Invitations';
+import { Clients } from '@/pages/Clients';
 
 function App() {
   return (
@@ -26,6 +28,18 @@ function App() {
         <Route path="/dashboard">
           <AuthGuard>
             <Dashboard />
+          </AuthGuard>
+        </Route>
+        
+        <Route path="/invitations">
+          <AuthGuard>
+            <Invitations />
+          </AuthGuard>
+        </Route>
+        
+        <Route path="/clients">
+          <AuthGuard>
+            <Clients />
           </AuthGuard>
         </Route>
 

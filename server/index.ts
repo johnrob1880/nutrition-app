@@ -5,11 +5,28 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { StorageFactory } from "./storage/StorageFactory";
 import { createSessionConfig, getSessionStoreConfig } from "./config/session";
+import { 
+  securityHeaders, 
+  compressionMiddleware, 
+  sanitizeInput, 
+  jsonSizeLimit,
+  requestTimeout 
+} from "./security/security";
 
 const app = express();
+
+// Security middleware - applied early for maximum protection
+app.use(securityHeaders);
+app.use(compressionMiddleware);
+app.use(requestTimeout(30000)); // 30 second timeout
+app.use(jsonSizeLimit('10mb'));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Input sanitization middleware
+app.use(sanitizeInput);
 
 // Session configuration
 app.use(createSessionConfig());

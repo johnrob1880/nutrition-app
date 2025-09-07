@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -19,7 +19,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
   const { login, isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 

@@ -50,6 +50,12 @@ export async function sendVerificationEmail(
   firstName: string,
   verificationToken: string
 ): Promise<boolean> {
+  // In test environment, just return true without sending actual emails
+  if (process.env.NODE_ENV === 'test') {
+    console.log(`TEST MODE: Would send verification email to ${email}`);
+    return true;
+  }
+
   if (!process.env.SENDGRID_API_KEY) {
     console.warn('SendGrid API key not configured. Email verification skipped.');
     return false;
