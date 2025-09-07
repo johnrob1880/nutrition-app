@@ -22,7 +22,10 @@ interface DashboardData {
 }
 
 export const useDashboard = () => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
+  
+  // Get token from localStorage (same as useAuth does internally)  
+  const token = localStorage.getItem('accessToken');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

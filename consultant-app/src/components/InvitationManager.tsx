@@ -29,7 +29,10 @@ interface CreateInvitationData {
 }
 
 export const InvitationManager: React.FC = () => {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
+  
+  // Get token from localStorage (same as useAuth does internally)
+  const token = localStorage.getItem('accessToken');
   const { toast } = useToast();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
