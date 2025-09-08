@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Implement an advanced nutrition planning tool that allows consultants to create reusable feeding program templates and customize them for specific client pen operations. This feature will enable consultants to design lifetime feeding schedules with multiple ration phases, track nutritional requirements, and generate variance reports comparing planned versus actual feeding execution for analysis when pens are sold.
