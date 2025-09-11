@@ -330,6 +330,7 @@ export type FeedingRecord = typeof feedingRecords.$inferSelect;
 export type InsertFeedingRecord = typeof feedingRecords.$inferInsert;
 
 // Feeding plans table
+// @deprecated Use penFeedingPrograms table instead
 export const feedingPlans = pgTable("feeding_plans", {
   id: serial("id").primaryKey(),
   penId: integer("pen_id").notNull().references(() => pens.id),
@@ -347,6 +348,7 @@ export const feedingPlans = pgTable("feeding_plans", {
   notes: text("notes"),
 });
 
+// @deprecated Use PenFeedingProgram types instead
 export type FeedingPlan = typeof feedingPlans.$inferSelect;
 export type InsertFeedingPlan = typeof feedingPlans.$inferInsert;
 
@@ -653,6 +655,50 @@ export const nutritionistTasks = pgTable("nutritionist_tasks", {
   uniqueTask: uniqueIndex("nutritionist_tasks_pen_task_unique_idx").on(table.penId, table.taskType),
 }));
 
+// ===========================================
+// NEW FEEDING SYSTEM TYPE EXPORTS
+// ===========================================
+
+// Ingredient types
+export type FeedingIngredient = typeof feedingIngredients.$inferSelect;
+export type InsertFeedingIngredient = typeof feedingIngredients.$inferInsert;
+
+// Template types
+export type FeedingProgramTemplate = typeof feedingProgramTemplates.$inferSelect;
+export type InsertFeedingProgramTemplate = typeof feedingProgramTemplates.$inferInsert;
+
+// Template phase types
+export type FeedingProgramPhase = typeof feedingProgramPhases.$inferSelect;
+export type InsertFeedingProgramPhase = typeof feedingProgramPhases.$inferInsert;
+
+// Template ingredient types  
+export type FeedingProgramIngredient = typeof feedingProgramIngredients.$inferSelect;
+export type InsertFeedingProgramIngredient = typeof feedingProgramIngredients.$inferInsert;
+
+// Pen program types
+export type PenFeedingProgram = typeof penFeedingPrograms.$inferSelect;
+export type InsertPenFeedingProgram = typeof penFeedingPrograms.$inferInsert;
+
+// Pen phase types
+export type PenFeedingProgramPhase = typeof penFeedingProgramPhases.$inferSelect;
+export type InsertPenFeedingProgramPhase = typeof penFeedingProgramPhases.$inferInsert;
+
+// Pen ingredient types
+export type PenFeedingProgramIngredient = typeof penFeedingProgramIngredients.$inferSelect;
+export type InsertPenFeedingProgramIngredient = typeof penFeedingProgramIngredients.$inferInsert;
+
+// Variance types
+export type FeedingRecordVariance = typeof feedingRecordVariances.$inferSelect;
+export type InsertFeedingRecordVariance = typeof feedingRecordVariances.$inferInsert;
+
+// Completion types
+export type DailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferSelect;
+export type InsertDailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferInsert;
+
+// Task types
+export type NutritionistTask = typeof nutritionistTasks.$inferSelect;
+export type InsertNutritionistTask = typeof nutritionistTasks.$inferInsert;
+
 // Relations for new feeding program tables
 export const feedingIngredientsRelations = relations(feedingIngredients, ({ one, many }) => ({
   user: one(users, {
@@ -879,6 +925,7 @@ export interface UpdateWeightRequest {
 //   };
 // }
 
+// @deprecated Use PenFeedingProgram type instead
 export interface FeedingPlan2 {
   id: string;
   penId: number;
@@ -893,6 +940,7 @@ export interface FeedingPlan2 {
   operatorEmail: string;
 }
 
+// @deprecated Use PenFeedingProgramPhase type instead
 export interface FeedingSchedule {
   id: string;
   time: string;

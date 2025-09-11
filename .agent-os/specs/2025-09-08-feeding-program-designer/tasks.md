@@ -33,16 +33,16 @@
   - [x] 3.7 Implement multi-client dashboard integration
   - [x] 3.8 Verify all consultant features work and tests pass
 
-- [ ] 4. Producer App Migration
-  - [ ] 4.1 Write tests for migrated producer features
-  - [ ] 4.2 Update type definitions (remove old, add new types)
-  - [ ] 4.3 Refactor API hooks to use new endpoints
-  - [ ] 4.4 Update feeding page to use pen feeding programs
-  - [ ] 4.5 Implement variance-only recording in feeding form
-  - [ ] 4.6 Add feeding completion tracking UI
-  - [ ] 4.7 Update schedule display for multiple daily feeding times
-  - [ ] 4.8 Remove deprecated components and clean up code
-  - [ ] 4.9 Verify producer app works with new system and tests pass
+- [x] 4. Producer App Migration
+  - [x] 4.1 Write tests for migrated producer features
+  - [x] 4.2 Update type definitions (remove old, add new types)
+  - [x] 4.3 Refactor API hooks to use new endpoints
+  - [x] 4.4 Update feeding page to use pen feeding programs
+  - [x] 4.5 Implement variance-only recording in feeding form
+  - [x] 4.6 Add feeding completion tracking UI
+  - [x] 4.7 Update schedule display for multiple daily feeding times
+  - [x] 4.8 Remove deprecated components and clean up code
+  - [x] 4.9 Verify producer app works with new system and tests pass
 
 - [ ] 5. Cleanup and Deployment
   - [ ] 5.1 Write tests to verify old schema removal

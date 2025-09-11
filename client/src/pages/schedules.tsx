@@ -1,3 +1,7 @@
+// @deprecated This component is deprecated. Use schedules-new.tsx instead.
+// This file is kept for backward compatibility and will be removed in a future version.
+// The new system supports multiple daily feeding times and completion tracking.
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";

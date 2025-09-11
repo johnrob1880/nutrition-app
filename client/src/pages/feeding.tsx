@@ -1,3 +1,7 @@
+// @deprecated This component is deprecated. Use feeding-new.tsx instead.
+// This file is kept for backward compatibility and will be removed in a future version.
+// The new system supports variance-only recording and completion tracking.
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";

@@ -1,3 +1,6 @@
+// @deprecated This component is deprecated and will be removed in a future version.
+// Feeding details are now integrated into the new variance tracking system.
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { ArrowLeft, CheckCircle, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";

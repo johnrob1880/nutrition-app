@@ -1,0 +1,1 @@
+Write-Output "" | npx drizzle-kit push

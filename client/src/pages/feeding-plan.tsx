@@ -1,3 +1,6 @@
+// @deprecated This component is deprecated and will be removed in a future version.
+// Feeding plans are now managed through the new feeding program system.
+
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
