@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type CreatePenRequest, inviteStaffSchema, acceptStaffInvitationSchema } from "@shared/schema";
+import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type InsertPen, inviteStaffSchema, acceptStaffInvitationSchema } from "@shared/schema";
 import { z } from "zod";
 // Email service is imported dynamically to avoid SENDGRID_API_KEY requirement during testing
 
@@ -47,6 +47,10 @@ import {
   invitationRateLimit,
   apiRateLimit 
 } from "./auth/middleware";
+import { FeedingIngredientController } from "./controllers/feeding-ingredient-controller";
+import { FeedingProgramTemplateController } from "./controllers/feeding-program-template-controller";
+import { PenFeedingProgramController } from "./controllers/pen-feeding-program-controller";
+import { NutritionistTaskController } from "./controllers/nutritionist-task-controller";
 import { 
   validationSchemas, 
   handleValidationErrors, 
@@ -258,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateJWT, 
     requireConsultant,
     invitationRateLimit,
-    validationSchemas.invitation,
+    validationSchemas.producerInvitation,
     handleValidationErrors,
     createActivityLogger('INVITATION_CREATED'),
     createInvitation
@@ -384,10 +388,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new pen
   app.post("/api/pens", async (req, res) => {
     try {
-      const penData: CreatePenRequest = req.body;
+      const penData: InsertPen = req.body;
       
       // Validate required fields
-      if (!penData.name || !penData.operatorEmail || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight) {
+      if (!penData.name || !penData.operationId || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -444,12 +448,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updateWeightSchema = z.object({
         newWeight: z.number().positive(),
-        operatorEmail: z.string().email()
+        operatorEmail: z.string().email(),
+        operationId: z.number().positive()
       });
 
       const validatedData = updateWeightSchema.parse(req.body);
       const request: UpdateWeightRequest = {
-        penId: req.params.penId,
+        penId: Number(req.params.penId),
+        operationId: validatedData.operationId,
         newWeight: validatedData.newWeight,
         operatorEmail: validatedData.operatorEmail
       };
@@ -759,6 +765,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch user role' });
     }
   });
+
+  // Feeding Ingredient Management Routes
+  app.get('/api/feeding-ingredients', authenticateJWT, FeedingIngredientController.getIngredients);
+  app.post('/api/feeding-ingredients', authenticateJWT, FeedingIngredientController.createIngredient);
+  app.put('/api/feeding-ingredients/:ingredientId', authenticateJWT, FeedingIngredientController.updateIngredient);
+  app.delete('/api/feeding-ingredients/:ingredientId', authenticateJWT, FeedingIngredientController.deleteIngredient);
+
+  // Feeding Program Template Management Routes
+  app.get('/api/feeding-program-templates', authenticateJWT, FeedingProgramTemplateController.getTemplates);
+  app.post('/api/feeding-program-templates', authenticateJWT, FeedingProgramTemplateController.createTemplate);
+  app.put('/api/feeding-program-templates/:templateId', authenticateJWT, FeedingProgramTemplateController.updateTemplate);
+  app.delete('/api/feeding-program-templates/:templateId', authenticateJWT, FeedingProgramTemplateController.deleteTemplate);
+
+  // Pen Feeding Program Management Routes
+  app.get('/api/pens/:penId/feeding-programs', authenticateJWT, PenFeedingProgramController.getPenPrograms);
+  app.post('/api/pens/:penId/feeding-programs', authenticateJWT, PenFeedingProgramController.assignProgram);
+  app.put('/api/pen-feeding-programs/:programId', authenticateJWT, PenFeedingProgramController.updateProgram);
+  app.get('/api/pen-feeding-programs/:programId/variances', authenticateJWT, PenFeedingProgramController.getVariances);
+  app.post('/api/pen-feeding-programs/:programId/variances', authenticateJWT, PenFeedingProgramController.recordVariances);
+  app.post('/api/pen-feeding-programs/:programId/completion', authenticateJWT, PenFeedingProgramController.markCompletion);
+
+  // Nutritionist Task Management Routes
+  app.get('/api/nutritionist-tasks', authenticateJWT, NutritionistTaskController.getTasks);
+  app.get('/api/nutritionist-tasks/summary', authenticateJWT, NutritionistTaskController.getTaskSummary);
+  app.put('/api/nutritionist-tasks/:taskId', authenticateJWT, NutritionistTaskController.updateTaskStatus);
+  app.post('/api/pens/:penId/request-feeding-programs', authenticateJWT, NutritionistTaskController.createTask);
 
   const httpServer = createServer(app);
   return httpServer;

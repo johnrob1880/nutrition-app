@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../db/connection';
 import { sql, eq, and, desc } from 'drizzle-orm';
-import { AuthRequest } from './jwtAuth';
+// import { AuthRequest } from './jwtAuth';
 import { consultantProducerRelationships, users, operations, consultantProfiles } from '@shared/schema';
 
 // Extend the AuthRequest interface to include relationship permissions
-export interface RelationshipAuthRequest extends AuthRequest {
+export interface RelationshipAuthRequest extends Request {
   relationship?: {
     id: number;
     consultantId: number;
@@ -28,7 +28,7 @@ export type PermissionLevel = 'view' | 'edit' | 'admin';
  * and what level of permissions they have
  */
 export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'view') {
-  return async (req: RelationshipAuthRequest, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const db = getDb();
       const { user } = req;
@@ -58,7 +58,7 @@ export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'v
       if (user.userType === 'producer') {
         const operationResult = await db.execute(sql`
           SELECT id FROM operations 
-          WHERE id = ${operationId} AND user_id = ${user.id}
+          WHERE id = ${operationId} AND user_id = ${user.userId}
         `);
 
         if (operationResult.rows.length === 0) {
@@ -71,10 +71,10 @@ export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'v
         }
 
         // Producer has full access to their own operation
-        req.relationship = {
+        (req as any).relationship = {
           id: 0, // Not applicable for producer
           consultantId: 0,
-          producerId: user.id,
+          producerId: user.userId,
           operationId: parseInt(operationId),
           permissions: { view: true, edit: true, admin: true },
           status: 'owner'
@@ -94,7 +94,7 @@ export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'v
             cpr.permissions,
             cpr.status
           FROM consultant_producer_relationships cpr
-          WHERE cpr.consultant_id = ${user.id} 
+          WHERE cpr.consultant_id = ${user.userId} 
           AND cpr.operation_id = ${operationId}
           AND cpr.status = 'active'
         `);
@@ -134,7 +134,7 @@ export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'v
         }
 
         // Add relationship info to request
-        req.relationship = {
+        (req as any).relationship = {
           id: relationship.id,
           consultantId: relationship.consultant_id,
           producerId: relationship.producer_id,
@@ -170,7 +170,7 @@ export function requireRelationshipAuth(requiredPermission: PermissionLevel = 'v
         const isOwner = staff.role === 'owner';
 
         // Staff have view/edit permissions, owners have admin
-        req.relationship = {
+        (req as any).relationship = {
           id: 0, // Not applicable for staff
           consultantId: 0,
           producerId: 0,
@@ -298,8 +298,8 @@ export function requireRelationshipOwnership() {
       const relationship = relationshipResult.rows[0];
       
       // Check if user is either the consultant or producer in this relationship
-      const isConsultant = user.userType === 'consultant' && user.id === relationship.consultant_id;
-      const isProducer = user.userType === 'producer' && user.id === relationship.producer_id;
+      const isConsultant = user.userType === 'consultant' && user.userId === relationship.consultant_id;
+      const isProducer = user.userType === 'producer' && user.userId === relationship.producer_id;
 
       if (!isConsultant && !isProducer) {
         return res.status(403).json({

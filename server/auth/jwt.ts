@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { getDb } from '../db/connection';
@@ -27,7 +27,7 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_ACCESS_EXPIRY,
+    expiresIn: JWT_ACCESS_EXPIRY as SignOptions['expiresIn'],
     issuer: 'nutrition-app',
     audience: 'nutrition-app-users',
   });

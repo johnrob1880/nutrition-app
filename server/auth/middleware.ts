@@ -178,7 +178,7 @@ export const invitationRateLimit = rateLimit({
     if (req.user?.userId) {
       return `user-${req.user.userId}`;
     }
-    return ipKeyGenerator(req);
+    return ipKeyGenerator(`user-${req.user?.userId}`);
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -200,7 +200,7 @@ export const apiRateLimit = rateLimit({
     if (req.user?.userId) {
       return `user-${req.user.userId}`;
     }
-    return ipKeyGenerator(req);
+    return ipKeyGenerator(`user-${req.user?.userId}`);
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -261,7 +261,7 @@ export function corsMiddleware(req: Request, res: Response, next: NextFunction) 
     process.env.FRONTEND_URL, // Production frontend URL
   ].filter(Boolean);
 
-  if (allowedOrigins.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
 

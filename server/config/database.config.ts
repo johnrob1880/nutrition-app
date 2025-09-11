@@ -49,7 +49,7 @@ export function getDatabaseUrl(): string {
     const password = process.env.POSTGRES_PASSWORD || 'postgres';
     const host = config.isDocker ? 'db' : (process.env.POSTGRES_HOST || 'localhost');
     const port = process.env.POSTGRES_PORT || '5432';
-    const database = process.env.POSTGRES_DB || 'nutritiondb';
+    const database = process.env.POSTGRES_DB || 'cattlerxdb';
     
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }

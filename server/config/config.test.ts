@@ -70,20 +70,20 @@ describe('Database Configuration', () => {
     it('should validate Docker environment settings', () => {
       process.env.POSTGRES_USER = 'testuser';
       process.env.POSTGRES_PASSWORD = 'testpass';
-      process.env.POSTGRES_DB = 'nutritiondb';
-      process.env.DATABASE_URL = 'postgresql://testuser:testpass@localhost:5432/nutritiondb';
+      process.env.POSTGRES_DB = 'cattlerxdb';
+      process.env.DATABASE_URL = 'postgresql://testuser:testpass@localhost:5432/cattlerxdb';
       
       const config = validateDatabaseConfig();
       
       expect(config).toBeDefined();
-      expect(config.databaseUrl).toContain('nutritiondb');
+      expect(config.databaseUrl).toContain('cattlerxdb');
     });
   });
 
   describe('Docker Configuration', () => {
     it('should detect when running in Docker environment', () => {
       process.env.DOCKER_ENV = 'true';
-      process.env.DATABASE_URL = 'postgresql://user:pass@db:5432/nutritiondb';
+      process.env.DATABASE_URL = 'postgresql://user:pass@db:5432/cattlerxdb';
       
       const config = validateDatabaseConfig();
       
@@ -93,7 +93,7 @@ describe('Database Configuration', () => {
 
     it('should use localhost when not in Docker environment', () => {
       delete process.env.DOCKER_ENV;
-      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/nutritiondb';
+      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/cattlerxdb';
       
       const config = validateDatabaseConfig();
       

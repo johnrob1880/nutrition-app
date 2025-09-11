@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Zod schemas for validation
 export const insertDeathLossSchema = z.object({
-  penId: z.string(),
+  penId: z.number(),
   lossDate: z.string(),
   reason: z.string(),
   cattleCount: z.number().min(1),
@@ -16,7 +16,7 @@ export const insertDeathLossSchema = z.object({
 });
 
 export const insertTreatmentSchema = z.object({
-  penId: z.string(),
+  penId: z.number(),
   treatmentDate: z.string(),
   treatmentType: z.string(),
   product: z.string(),
@@ -260,293 +260,7 @@ export type UpdateRelationship = z.infer<typeof updateRelationshipSchema>;
 export type InviteProducer = z.infer<typeof inviteProducerSchema>;
 export type AcceptInvitation = z.infer<typeof acceptInvitationSchema>;
 
-// External system data types (read-only)
-export interface WeightRecord {
-  date: string;
-  weight: number;
-  recordedBy: string;
-}
 
-export interface Pen {
-  id: string;
-  name: string;
-  capacity: number;
-  current: number;
-  status: 'Active' | 'Maintenance' | 'Inactive';
-  feedType: string;
-  lastFed: string;
-  operatorEmail: string;
-  cattleType: 'Steers' | 'Heifers' | 'Mixed';
-  startingWeight: number;
-  marketWeight: number;
-  averageDailyGain: number;
-  isCrossbred: boolean;
-  currentWeight: number;
-  daysOnFeed: number;
-  startDate: string;
-  endDate?: string;
-  weightHistory: WeightRecord[];
-  nutritionistId?: string;
-}
-
-export interface CreatePenRequest {
-  name: string;
-  capacity: number;
-  current: number;
-  operatorEmail: string;
-  cattleType: 'Steers' | 'Heifers' | 'Mixed';
-  startingWeight: number;
-  marketWeight: number;
-  feedType: string;
-  isCrossbred: boolean;
-  startDate?: string; // Optional, defaults to now
-  nutritionistId?: string;
-}
-
-export interface UpdateWeightRequest {
-  penId: string;
-  newWeight: number;
-  operatorEmail: string;
-}
-
-export interface FeedIngredient {
-  name: string;
-  category: 'Feedstuff' | 'Mineral' | 'Protein' | 'Grain' | 'Supplement';
-  amount: string;
-  unit: 'lbs' | 'kg' | 'oz' | 'g';
-  percentage: string;
-  nutritionalValue?: {
-    protein?: string;
-    fat?: string;
-    fiber?: string;
-    moisture?: string;
-  };
-}
-
-export interface FeedingPlan {
-  id: string;
-  penId: string;
-  penName: string;
-  planName: string;
-  startDate: string;
-  daysToFeed: number;
-  currentDay: number;
-  status: 'Active' | 'Upcoming' | 'Completed';
-  feedType: string;
-  schedules: FeedingSchedule[];
-  operatorEmail: string;
-}
-
-export interface FeedingSchedule {
-  id: string;
-  time: string;
-  totalAmount: string;
-  ingredients: FeedIngredient[];
-  totalNutrition: {
-    protein: string;
-    fat: string;
-    fiber: string;
-    moisture: string;
-  };
-}
-
-export interface UpcomingScheduleChange {
-  id: string;
-  penId: string;
-  penName: string;
-  changeType: 'Plan Start' | 'Plan End' | 'Feed Change';
-  changeDate: string;
-  daysFromNow: number;
-  currentPlan?: string;
-  newPlan?: string;
-  description: string;
-  operatorEmail: string;
-}
-
-export interface DashboardStats {
-  totalPens: number;
-  totalCattle: number;
-  activeSchedules: number;
-  staffCount: number;
-  avgFeedPerDay: string;
-  lastSync: string;
-}
-
-// Feeding records for tracking actual feeding events
-export interface FeedingRecord {
-  id: string;
-  operationId: number;
-  penId: string;
-  scheduleId: string;
-  plannedAmount: string;
-  actualIngredients: ActualIngredient[];
-  feedingTime: string;
-  operatorEmail: string;
-  createdAt: string;
-}
-
-export interface ActualIngredient {
-  name: string;
-  plannedAmount: string;
-  actualAmount: string;
-  unit: string;
-  category: string;
-}
-
-export interface InsertFeedingRecord {
-  operationId?: number;
-  penId: string;
-  scheduleId?: string;
-  plannedAmount?: string;
-  feedingTime?: Date;
-  feedingDate?: string;
-  feedType?: string;
-  amount?: number;
-  unit?: string;
-  ingredients?: any[];
-  actualIngredients?: ActualIngredient[];
-  fedBy?: string;
-  notes?: string;
-  operatorEmail: string;
-}
-
-// Cattle Sale Records
-export interface CattleSale {
-  id: string;
-  operationId: number;
-  penId: string;
-  penName: string;
-  finalWeight: number;
-  pricePerCwt: number;
-  totalRevenue: number;
-  cattleCount: number;
-  cattleType: string;
-  startingWeight: number;
-  averageDailyGain: number;
-  daysOnFeed: number;
-  nutritionistId?: string;
-  saleDate: string;
-  penStartDate?: string;
-  operatorEmail: string;
-  createdAt: string;
-}
-
-export interface InsertCattleSale {
-  operationId: number;
-  penId: string;
-  finalWeight: number;
-  pricePerCwt: number;
-  saleDate: string;
-  operatorEmail: string;
-}
-
-// Nutritionist interface for external system integration
-export interface Nutritionist {
-  id: string;
-  name: string;
-  company: string;
-  operatorEmail: string;
-  status: 'active' | 'inactive' | 'pending';
-  invitedAt?: string;
-  acceptedAt?: string;
-}
-
-export interface AcceptInvitationRequest {
-  nutritionistId: string;
-  operatorEmail: string;
-}
-
-// Death Loss Records
-export interface DeathLoss {
-  id: string;
-  operationId: number;
-  penId: string;
-  penName: string;
-  lossDate: string;
-  reason: string;
-  cattleCount: number;
-  estimatedWeight: number;
-  tagNumbers?: string;
-  notes?: string;
-  operatorEmail: string;
-  createdAt: string;
-}
-
-export interface InsertDeathLoss {
-  operationId: number;
-  penId: string;
-  lossDate: string;
-  reason: string;
-  cattleCount: number;
-  estimatedWeight: number;
-  tagNumbers?: string;
-  notes?: string;
-  operatorEmail: string;
-}
-
-// Treatment Records
-export interface TreatmentRecord {
-  id: string;
-  operationId: number;
-  penId: string;
-  penName: string;
-  treatmentDate: string;
-  treatmentType: string;
-  product: string;
-  dosage: string;
-  cattleCount: number;
-  tagNumbers?: string;
-  treatedBy: string;
-  notes?: string;
-  operatorEmail: string;
-  createdAt: string;
-}
-
-export interface InsertTreatmentRecord {
-  operationId: number;
-  penId: string;
-  treatmentDate: string;
-  treatmentType: string;
-  product: string;
-  dosage: string;
-  cattleCount: number;
-  tagNumbers?: string;
-  treatedBy: string;
-  notes?: string;
-  operatorEmail: string;
-}
-
-// Partial Sale Records  
-export interface PartialSale {
-  id: string;
-  operationId: number;
-  penId: string;
-  penName: string;
-  saleDate: string;
-  cattleCount: number;
-  finalWeight: number;
-  pricePerCwt: number;
-  totalRevenue: number;
-  tagNumbers?: string;
-  buyer?: string;
-  notes?: string;
-  operatorEmail: string;
-  createdAt: string;
-}
-
-export interface InsertPartialSale {
-  operationId: number;
-  penId: string;
-  saleDate: string;
-  cattleCount: number;
-  finalWeight: number;
-  pricePerCwt: number;
-  totalRevenue: number;
-  tagNumbers?: string;
-  buyer?: string;
-  notes?: string;
-  operatorEmail: string;
-}
 
 // Additional Drizzle table definitions from server/db/schema.ts
 
@@ -570,7 +284,7 @@ export const pens = pgTable("pens", {
   feedConversion: real("feed_conversion").default(0),
   projectedCloseoutDate: text("projected_closeout_date"),
   estimatedValue: real("estimated_value").default(0),
-  nutritionistId: text("nutritionist_id").references(() => users.id),
+  nutritionistId: integer("nutritionist_id").references(() => users.id),
   startDate: timestamp("start_date").notNull().defaultNow(),
   endDate: timestamp("end_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -578,6 +292,9 @@ export const pens = pgTable("pens", {
 }, (table) => ({
   operationIdx: index("idx_pens_operation").on(table.operationId),
 }));
+
+export type Pen = typeof pens.$inferSelect;
+export type InsertPen = typeof pens.$inferInsert;
 
 // Weight records table
 export const weightRecords = pgTable("weight_records", {
@@ -588,10 +305,13 @@ export const weightRecords = pgTable("weight_records", {
   recordedAt: timestamp("recorded_at").notNull().defaultNow(),
 });
 
+export type WeightRecord = typeof weightRecords.$inferSelect;
+export type InsertWeightRecord = typeof weightRecords.$inferInsert;
+
 // Feeding records table
 export const feedingRecords = pgTable("feeding_records", {
   id: serial("id").primaryKey(),
-  penId: text("pen_id").notNull(),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   scheduleId: text("schedule_id").notNull(),
   plannedAmount: text("planned_amount").notNull(),
   feedingTime: timestamp("feeding_time").notNull(),
@@ -605,6 +325,9 @@ export const feedingRecords = pgTable("feeding_records", {
   operatorEmail: text("operator_email").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export type FeedingRecord = typeof feedingRecords.$inferSelect;
+export type InsertFeedingRecord = typeof feedingRecords.$inferInsert;
 
 // Feeding plans table
 export const feedingPlans = pgTable("feeding_plans", {
@@ -624,10 +347,13 @@ export const feedingPlans = pgTable("feeding_plans", {
   notes: text("notes"),
 });
 
+export type FeedingPlan = typeof feedingPlans.$inferSelect;
+export type InsertFeedingPlan = typeof feedingPlans.$inferInsert;
+
 // Cattle sales table
 export const cattleSales = pgTable("cattle_sales", {
   id: serial("id").primaryKey(),
-  penId: text("pen_id").notNull(),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   saleDate: text("sale_date").notNull(),
   headCount: integer("head_count").notNull(),
   averageWeight: real("average_weight").notNull(),
@@ -642,10 +368,13 @@ export const cattleSales = pgTable("cattle_sales", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export type CattleSale = typeof cattleSales.$inferSelect;
+export type InsertCattleSale = typeof cattleSales.$inferInsert;
+
 // Death loss table
 export const deathLosses = pgTable("death_losses", {
   id: serial("id").primaryKey(),
-  penId: text("pen_id").notNull(),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   lossDate: text("loss_date").notNull(),
   reason: text("reason").notNull(),
   cattleCount: integer("cattle_count").notNull(),
@@ -656,10 +385,13 @@ export const deathLosses = pgTable("death_losses", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export type DeathLoss = typeof deathLosses.$inferSelect;
+export type InsertDeathLoss = typeof deathLosses.$inferInsert;
+
 // Treatment records table
 export const treatmentRecords = pgTable("treatment_records", {
   id: serial("id").primaryKey(),
-  penId: text("pen_id").notNull(),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   treatmentDate: text("treatment_date").notNull(),
   treatmentType: text("treatment_type").notNull(),
   product: text("product").notNull(),
@@ -672,10 +404,13 @@ export const treatmentRecords = pgTable("treatment_records", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export type TreatmentRecord = typeof treatmentRecords.$inferSelect;
+export type InsertTreatmentRecord = typeof treatmentRecords.$inferInsert;
+
 // Partial sales table
 export const partialSales = pgTable("partial_sales", {
   id: serial("id").primaryKey(),
-  penId: text("pen_id").notNull(),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   saleDate: text("sale_date").notNull(),
   headCount: integer("head_count").notNull(),
   averageWeight: real("average_weight").notNull(),
@@ -686,6 +421,9 @@ export const partialSales = pgTable("partial_sales", {
   operatorEmail: text("operator_email").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export type PartialSale = typeof partialSales.$inferSelect;
+export type InsertPartialSale = typeof partialSales.$inferInsert;
 
 // Nutritionists table
 export const nutritionists = pgTable("nutritionists", {
@@ -701,6 +439,9 @@ export const nutritionists = pgTable("nutritionists", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export type Nutritionist = typeof nutritionists.$inferSelect;
+export type InsertNutritionist = typeof nutritionists.$inferInsert;
+
 // Invite codes table (for operation invites)
 export const inviteCodes = pgTable("invite_codes", {
   id: serial("id").primaryKey(),
@@ -710,6 +451,9 @@ export const inviteCodes = pgTable("invite_codes", {
   expiresAt: timestamp("expires_at"),
   used: boolean("used").default(false),
 });
+
+export type InviteCode = typeof inviteCodes.$inferSelect;
+export type InsertInviteCode = typeof inviteCodes.$inferInsert;
 
 // Session storage table for connect-pg-simple
 export const session = pgTable("session", {
@@ -766,7 +510,7 @@ export const feedingPlansRelations = relations(feedingPlans, ({ one }) => ({
 // Feeding ingredients for centralized ingredient management
 export const feedingIngredients = pgTable("feeding_ingredients", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   proteinPercentage: decimal("protein_percentage", { precision: 5, scale: 2 }),
   dryMatterPercentage: decimal("dry_matter_percentage", { precision: 5, scale: 2 }),
@@ -783,7 +527,7 @@ export const feedingProgramTemplates = pgTable("feeding_program_templates", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   categoryTags: text("category_tags").array(),
-  createdByUserId: text("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdByUserId: integer("created_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   isShared: boolean("is_shared").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -819,7 +563,7 @@ export const feedingProgramIngredients = pgTable("feeding_program_ingredients", 
 // Pen-specific feeding programs based on templates
 export const penFeedingPrograms = pgTable("pen_feeding_programs", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  penId: text("pen_id").notNull().references(() => pens.id),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   templateId: text("template_id").references(() => feedingProgramTemplates.id),
   programName: varchar("program_name", { length: 255 }).notNull(),
   startDate: text("start_date").notNull(),
@@ -827,7 +571,7 @@ export const penFeedingPrograms = pgTable("pen_feeding_programs", {
   feedingTimes: text("feeding_times").array(),
   currentPhase: integer("current_phase").default(1),
   status: varchar("status", { length: 50 }).default("active"),
-  createdByUserId: text("created_by_user_id").notNull().references(() => users.id),
+  createdByUserId: integer("created_by_user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -864,9 +608,9 @@ export const penFeedingProgramIngredients = pgTable("pen_feeding_program_ingredi
 export const feedingRecordVariances = pgTable("feeding_record_variances", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   penProgramId: text("pen_program_id").notNull().references(() => penFeedingPrograms.id),
-  penId: text("pen_id").notNull().references(() => pens.id),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   ingredientId: text("ingredient_id").notNull().references(() => feedingIngredients.id),
-  recordedByUserId: text("recorded_by_user_id").notNull().references(() => users.id),
+  recordedByUserId: integer("recorded_by_user_id").notNull().references(() => users.id),
   date: text("date").notNull(),
   feedingTime: varchar("feeding_time", { length: 10 }),
   plannedAmount: decimal("planned_amount", { precision: 8, scale: 2 }).notNull(),
@@ -883,7 +627,7 @@ export const feedingRecordVariances = pgTable("feeding_record_variances", {
 export const dailyFeedingCompletionStatus = pgTable("daily_feeding_completion_status", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   penProgramId: text("pen_program_id").notNull().references(() => penFeedingPrograms.id),
-  completedByUserId: text("completed_by_user_id").notNull().references(() => users.id),
+  completedByUserId: integer("completed_by_user_id").notNull().references(() => users.id),
   date: text("date").notNull(),
   feedingTime: varchar("feeding_time", { length: 10 }).notNull(),
   completedAt: timestamp("completed_at").notNull().defaultNow(),
@@ -894,14 +638,14 @@ export const dailyFeedingCompletionStatus = pgTable("daily_feeding_completion_st
 // Nutritionist task management
 export const nutritionistTasks = pgTable("nutritionist_tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  nutritionistId: text("nutritionist_id").notNull().references(() => users.id),
-  penId: text("pen_id").notNull().references(() => pens.id),
+  nutritionistId: integer("nutritionist_id").notNull().references(() => users.id),
+  penId: integer("pen_id").notNull().references(() => pens.id),
   taskType: varchar("task_type", { length: 50 }).notNull(),
   status: varchar("status", { length: 50 }).default("pending"),
   priority: varchar("priority", { length: 20 }).default("normal"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
-  completedByUserId: text("completed_by_user_id").references(() => users.id),
+  completedByUserId: integer("completed_by_user_id").references(() => users.id),
   notes: text("notes"),
 }, (table) => ({
   nutritionistStatusIdx: index("idx_nutritionist_tasks_nutritionist").on(table.nutritionistId, table.status),
@@ -1068,3 +812,294 @@ export const insertPenFeedingProgramIngredientSchema = createInsertSchema(penFee
 export const insertFeedingRecordVarianceSchema = createInsertSchema(feedingRecordVariances);
 export const insertDailyFeedingCompletionStatusSchema = createInsertSchema(dailyFeedingCompletionStatus);
 export const insertNutritionistTaskSchema = createInsertSchema(nutritionistTasks);
+
+
+// External system data types (read-only)
+// export interface WeightRecord {
+//   date: string;
+//   weight: number;
+//   recordedBy: string;
+// }
+
+// export interface Pen2 {
+//   id: number;
+//   name: string;
+//   capacity: number;
+//   current: number;
+//   status: 'Active' | 'Maintenance' | 'Inactive';
+//   feedType: string;
+//   lastFed: string;
+//   operatorEmail: string;
+//   cattleType: 'Steers' | 'Heifers' | 'Mixed';
+//   startingWeight: number;
+//   marketWeight: number;
+//   averageDailyGain: number;
+//   isCrossbred: boolean;
+//   currentWeight: number;
+//   daysOnFeed: number;
+//   startDate: string;
+//   endDate?: string;
+//   weightHistory: WeightRecord[];
+//   nutritionistId?: string;
+// }
+
+export interface CreatePenRequest {
+  name: string;
+  capacity: number;
+  current: number;
+  operatorEmail: string;
+  operationId: number;
+  cattleType: 'Steers' | 'Heifers' | 'Mixed';
+  startingWeight: number;
+  marketWeight: number;
+  feedType: string;
+  isCrossbred: boolean;
+  startDate?: string; // Optional, defaults to now
+  nutritionistId?: string;
+}
+
+export interface UpdateWeightRequest {
+  penId: number;
+  newWeight: number;
+  operatorEmail: string;
+  operationId: number;
+}
+
+// export interface FeedIngredient2 {
+//   name: string;
+//   category: 'Feedstuff' | 'Mineral' | 'Protein' | 'Grain' | 'Supplement';
+//   amount: string;
+//   unit: 'lbs' | 'kg' | 'oz' | 'g';
+//   percentage: string;
+//   nutritionalValue?: {
+//     protein?: string;
+//     fat?: string;
+//     fiber?: string;
+//     moisture?: string;
+//   };
+// }
+
+export interface FeedingPlan2 {
+  id: string;
+  penId: number;
+  penName: string;
+  planName: string;
+  startDate: string;
+  daysToFeed: number;
+  currentDay: number;
+  status: 'Active' | 'Upcoming' | 'Completed';
+  feedType: string;
+  schedules: FeedingSchedule[];
+  operatorEmail: string;
+}
+
+export interface FeedingSchedule {
+  id: string;
+  time: string;
+  totalAmount: string;
+  ingredients: FeedingIngredient[];
+  totalNutrition: {
+    protein: string;  
+    fat: string;
+    fiber: string;
+    moisture: string;
+  };
+}
+
+export interface UpcomingScheduleChange {
+  id: string;
+  penId: number;
+  penName: string;
+  changeType: 'Plan Start' | 'Plan End' | 'Feed Change';
+  changeDate: string;
+  daysFromNow: number;
+  currentPlan?: string;
+  newPlan?: string;
+  description: string;
+  operatorEmail: string;
+}
+
+export interface DashboardStats {
+  totalPens: number;
+  totalCattle: number;
+  activeSchedules: number;
+  staffCount: number;
+  avgFeedPerDay: string;
+  lastSync: string;
+}
+
+// Feeding records for tracking actual feeding events
+export interface FeedingRecord2 {
+  id: string;
+  operationId: number;
+  penId: number;
+  scheduleId: string;
+  plannedAmount: string;
+  actualIngredients: ActualIngredient[];
+  feedingTime: string;
+  operatorEmail: string;
+  createdAt: string;
+}
+
+export interface ActualIngredient {
+  name: string;
+  plannedAmount: string;
+  actualAmount: string;
+  unit: string;
+  category: string;
+}
+
+// export interface InsertFeedingRecord {
+//   operationId?: number;
+//   penId: number;
+//   scheduleId?: string;
+//   plannedAmount?: string;
+//   feedingTime?: Date;
+//   feedingDate?: string;
+//   feedType?: string;
+//   amount?: number;
+//   unit?: string;
+//   ingredients?: any[];
+//   actualIngredients?: ActualIngredient[];
+//   fedBy?: string;
+//   notes?: string;
+//   operatorEmail: string;
+// }
+
+// Cattle Sale Records
+// export interface CattleSale {
+//   id: string;
+//   operationId: number;
+//   penId: number;
+//   penName: string;
+//   finalWeight: number;
+//   pricePerCwt: number;
+//   totalRevenue: number;
+//   cattleCount: number;
+//   cattleType: string;
+//   startingWeight: number;
+//   averageDailyGain: number;
+//   daysOnFeed: number;
+//   nutritionistId?: string;
+//   saleDate: string;
+//   penStartDate?: string;
+//   operatorEmail: string;
+//   createdAt: string;
+// }
+
+// export interface InsertCattleSale {
+//   operationId: number;
+//   penId: number;
+//   finalWeight: number;
+//   pricePerCwt: number;
+//   saleDate: string;
+//   operatorEmail: string;
+// }
+
+// Nutritionist interface for external system integration
+// export interface Nutritionist {
+//   id: string;
+//   name: string;
+//   company: string;
+//   operatorEmail: string;
+//   status: 'active' | 'inactive' | 'pending';
+//   invitedAt?: string;
+//   acceptedAt?: string;
+// }
+
+export interface AcceptInvitationRequest {
+  nutritionistId: string;
+  operatorEmail: string;
+}
+
+// Death Loss Records
+// export interface DeathLoss {
+//   id: string;
+//   operationId: number;
+//   penId: number;
+//   penName: string;
+//   lossDate: string;
+//   reason: string;
+//   cattleCount: number;
+//   estimatedWeight: number;
+//   tagNumbers?: string;
+//   notes?: string;
+//   operatorEmail: string;
+//   createdAt: string;
+// }
+
+// export interface InsertDeathLoss {
+//   operationId: number;
+//   penId: number;
+//   lossDate: string;
+//   reason: string;
+//   cattleCount: number;
+//   estimatedWeight: number;
+//   tagNumbers?: string;
+//   notes?: string;
+//   operatorEmail: string;
+// }
+
+// Treatment Records
+// export interface TreatmentRecord {
+//   id: string;
+//   operationId: number;
+//   penId: number;
+//   penName: string;
+//   treatmentDate: string;
+//   treatmentType: string;
+//   product: string;
+//   dosage: string;
+//   cattleCount: number;
+//   tagNumbers?: string;
+//   treatedBy: string;
+//   notes?: string;
+//   operatorEmail: string;
+//   createdAt: string;
+// }
+
+// export interface InsertTreatmentRecord {
+//   operationId: number;
+//   penId: number;
+//   treatmentDate: string;
+//   treatmentType: string;
+//   product: string;
+//   dosage: string;
+//   cattleCount: number;
+//   tagNumbers?: string;
+//   treatedBy: string;
+//   notes?: string;
+//   operatorEmail: string;
+// }
+
+// Partial Sale Records  
+// export interface PartialSale {
+//   id: string;
+//   operationId: number;
+//   penId: number;
+//   penName: string;
+//   saleDate: string;
+//   cattleCount: number;
+//   finalWeight: number;
+//   pricePerCwt: number;
+//   totalRevenue: number;
+//   tagNumbers?: string;
+//   buyer?: string;
+//   notes?: string;
+//   operatorEmail: string;
+//   createdAt: string;
+// }
+
+// export interface InsertPartialSale {
+//   operationId: number;
+//   penId: number;
+//   saleDate: string;
+//   cattleCount: number;
+//   finalWeight: number;
+//   pricePerCwt: number;
+//   totalRevenue: number;
+//   tagNumbers?: string;
+//   buyer?: string;
+//   notes?: string;
+//   operatorEmail: string;
+// }

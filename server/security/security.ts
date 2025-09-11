@@ -231,6 +231,22 @@ export const validationSchemas = {
       })
   ],
 
+  // Producer invitation validation
+  producerInvitation: [
+    body('producerEmail')
+      .isEmail()
+      .normalizeEmail()
+      .withMessage('Valid email address required'),
+    body('producerName')
+      .isString()
+      .isLength({ min: 3, max: 100 })
+      .withMessage('Producer name must be between 3 and 100 characters'),
+    body('message')
+      .optional()
+      .isLength({ max: 500 })
+      .withMessage('Message must be less than 500 characters')
+  ],
+
   // Invitation validation
   invitation: [
     body('email')

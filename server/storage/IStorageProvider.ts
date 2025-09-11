@@ -41,6 +41,7 @@ export interface IStorageProvider {
 
   // Pen Management
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
+  getPensByOperationId(operationId: number): Promise<Pen[]>;
   createPen(penData: CreatePenRequest): Promise<Pen>;
   updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined>;
 

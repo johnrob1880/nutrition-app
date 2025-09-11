@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus } from "lucide-react";
-import type { CreatePenRequest, Pen, Nutritionist } from "@shared/schema";
+import type { InsertPen, Pen, Nutritionist } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 
 const createPenSchema = z.object({
@@ -34,18 +34,18 @@ const createPenSchema = z.object({
 type CreatePenForm = z.infer<typeof createPenSchema>;
 
 interface CreatePenDialogProps {
-  operatorEmail: string;
+  operationId: number;
 }
 
-export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps) {
+export default function CreatePenDialog({ operationId }: CreatePenDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   // Fetch nutritionists for the operation
   const { data: nutritionists = [], isLoading: nutritionistsLoading } = useQuery<Nutritionist[]>({
-    queryKey: ["/api/nutritionists", operatorEmail],
-    enabled: !!operatorEmail,
+    queryKey: ["/api/nutritionists", operationId],
+    enabled: !!operationId,
   });
 
   const form = useForm<CreatePenForm>({
@@ -65,10 +65,12 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
   const onSubmit = async (data: CreatePenForm) => {
     setIsLoading(true);
     try {
-      const penData: CreatePenRequest = {
+      const penData: InsertPen = {
         ...data,
-        operatorEmail,
+        operationId,
         feedType: "Pending", // Feed type will be assigned by external system
+        currentWeight: data.startingWeight,
+        nutritionistId: parseInt(data.nutritionistId, 10),
       };
 
       const response = await fetch("/api/pens", {
@@ -85,7 +87,7 @@ export default function CreatePenDialog({ operatorEmail }: CreatePenDialogProps)
       }
 
       // Invalidate pens cache to refetch the list
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
       
       toast({
         title: "Pen created successfully!",

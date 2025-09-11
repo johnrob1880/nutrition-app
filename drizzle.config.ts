@@ -1,6 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 
-const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/nutritiondb";
+const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/cattlerxdb";
 
 export default defineConfig({
   out: "./migrations",

@@ -112,6 +112,17 @@ describe.skipIf(skipIfNotPostgres)('PostgreSQLStorageProvider', () => {
 
   describe('Pen Management', () => {
     it('should create and retrieve pens', async () => {
+      // First create an operation
+      const operationData: InsertOperation = {
+        name: 'Test Ranch',
+        operatorEmail: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        location: 'Test Location',
+        inviteCode: 'TEST123'
+      };
+      await provider.createOperation(operationData);
+
       const penData: CreatePenRequest = {
         name: 'Test Pen',
         operatorEmail: 'test@example.com',
@@ -137,6 +148,17 @@ describe.skipIf(skipIfNotPostgres)('PostgreSQLStorageProvider', () => {
     });
 
     it('should update pen weights', async () => {
+      // First create an operation
+      const operationData: InsertOperation = {
+        name: 'Test Ranch',
+        operatorEmail: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        location: 'Test Location',
+        inviteCode: 'TEST123'
+      };
+      await provider.createOperation(operationData);
+
       const penData: CreatePenRequest = {
         name: 'Test Pen',
         operatorEmail: 'test@example.com',
@@ -315,6 +337,17 @@ describe.skipIf(skipIfNotPostgres)('PostgreSQLStorageProvider', () => {
 
   describe('Dashboard Statistics', () => {
     it('should calculate dashboard stats correctly', async () => {
+      // First create an operation
+      const operationData: InsertOperation = {
+        name: 'Test Ranch',
+        operatorEmail: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        location: 'Test Location',
+        inviteCode: 'TEST123'
+      };
+      await provider.createOperation(operationData);
+
       // Create test data
       const pen1: CreatePenRequest = {
         name: 'Pen 1',

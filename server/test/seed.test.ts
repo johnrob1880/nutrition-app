@@ -9,7 +9,7 @@ describe('Database Seeding', () => {
     // Ensure we're using PostgreSQL for these tests
     process.env.STORAGE_TYPE = 'postgresql';
     if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/nutritiondb_test';
+      process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/cattlerxdb_test';
     }
     
     // Clear the database before each test

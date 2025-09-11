@@ -6,7 +6,7 @@ import type {
   FeedingPlan, 
   FeedingSchedule, 
   DashboardStats, 
-  FeedIngredient, 
+  FeedingIngredient, 
   UpdateWeightRequest, 
   WeightRecord, 
   UpcomingScheduleChange, 
@@ -38,14 +38,14 @@ import { IStorageProvider } from './IStorageProvider';
 export class InMemoryStorageProvider implements IStorageProvider {
   private operations: Map<number, Operation>;
   private currentId: number;
-  private pens: Map<string, Pen>;
+  private pens: Map<number, Pen>;
   private penIdCounter: number;
   private feedingRecords: Map<string, FeedingRecord>;
   private feedingRecordId: number;
   private cattleSales: Map<string, CattleSale>;
   private saleId: number;
   private inviteCodes: Map<string, string>; // inviteCode -> operatorEmail
-  private nutritionists: Map<string, Nutritionist>;
+  private nutritionists: Map<number, Nutritionist>;
   private deathLosses: Map<string, DeathLoss>;
   private deathLossId: number;
   private treatments: Map<string, TreatmentRecord>;
@@ -100,13 +100,13 @@ export class InMemoryStorageProvider implements IStorageProvider {
     // Initialize sample pens
     const samplePens: Pen[] = [
       {
-        id: "1",
+        id: 1,
         name: "North Pasture",
-        operatorEmail: "johnrob1880@gmail.com",
+        operationId: 1,
         capacity: 100,
         current: 85,
         status: "Active",
-        lastFed: "2025-09-06T14:30:00Z",
+        lastFed: new Date("2025-09-06T14:30:00Z"),
         cattleType: "Steers",
         startingWeight: 650,
         currentWeight: 850,
@@ -115,15 +115,19 @@ export class InMemoryStorageProvider implements IStorageProvider {
         isCrossbred: false,
         daysOnFeed: 120,
         averageDailyGain: 3.2,
-        startDate: "2025-05-09T08:00:00Z",
-        endDate: undefined,
-        weightHistory: [],
-        nutritionistId: undefined
+        startDate: new Date("2025-05-09T08:00:00Z"),
+        endDate: null,
+        nutritionistId: 1,
+        createdAt: new Date("2025-05-01T10:00:00Z"),
+        updatedAt: new Date("2025-09-01T12:00:00Z"),
+        feedConversion: 6.5,
+        projectedCloseoutDate: "2025-12-15",
+        estimatedValue: 102000,
       },
       {
-        id: "2",
+        id: 2,
         name: "South Field",
-        operatorEmail: "johnrob1880@gmail.com",
+        operationId: 1,
         capacity: 150,
         current: 142,
         cattleType: "Heifers",
@@ -135,12 +139,20 @@ export class InMemoryStorageProvider implements IStorageProvider {
         averageDailyGain: 2.8,
         feedConversion: 7.2,
         projectedCloseoutDate: "2025-11-30",
-        estimatedValue: 156200
+        estimatedValue: 156200,
+        nutritionistId: 1,
+        status: "Active",
+        lastFed: new Date("2025-09-06T15:00:00Z"),
+        isCrossbred: false,
+        startDate: new Date("2025-06-03T09:00:00Z"),
+        endDate: null,
+        createdAt: new Date("2025-06-01T11:00:00Z"),
+        updatedAt: new Date("2025-09-01T13:00:00Z")        
       },
       {
-        id: "3",
+        id: 3,
         name: "East Lot",
-        operatorEmail: "johnrob1880@gmail.com",
+        operationId: 1,
         capacity: 75,
         current: 68,
         cattleType: "Mixed",
@@ -152,7 +164,15 @@ export class InMemoryStorageProvider implements IStorageProvider {
         averageDailyGain: 3.0,
         feedConversion: 6.5,
         projectedCloseoutDate: "2025-12-01",
-        estimatedValue: 78200
+        estimatedValue: 78200,
+        nutritionistId: 2,
+        status: "Active",
+        lastFed: new Date("2025-09-06T13:30:00Z"),
+        isCrossbred: true,
+        startDate: new Date("2025-05-18T07:30:00Z"),
+        endDate: null,
+        createdAt: new Date("2025-05-15T10:30:00Z"),
+        updatedAt: new Date("2025-09-01T11:30:00Z")
       }
     ];
 
@@ -170,7 +190,8 @@ export class InMemoryStorageProvider implements IStorageProvider {
         specialties: ["High-energy rations", "Feed efficiency optimization"],
         operatorEmail: "johnrob1880@gmail.com",
         status: "active",
-        joinedDate: "2024-01-15"
+        joinedDate: "2024-01-15",
+        createdAt: new Date("2024-01-15T09:00:00Z"),
       },
       {
         id: 2,
@@ -181,12 +202,13 @@ export class InMemoryStorageProvider implements IStorageProvider {
         specialties: ["Pasture management", "Mineral supplements"],
         operatorEmail: "johnrob1880@gmail.com",
         status: "active",
-        joinedDate: "2024-03-20"
+        joinedDate: "2024-03-20",
+        createdAt: new Date("2024-03-20T10:30:00Z"),
       }
     ];
 
     sampleNutritionists.forEach(nutritionist => 
-      this.nutritionists.set(nutritionist.email, nutritionist)
+      this.nutritionists.set(nutritionist.id, nutritionist)
     );
   }
 
@@ -226,7 +248,8 @@ export class InMemoryStorageProvider implements IStorageProvider {
     const newOperation: Operation = {
       ...operation,
       id: this.currentId++,
-      setupDate: new Date()
+      setupDate: new Date(),
+      userId: operation.userId || null
     };
 
     this.operations.set(newOperation.id, newOperation);
@@ -248,20 +271,35 @@ export class InMemoryStorageProvider implements IStorageProvider {
 
   // Pen Management
   async getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]> {
-    return Array.from(this.pens.values()).filter(pen => pen.operatorEmail === operatorEmail);
+    const operator = Array.from(this.operations.values()).find(op => op.operatorEmail === operatorEmail);
+    if (!operator) return [];
+    return Array.from(this.pens.values()).filter(pen => pen.operationId === operator.id);
+  }
+
+  async getPensByOperationId(operationId: number): Promise<Pen[]> {
+    return Array.from(this.pens.values()).filter(pen => pen.operationId === operationId);
   }
 
   async createPen(penData: CreatePenRequest): Promise<Pen> {
     const newPen: Pen = {
       ...penData,
-      id: (this.penIdCounter++).toString(),
+      id: this.penIdCounter++,
       currentWeight: penData.startingWeight,
       daysOnFeed: 0,
       averageDailyGain: 0,
       feedConversion: 0,
       projectedCloseoutDate: "",
       estimatedValue: 0,
-      nutritionistId: penData.nutritionistId
+      nutritionistId: Number(penData.nutritionistId),
+      status: "Active",
+      lastFed: null,
+      isCrossbred: false,
+      startDate: new Date(),
+      endDate: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      operationId: penData.operationId
+
     };
 
     this.pens.set(newPen.id, newPen);
@@ -270,9 +308,9 @@ export class InMemoryStorageProvider implements IStorageProvider {
 
   async updatePenWeight(request: UpdateWeightRequest): Promise<Pen | undefined> {
     const pen = this.pens.get(request.penId);
-    if (!pen || pen.operatorEmail !== request.operatorEmail) return undefined;
+    if (!pen || pen.operationId !== request.operationId) return undefined;
 
-    pen.currentWeight = request.currentWeight;
+    pen.currentWeight = request.newWeight;
     this.pens.set(request.penId, pen);
     return pen;
   }
@@ -280,8 +318,20 @@ export class InMemoryStorageProvider implements IStorageProvider {
   // Feeding Management
   async createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord> {
     const newRecord: FeedingRecord = {
-      ...record,
-      id: this.feedingRecordId++
+      id: this.feedingRecordId++,
+      amount: record.amount || 0,
+      createdAt: new Date(),
+      fedBy: record.fedBy,
+      penId: record.penId,
+      operatorEmail: record.operatorEmail,
+      feedingDate: record.feedingDate,
+      notes: record.notes || "",
+      feedingTime: record.feedingTime,
+      feedType: record.feedType,
+      ingredients: record.ingredients || [],
+      plannedAmount: record.plannedAmount ? String(record.plannedAmount) : "0",
+      scheduleId: record.scheduleId,
+      unit: record.unit || "lbs"
     };
 
     this.feedingRecords.set(newRecord.id.toString(), newRecord);
@@ -297,8 +347,8 @@ export class InMemoryStorageProvider implements IStorageProvider {
     // Sample feeding plans - in real implementation would come from database
     return [
       {
-        id: "1",
-        penId: "1",
+        id: 1,
+        penId: 1,
         name: "High Energy Finisher",
         operatorEmail: operatorEmail,
         ingredients: [
@@ -324,13 +374,16 @@ export class InMemoryStorageProvider implements IStorageProvider {
     // Sample schedule changes
     return [
       {
-        penId: "1",
+        penId: 1,
         penName: "North Pasture",
         changeDate: "2025-09-15",
-        changeType: "Feed Type Change",
-        currentValue: "High Energy",
-        newValue: "Finisher",
-        reason: "Approaching market weight"
+        daysFromNow: 9,
+        description: "Switching to Finisher diet",
+        id: "1",
+        operatorEmail: operatorEmail,
+        currentPlan: "High Energy",
+        newPlan: "Finisher",
+        changeType: "Plan Start"
       }
     ];
   }
@@ -340,25 +393,50 @@ export class InMemoryStorageProvider implements IStorageProvider {
     const pens = await this.getPensByOperatorEmail(operatorEmail);
     const totalCapacity = pens.reduce((sum, pen) => sum + pen.capacity, 0);
     const totalCurrent = pens.reduce((sum, pen) => sum + pen.current, 0);
+    const totalCattleCount = pens.length > 0 ? pens.reduce((sum, pen) => sum + pen.current, 0) : 0;
     const staffCount = Array.from(this.staffMembers.values())
       .filter(staff => staff.status === 'active').length;
 
     return {
       totalPens: pens.length,
-      totalCapacity,
-      currentCattle: totalCurrent,
-      utilizationRate: totalCapacity > 0 ? (totalCurrent / totalCapacity) * 100 : 0,
-      averageWeight: pens.length > 0 ? 
-        pens.reduce((sum, pen) => sum + (pen.currentWeight || 0), 0) / pens.length : 0,
-      staffCount
+      activeSchedules: 2,
+      avgFeedPerDay: "2500 lbs",
+      lastSync: new Date().toISOString(),
+      staffCount: staffCount,
+      totalCattle: totalCattleCount,
     };
   }
 
   // Cattle Sales
   async sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale> {
+    const pen = this.pens.get(saleRecord.penId);
+    
+    if (!pen) {
+      throw new Error("Pen not found");
+    }
+
+    const operation = this.operations.get(pen.operationId);
+
+    if (!operation || operation.operatorEmail !== saleRecord.operatorEmail) {
+      throw new Error("Operation not found or email mismatch");
+    }
+
     const newSale: CattleSale = {
       ...saleRecord,
-      id: this.saleId++
+      id: this.saleId++,
+      createdAt: new Date(),
+      notes: saleRecord.notes || "",
+      averageDailyGain: saleRecord.averageDailyGain || 0,
+      averageWeight: saleRecord.averageWeight || 0,
+      buyerName: saleRecord.buyerName || "Unknown",
+      daysOnFeed: saleRecord.daysOnFeed || 0,
+      headCount: pen.current,
+      operatorEmail: saleRecord.operatorEmail,
+      penId: saleRecord.penId,
+      pricePerCwt: saleRecord.pricePerCwt || 0,
+      saleDate: saleRecord.saleDate,
+      totalRevenue: saleRecord.totalRevenue || (pen.current * (saleRecord.averageWeight || 0) / 100) * (saleRecord.pricePerCwt || 0),
+      transportCost: saleRecord.transportCost || 0,
     };
 
     this.cattleSales.set(newSale.id.toString(), newSale);
@@ -385,7 +463,16 @@ export class InMemoryStorageProvider implements IStorageProvider {
   async recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss> {
     const newRecord: DeathLoss = {
       ...record,
-      id: this.deathLossId++
+      id: this.deathLossId++,
+      cattleCount: record.cattleCount || 1,
+      createdAt: new Date(),
+      operatorEmail: record.operatorEmail,
+      penId: record.penId,
+      lossDate: record.lossDate,
+      reason: record.reason || "Unknown",
+      notes: record.notes || "",
+      estimatedWeight: record.estimatedWeight || 0,
+      tagNumbers: record.tagNumbers || ""
     };
 
     this.deathLosses.set(newRecord.id.toString(), newRecord);
@@ -401,7 +488,18 @@ export class InMemoryStorageProvider implements IStorageProvider {
   async recordTreatment(record: InsertTreatmentRecord): Promise<TreatmentRecord> {
     const newRecord: TreatmentRecord = {
       ...record,
-      id: this.treatmentId++
+      id: this.treatmentId++,
+      cattleCount: record.cattleCount || 1,
+      createdAt: record.createdAt || new Date(),
+      operatorEmail: record.operatorEmail,
+      penId: record.penId,
+      treatmentDate: record.treatmentDate,
+      dosage: record.dosage || "",
+      notes: record.notes || "",
+      treatedBy: record.treatedBy || "Unknown",
+      product: record.product || "Unknown",
+      tagNumbers: record.tagNumbers || "",
+      treatmentType: record.treatmentType || "Medication"
     };
 
     this.treatments.set(newRecord.id.toString(), newRecord);
@@ -417,7 +515,17 @@ export class InMemoryStorageProvider implements IStorageProvider {
   async recordPartialSale(record: InsertPartialSale): Promise<PartialSale> {
     const newRecord: PartialSale = {
       ...record,
-      id: this.partialSaleId++
+      id: this.partialSaleId++,
+      averageWeight: record.averageWeight || 0,
+      createdAt: record.createdAt || new Date(),
+      operatorEmail: record.operatorEmail,
+      penId: record.penId,
+      saleDate: record.saleDate,
+      headCount: record.headCount || 1,
+      pricePerCwt: record.pricePerCwt || 0,
+      totalRevenue: record.totalRevenue || ((record.headCount || 1) * (record.averageWeight || 0) / 100) * (record.pricePerCwt || 0),
+      notes: record.notes || "",
+      tagNumbers: record.tagNumbers || ""
     };
 
     this.partialSales.set(newRecord.id.toString(), newRecord);

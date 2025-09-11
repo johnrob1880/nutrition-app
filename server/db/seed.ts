@@ -563,9 +563,33 @@ export async function seedDatabase(): Promise<SeedResult> {
       nutritionistId: createdNutritionists[0]?.id.toString()
     }));
     
-    const createdPens = await executeWithRetry(() =>
-      db.insert(pens).values(pensForDb).returning()
-    );
+    // NOTE: Using the same approach as PostgreSQLStorageProvider.createPen
+    // Only insert the fields that are known to work in the current database
+    const createdPensPromises = pensForDb.map(async (pen) => {
+      return executeWithRetry(() => 
+        db.insert(pens).values({
+          name: pen.name,
+          operationId: createdOperation.id,
+          capacity: pen.capacity,
+          current: pen.current,
+          cattleType: pen.cattleType,
+          startingWeight: pen.startingWeight,
+          currentWeight: pen.currentWeight,
+          marketWeight: pen.marketWeight,
+          feedType: pen.feedType,
+          isCrossbred: pen.isCrossbred || false,
+          status: pen.status,
+          averageDailyGain: pen.averageDailyGain,
+          daysOnFeed: pen.daysOnFeed,
+          feedConversion: pen.feedConversion,
+          projectedCloseoutDate: pen.projectedCloseoutDate,
+          estimatedValue: pen.estimatedValue
+        } as any).returning()
+      );
+    });
+    
+    const createdPensResults = await Promise.all(createdPensPromises);
+    const createdPens = createdPensResults.map(result => result[0]);
     
     // Create mapping from seed pen IDs to actual pen IDs
     const penIdMapping: Record<string, string> = {};

@@ -27,6 +27,10 @@ function AppContent() {
   const [currentOperation, setCurrentOperation] = useState<string | null>(
     localStorage.getItem("operatorEmail")
   );
+  const [operationId, setOperationId] = useState<number | null>(
+    localStorage.getItem("operationId") ? Number(localStorage.getItem("operationId")) : null
+  )
+
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: operation } = useOperation(currentOperation || "");
@@ -100,7 +104,7 @@ function AppContent() {
           <PenOverview operatorEmail={currentOperation} />
         } />
         <Route path="/feeding-plan/:penId" component={() => 
-          <FeedingPlanDetails operatorEmail={currentOperation} />
+          <FeedingPlanDetails operationId={operationId!} />
         } />
         <Route path="/schedules" component={() => 
           <Schedules operatorEmail={currentOperation} />
