@@ -20,7 +20,7 @@
   - [x] 2.4 Implement PenFeedingProgramController with customization support
   - [x] 2.5 Implement NutritionistTaskController with auto-task creation
   - [x] 2.6 Implement variance recording and completion tracking endpoints
-  - [ ] 2.7 Add WebSocket support for real-time updates
+  - [x] 2.7 Add WebSocket support for real-time updates
   - [x] 2.8 Verify all API endpoints work correctly and tests pass
 
 - [x] 3. Consultant UI Implementation
@@ -45,12 +45,12 @@
   - [x] 4.9 Verify producer app works with new system and tests pass
   - [x] 4.10 Create consultant invitation verification page with onboarding flow
 
-- [ ] 5. Cleanup and Deployment
-  - [ ] 5.1 Write tests to verify old schema removal
-  - [ ] 5.2 Drop deprecated tables (feedingPlans, feedingSchedules, old ingredients)
-  - [ ] 5.3 Remove old type definitions from shared/schema.ts
-  - [ ] 5.4 Remove deprecated API endpoints and controllers
-  - [ ] 5.5 Clean up unused imports and dead code
-  - [ ] 5.6 Perform end-to-end testing with new schema
-  - [ ] 5.7 Deploy changes to development environment
-  - [ ] 5.8 Verify all features work with clean schema
+- [x] 5. Cleanup and Deployment
+  - [x] 5.1 Write tests to verify old schema removal
+  - [x] 5.2 Drop deprecated tables (feedingPlans, feedingSchedules, old ingredients)
+  - [x] 5.3 Remove old type definitions from shared/schema.ts
+  - [x] 5.4 Remove deprecated API endpoints and controllers
+  - [x] 5.5 Clean up unused imports and dead code
+  - [x] 5.6 Perform end-to-end testing with new schema
+  - [x] 5.7 Deploy changes to development environment
+  - [x] 5.8 Verify all features work with clean schema

@@ -10,7 +10,7 @@ import {
   DollarSign,
   Calendar,
   Users,
-  User,
+  User as UserIcon,
   Skull,
   Syringe,
   Zap,
@@ -58,7 +58,7 @@ import type {
   Pen,
   InsertCattleSale,
   CattleSale,
-  Nutritionist,
+  User,
   DeathLoss,
   TreatmentRecord,
   InsertDeathLoss,
@@ -129,9 +129,15 @@ export default function Pens({ operationId }: PensProps) {
   });
 
   const { data: nutritionists = [], isLoading: isNutritionistsLoading } =
-    useQuery<Nutritionist[]>({
-      queryKey: ["/api/nutritionists", operationId],
+    useQuery<User[]>({
+      queryKey: ["/api/producer/consultants", operationId],
+      queryFn: async () => {
+        const response = await fetch(`/api/producer/consultants/${operationId}`);
+        if (!response.ok) throw new Error("Failed to fetch consultants");
+        return response.json();
+      },
       enabled: !!operationId,
+      select: (data: any) => data.relationships || [],
     });
 
   // Fetch staff members for treatment "treated by" selection
@@ -927,7 +933,7 @@ export default function Pens({ operationId }: PensProps) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User className="h-4 w-4 text-blue-600" />
+                              <UserIcon className="h-4 w-4 text-blue-600" />
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{nutritionist.name}</p>

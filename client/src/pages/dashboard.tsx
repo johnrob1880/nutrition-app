@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import type {
   DashboardStats,
-  FeedingPlan,
   UpcomingScheduleChange,
   FeedingRecord,
   Pen,
+  PenFeedingProgram,
 } from "@shared/schema";
 
 interface DashboardProps {
@@ -25,13 +25,8 @@ export default function Dashboard({
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard", operationId],
     enabled: !!operationId,
-  });
-
-  const { data: feedingPlans, isLoading: schedulesLoading } = useQuery<
-    FeedingPlan[]
-  >({
-    queryKey: ["/api/schedules", operationId],
-    enabled: !!operationId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: upcomingChanges, isLoading: changesLoading } = useQuery<
@@ -39,6 +34,8 @@ export default function Dashboard({
   >({
     queryKey: ["/api/upcoming-changes", operationId],
     enabled: !!operationId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const { data: feedingRecords, isLoading: recordsLoading } = useQuery<
@@ -46,29 +43,57 @@ export default function Dashboard({
   >({
     queryKey: ["/api/feeding-records", operationId],
     enabled: !!operationId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reduced polling to prevent re-renders
+    refetchOnWindowFocus: false,
+    refetchInterval: false, // Disable automatic refetching
   });
 
   const { data: pens } = useQuery<Pen[]>({
     queryKey: ["/api/pens", operationId],
     enabled: !!operationId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
   });
 
-  // Extract today's active schedules from feeding plans, but only for active pens
+  const { data: feedingPrograms, isLoading: schedulesLoading } = useQuery<
+    PenFeedingProgram[]
+  >({
+    queryKey: ["feeding-programs", operationId],
+    queryFn: async () => {
+      if (!pens) return [];
+      const programs: PenFeedingProgram[] = [];
+      for (const pen of pens) {
+        const response = await fetch(`/api/pens/${pen.id}/feeding-programs`);
+        if (response.ok) {
+          const penPrograms = await response.json();
+          programs.push(...penPrograms);
+        }
+      }
+      return programs;
+    },
+    enabled: !!operationId && !!pens,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
+  });
+
+  // Extract today's active schedules from feeding programs, but only for active pens
   const todaySchedules =
-    feedingPlans
-      ?.filter((plan) => plan.status === "Active")
-      .filter((plan) => {
-        // Only include plans for active pens with cattle
-        const pen = pens?.find(p => p.id === plan.penId);
+    feedingPrograms
+      ?.filter((program) => program.status === "active")
+      .filter((program) => {
+        // Only include programs for active pens with cattle
+        const pen = pens?.find(p => p.id === program.penId);
         return pen && pen.status === "Active" && pen.current > 0;
       })
-      .flatMap((plan) =>
-        plan.schedules.map((schedule) => ({
-          ...schedule,
-          penId: plan.penId,
-          penName: plan.penName,
-          feedType: plan.feedType,
-          planId: plan.id,
+      .flatMap((program) =>
+        (program.feedingTimes || []).map((time, index) => ({
+          id: `${program.id}-${index}`,
+          time: time,
+          totalAmount: "Program amount", // You may need to calculate this based on ingredients
+          penId: program.penId,
+          penName: pens?.find(p => p.id === program.penId)?.name || "Unknown Pen",
+          feedType: "Feed Program", // This would come from program phases/ingredients
+          planId: program.id,
         })),
       ) || [];
 
@@ -76,14 +101,17 @@ export default function Dashboard({
   const today = new Date().toISOString().split('T')[0];
   
   // Filter today's feeding records
-  const todayFeedingRecords = feedingRecords?.filter(record => 
-    record.feedingTime?.startsWith(today)
+  const todayFeedingRecords = feedingRecords?.filter(record =>
+    record.feedingTime && new Date(record.feedingTime).toISOString().startsWith(today)
   ) || [];
 
   // Determine which schedules are completed and get feeding record IDs
   const schedulesWithStatus = todaySchedules.map(schedule => {
-    const feedingRecord = todayFeedingRecords.find(record => 
-      record.penId === schedule.penId && record.scheduleId === schedule.id
+    // For feeding programs, check if there's a completion status for today and this time
+    // This would need to integrate with the dailyFeedingCompletionStatus table
+    const feedingRecord = todayFeedingRecords.find(record =>
+      record.penId === schedule.penId && record.feedingTime &&
+      new Date(record.feedingTime).toTimeString().includes(schedule.time)
     );
     const isCompleted = !!feedingRecord;
     return { ...schedule, isCompleted, feedingRecordId: feedingRecord?.id };
@@ -237,7 +265,7 @@ export default function Dashboard({
                         </div>
                       </Link>
                     ) : (
-                      <Link href={`/feeding/${schedule.penId}/${schedule.id}`}>
+                      <Link href={`/pen/${schedule.penId}/feeding-program/${schedule.planId}`}>
                         <Button
                           size="sm"
                           className="bg-primary hover:bg-primary/90"

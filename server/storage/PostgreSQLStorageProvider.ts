@@ -23,7 +23,11 @@ import type {
   StaffMember,
   StaffInvitation,
   InsertStaffInvitation,
-  FeedingIngredient
+  FeedingIngredient,
+  UserNotification,
+  InsertUserNotification,
+  NutritionistTask,
+  InsertNutritionistTask
 } from '@shared/schema';
 
 /**
@@ -831,6 +835,189 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
         notes: sale.notes ?? null,
         createdAt: sale.createdAt,
       }));
+    });
+  }
+
+  // ==========================================
+  // Notification Management
+  // ==========================================
+
+  async createNotification(notification: InsertUserNotification): Promise<UserNotification> {
+    return this.executeWithRetry(async () => {
+      const [result] = await this.db
+        .insert(schema.userNotifications)
+        .values(notification)
+        .returning();
+      return result;
+    });
+  }
+
+  async getNotificationsByUserId(userId: number, isRead?: boolean, limit: number = 50): Promise<UserNotification[]> {
+    return this.executeWithRetry(async () => {
+      let query = this.db
+        .select()
+        .from(schema.userNotifications)
+        .where(eq(schema.userNotifications.userId, userId))
+        .orderBy(schema.userNotifications.createdAt)
+        .limit(limit);
+
+      if (isRead !== undefined) {
+        query = query.where(
+          and(
+            eq(schema.userNotifications.userId, userId),
+            eq(schema.userNotifications.isRead, isRead)
+          )
+        );
+      }
+
+      return await query;
+    });
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<UserNotification | undefined> {
+    return this.executeWithRetry(async () => {
+      const [result] = await this.db
+        .update(schema.userNotifications)
+        .set({
+          isRead: true,
+          readAt: new Date()
+        })
+        .where(eq(schema.userNotifications.id, notificationId))
+        .returning();
+      return result;
+    });
+  }
+
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return this.executeWithRetry(async () => {
+      const result = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.userNotifications)
+        .where(
+          and(
+            eq(schema.userNotifications.userId, userId),
+            eq(schema.userNotifications.isRead, false)
+          )
+        );
+      return Number(result[0]?.count || 0);
+    });
+  }
+
+  // ==========================================
+  // Nutritionist Task Management
+  // ==========================================
+
+  async createNutritionistTask(task: InsertNutritionistTask): Promise<NutritionistTask> {
+    return this.executeWithRetry(async () => {
+      const [result] = await this.db
+        .insert(schema.nutritionistTasks)
+        .values(task)
+        .returning();
+      return result;
+    });
+  }
+
+  async getNutritionistTasksByUserId(userId: number, status?: string): Promise<NutritionistTask[]> {
+    return this.executeWithRetry(async () => {
+      let query = this.db
+        .select()
+        .from(schema.nutritionistTasks)
+        .where(eq(schema.nutritionistTasks.userId, userId))
+        .orderBy(schema.nutritionistTasks.createdAt);
+
+      if (status) {
+        query = query.where(
+          and(
+            eq(schema.nutritionistTasks.userId, userId),
+            eq(schema.nutritionistTasks.status, status)
+          )
+        );
+      }
+
+      return await query;
+    });
+  }
+
+  async getNutritionistTasksByPenId(penId: number): Promise<NutritionistTask[]> {
+    return this.executeWithRetry(async () => {
+      return await this.db
+        .select()
+        .from(schema.nutritionistTasks)
+        .where(eq(schema.nutritionistTasks.penId, penId))
+        .orderBy(schema.nutritionistTasks.createdAt);
+    });
+  }
+
+  async updateNutritionistTask(taskId: string, updates: Partial<InsertNutritionistTask>): Promise<NutritionistTask | undefined> {
+    return this.executeWithRetry(async () => {
+      const [result] = await this.db
+        .update(schema.nutritionistTasks)
+        .set(updates)
+        .where(eq(schema.nutritionistTasks.id, taskId))
+        .returning();
+      return result;
+    });
+  }
+
+  async completeNutritionistTask(taskId: string, completedByUserId: number, notes?: string): Promise<NutritionistTask | undefined> {
+    return this.executeWithRetry(async () => {
+      const [result] = await this.db
+        .update(schema.nutritionistTasks)
+        .set({
+          status: 'completed',
+          completedAt: new Date(),
+          completedByUserId,
+          notes: notes || undefined
+        })
+        .where(eq(schema.nutritionistTasks.id, taskId))
+        .returning();
+      return result;
+    });
+  }
+
+  // ==========================================
+  // Atomic Transaction Methods
+  // ==========================================
+
+  async createPenWithTask(penData: any, nutritionistId: number, operationId: number): Promise<{ pen: any, task: NutritionistTask, notification: any }> {
+    return this.executeWithRetry(async () => {
+      return await this.db.transaction(async (tx) => {
+        // Step 1: Create the pen
+        const [pen] = await tx
+          .insert(schema.pens)
+          .values(penData)
+          .returning();
+
+        // Step 2: Create nutritionist task
+        const [task] = await tx
+          .insert(schema.nutritionistTasks)
+          .values({
+            userId: nutritionistId,
+            penId: pen.id,
+            taskType: 'feeding_program',
+            status: 'pending',
+            priority: 'high',
+            notes: `Create feeding program for ${pen.name}`
+          })
+          .returning();
+
+        // Step 3: Create notification
+        const [notification] = await tx
+          .insert(schema.userNotifications)
+          .values({
+            userId: nutritionistId,
+            operationId: operationId,
+            type: 'task_assigned',
+            title: 'New Feeding Program Task',
+            message: `You have been assigned to create a feeding program for pen "${pen.name}"`,
+            relatedEntityId: task.id,
+            relatedEntityType: 'task',
+            isRead: false
+          })
+          .returning();
+
+        return { pen, task, notification };
+      });
     });
   }
 }

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale, StaffMember, Nutritionist } from "@shared/schema";
+import type { Pen, FeedingPlan, FeedingSchedule, DeathLoss, TreatmentRecord, InsertDeathLoss, InsertTreatmentRecord, PartialSale, StaffMember, User } from "@shared/schema";
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -119,10 +119,16 @@ export default function PenOverview({ operationId }: PenOverviewProps) {
     enabled: !!operationId,
   });
 
-  // Get nutritionists
-  const { data: nutritionists } = useQuery<Nutritionist[]>({
-    queryKey: ["/api/nutritionists", operationId],
+  // Get consultants/nutritionists
+  const { data: nutritionists } = useQuery<User[]>({
+    queryKey: ["/api/producer/consultants", operationId],
+    queryFn: async () => {
+      const response = await fetch(`/api/producer/consultants/${operationId}`);
+      if (!response.ok) throw new Error("Failed to fetch consultants");
+      return response.json();
+    },
     enabled: !!operationId,
+    select: (data: any) => data.relationships || [],
   });
 
   const currentPen = pens?.find(pen => pen.id === penId);

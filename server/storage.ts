@@ -214,6 +214,59 @@ export class MemStorage {
     const provider = await this.getProvider();
     return provider.getUserRole(email);
   }
+
+  // Notification Management
+  async createNotification(notification: any) {
+    const provider = await this.getProvider();
+    return provider.createNotification(notification);
+  }
+
+  async getNotificationsByUserId(userId: number, isRead?: boolean, limit?: number) {
+    const provider = await this.getProvider();
+    return provider.getNotificationsByUserId(userId, isRead, limit);
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const provider = await this.getProvider();
+    return provider.markNotificationAsRead(notificationId);
+  }
+
+  async getUnreadNotificationCount(userId: number) {
+    const provider = await this.getProvider();
+    return provider.getUnreadNotificationCount(userId);
+  }
+
+  // Nutritionist Task Management
+  async createNutritionistTask(task: any) {
+    const provider = await this.getProvider();
+    return provider.createNutritionistTask(task);
+  }
+
+  async getNutritionistTasksByUserId(userId: number, status?: string) {
+    const provider = await this.getProvider();
+    return provider.getNutritionistTasksByUserId(userId, status);
+  }
+
+  async getNutritionistTasksByPenId(penId: number) {
+    const provider = await this.getProvider();
+    return provider.getNutritionistTasksByPenId(penId);
+  }
+
+  async updateNutritionistTask(taskId: string, updates: any) {
+    const provider = await this.getProvider();
+    return provider.updateNutritionistTask(taskId, updates);
+  }
+
+  async completeNutritionistTask(taskId: string, completedByUserId: number, notes?: string) {
+    const provider = await this.getProvider();
+    return provider.completeNutritionistTask(taskId, completedByUserId, notes);
+  }
+
+  // Atomic Transaction Methods
+  async createPenWithTask(penData: any, nutritionistId: number, operationId: number) {
+    const provider = await this.getProvider();
+    return provider.createPenWithTask(penData, nutritionistId, operationId);
+  }
 }
 
 // Create and export the storage instance

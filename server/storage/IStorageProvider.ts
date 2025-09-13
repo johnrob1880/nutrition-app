@@ -15,11 +15,15 @@ import type {
   TreatmentRecord,
   InsertTreatmentRecord,
   PartialSale,
-  InsertPartialSale, 
-  StaffMember, 
-  InsertStaffMember, 
-  StaffInvitation, 
-  InsertStaffInvitation 
+  InsertPartialSale,
+  StaffMember,
+  InsertStaffMember,
+  StaffInvitation,
+  InsertStaffInvitation,
+  UserNotification,
+  InsertUserNotification,
+  NutritionistTask,
+  InsertNutritionistTask
 } from '@shared/schema';
 
 /**
@@ -49,7 +53,8 @@ export interface IStorageProvider {
   getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]>;
   getFeedingRecordsByOperationId(operationId: number): Promise<FeedingRecord[]>;
   /** @deprecated Use getFeedingPlansByOperationId instead */
-  getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
+  getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<any[]>;
+  getFeedingPlansByOperationId(operationId: number): Promise<any[]>;
   /** @deprecated Use getUpcomingScheduleChangesByOperationId instead */
   getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
   getUpcomingScheduleChangesByOperationId(operationId: number): Promise<UpcomingScheduleChange[]>;
@@ -90,6 +95,22 @@ export interface IStorageProvider {
   acceptStaffInvitation(token: string): Promise<StaffMember | undefined>;
   getStaffMemberByEmail(email: string): Promise<StaffMember | undefined>;
   getUserRole(email: string): Promise<{ role: 'owner' | 'staff', operationId: number } | undefined>;
+
+  // Notification Management
+  createNotification(notification: InsertUserNotification): Promise<UserNotification>;
+  getNotificationsByUserId(userId: number, isRead?: boolean, limit?: number): Promise<UserNotification[]>;
+  markNotificationAsRead(notificationId: string): Promise<UserNotification | undefined>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+
+  // Nutritionist Task Management
+  createNutritionistTask(task: InsertNutritionistTask): Promise<NutritionistTask>;
+  getNutritionistTasksByUserId(userId: number, status?: string): Promise<NutritionistTask[]>;
+  getNutritionistTasksByPenId(penId: number): Promise<NutritionistTask[]>;
+  updateNutritionistTask(taskId: string, updates: Partial<InsertNutritionistTask>): Promise<NutritionistTask | undefined>;
+  completeNutritionistTask(taskId: string, completedByUserId: number, notes?: string): Promise<NutritionistTask | undefined>;
+
+  // Atomic Transaction Methods
+  createPenWithTask(penData: any, nutritionistId: number, operationId: number): Promise<{ pen: any, task: NutritionistTask, notification: any }>;
 }
 
 /**

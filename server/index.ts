@@ -5,13 +5,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { StorageFactory } from "./storage/StorageFactory";
 import { createSessionConfig, getSessionStoreConfig } from "./config/session";
-import { 
-  securityHeaders, 
-  compressionMiddleware, 
-  sanitizeInput, 
+import {
+  securityHeaders,
+  compressionMiddleware,
+  sanitizeInput,
   jsonSizeLimit,
-  requestTimeout 
+  requestTimeout
 } from "./security/security";
+import { notificationWS } from "./services/websocket";
 
 const app = express();
 

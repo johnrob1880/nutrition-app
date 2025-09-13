@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOperationSchema, type UpdateWeightRequest, type InsertFeedingRecord, type InsertPen, inviteStaffSchema, acceptStaffInvitationSchema } from "@shared/schema";
+import { notificationWS } from "./services/websocket";
 import { z } from "zod";
 // Email service is imported dynamically to avoid SENDGRID_API_KEY requirement during testing
 
@@ -447,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/pens", async (req, res) => {
     try {
       const penData: InsertPen = req.body;
-      
+
       // Validate required fields
       if (!penData.name || !penData.operationId || !penData.capacity || !penData.cattleType || !penData.startingWeight || !penData.marketWeight) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -463,8 +464,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Current cattle count cannot exceed pen capacity" });
       }
 
-      const pen = await storage.createPen(penData);
-      res.status(201).json(pen);
+      // If nutritionist is assigned, use atomic transaction
+      if (penData.nutritionistId) {
+        try {
+          // Create pen, task, and notification in atomic transaction
+          const result = await storage.createPenWithTask(
+            penData,
+            penData.nutritionistId,
+            penData.operationId
+          );
+
+          // Send real-time WebSocket notification
+          notificationWS.sendTaskAssigned(penData.nutritionistId, {
+            taskId: result.task.id,
+            penId: result.pen.id,
+            penName: result.pen.name,
+            message: `You have been assigned to create a feeding program for pen "${result.pen.name}"`
+          });
+
+          // Return pen with task creation success info
+          res.status(201).json({
+            ...result.pen,
+            taskCreated: true,
+            taskId: result.task.id,
+            notificationId: result.notification.id
+          });
+
+        } catch (error) {
+          console.error("Error in atomic pen creation:", error);
+          res.status(500).json({
+            message: "Failed to create pen with task assignment",
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      } else {
+        // No nutritionist assigned, create pen normally
+        const pen = await storage.createPen(penData);
+        res.status(201).json(pen);
+      }
+
     } catch (error) {
       console.error("Error creating pen:", error);
       res.status(500).json({ message: "Failed to create pen" });
@@ -843,6 +881,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/nutritionist-tasks/:taskId', authenticateJWT, NutritionistTaskController.updateTaskStatus);
   app.post('/api/pens/:penId/request-feeding-programs', authenticateJWT, NutritionistTaskController.createTask);
 
+  // ==========================================
+  // User Notification Management Routes
+  // ==========================================
+
+  // Get notifications for a user
+  app.get('/api/notifications', async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+      const isRead = req.query.isRead === 'true' ? true : req.query.isRead === 'false' ? false : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const notifications = await storage.getNotificationsByUserId(userId, isRead, limit);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Failed to get notifications:', error);
+      res.status(500).json({ error: 'Failed to get notifications' });
+    }
+  });
+
+  // Mark notification as read
+  app.put('/api/notifications/:notificationId/read', async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+      const notification = await storage.markNotificationAsRead(notificationId);
+
+      if (!notification) {
+        return res.status(404).json({ error: 'Notification not found' });
+      }
+
+      res.json(notification);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      res.status(500).json({ error: 'Failed to mark notification as read' });
+    }
+  });
+
+  // Get unread notification count
+  app.get('/api/notifications/unread-count', async (req, res) => {
+    try {
+      const userId = parseInt(req.query.userId as string);
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error('Failed to get unread count:', error);
+      res.status(500).json({ error: 'Failed to get unread count' });
+    }
+  });
+
   // Migration endpoint for consultant relationships (admin only)
   app.post('/api/admin/migrate-consultant-relationships', async (req, res) => {
     try {
@@ -871,5 +966,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Initialize WebSocket server for real-time notifications
+  try {
+    notificationWS.initialize(httpServer);
+    notificationWS.startKeepalive();
+    console.log('WebSocket server ready at ws://localhost:5000/ws/notifications');
+  } catch (error) {
+    console.error('Failed to initialize WebSocket server:', error);
+  }
+
   return httpServer;
 }

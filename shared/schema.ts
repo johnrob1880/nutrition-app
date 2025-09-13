@@ -142,6 +142,28 @@ export type ConsultantProfile = typeof consultantProfiles.$inferSelect;
 export type InsertConsultantProfile = z.infer<typeof insertConsultantProfileSchema>;
 export type ConsultantRegistration = z.infer<typeof consultantRegistrationSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
+export type ConsultantProducerInvitation = typeof consultantProducerInvitations.$inferSelect;
+export type InsertConsultantProducerInvitation = typeof consultantProducerInvitations.$inferInsert;
+export type ConsultantProducerRelationship = typeof consultantProducerRelationships.$inferSelect;
+export type ConsultantProducerRelationshipResponse = {
+  success: boolean;
+  relationships: {
+    id: number;
+    permissions: RelationshipPermissions;
+    status: 'active' | 'inactive';
+    establishedAt: string;
+    consultant: {
+      id: number;
+      username: string;
+      email: string;
+      fullName: string;
+      specialization: 'nutritionist' | 'veterinarian';
+    };
+    operation: Pick<Operation, 'id' | 'name'>
+  }[]
+}
+
+export type InsertConsultantProducerRelationship = typeof consultantProducerRelationships.$inferInsert;
 
 export const operations = pgTable("operations", {
   id: serial("id").primaryKey(),
@@ -646,6 +668,24 @@ export const nutritionistTasks = pgTable("nutritionist_tasks", {
   uniqueTask: uniqueIndex("nutritionist_tasks_pen_task_unique_idx").on(table.penId, table.taskType),
 }));
 
+// User notifications for in-app notification system
+export const userNotifications = pgTable("user_notifications", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  operationId: integer("operation_id").notNull().references(() => operations.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // 'task_assigned', 'task_completed', 'feeding_program_ready'
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  relatedEntityId: text("related_entity_id"), // References task/pen/program
+  relatedEntityType: varchar("related_entity_type", { length: 50 }), // 'pen', 'task', 'feeding_program'
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  readAt: timestamp("read_at"),
+}, (table) => ({
+  userReadIdx: index("idx_user_notifications_user").on(table.userId, table.isRead, table.createdAt),
+  operationTypeIdx: index("idx_user_notifications_operation").on(table.operationId, table.type, table.createdAt),
+}));
+
 // ===========================================
 // NEW FEEDING SYSTEM TYPE EXPORTS
 // ===========================================
@@ -685,6 +725,10 @@ export type InsertFeedingRecordVariance = typeof feedingRecordVariances.$inferIn
 // Completion types
 export type DailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferSelect;
 export type InsertDailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferInsert;
+
+// Notification types
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type InsertUserNotification = typeof userNotifications.$inferInsert;
 
 // Relations for new feeding program tables
 export const feedingIngredientsRelations = relations(feedingIngredients, ({ one, many }) => ({
@@ -816,65 +860,6 @@ export const nutritionistTasksRelations = relations(nutritionistTasks, ({ one })
 export type NutritionistTask = typeof nutritionistTasks.$inferSelect;
 export type InsertNutritionistTask = typeof nutritionistTasks.$inferInsert;
 
-// Legacy types - temporarily kept for compatibility during cleanup
-// TODO: Remove these once all references are updated
-export interface FeedingPlan {
-  id: number;
-  penId: number;
-  name: string;
-  operatorEmail: string;
-  ingredients: any;
-  totalCostPerTon?: number;
-  proteinContent?: number;
-  energyContent?: number;
-  dailyFeedAmount?: number;
-  estimatedDailyGain?: number;
-  feedConversionRatio?: number;
-  createdDate: string;
-  lastModified: string;
-  notes?: string;
-}
-
-export interface FeedingPlan2 {
-  id: string;
-  penId: number;
-  penName: string;
-  planName: string;
-  startDate: string;
-  daysToFeed: number;
-  currentDay: number;
-  status: 'Active' | 'Upcoming' | 'Completed';
-  feedType: string;
-  schedules: FeedingSchedule[];
-  operatorEmail: string;
-}
-
-export interface FeedingSchedule {
-  id: string;
-  time: string;
-  totalAmount: string;
-  ingredients: FeedingIngredient[];
-  totalNutrition: {
-    protein: string;
-    fat: string;
-    fiber: string;
-    moisture: string;
-  };
-}
-
-export interface Nutritionist {
-  id: string;
-  name: string;
-  company?: string;
-  email: string;
-  phone?: string;
-  specialties?: any;
-  operatorEmail: string;
-  status: 'active' | 'inactive' | 'pending';
-  joinedDate?: string;
-  createdAt: Date;
-}
-
 export interface AcceptInvitationRequest {
   nutritionistId: string;
   operatorEmail: string;
@@ -891,36 +876,6 @@ export const insertPenFeedingProgramIngredientSchema = createInsertSchema(penFee
 export const insertFeedingRecordVarianceSchema = createInsertSchema(feedingRecordVariances);
 export const insertDailyFeedingCompletionStatusSchema = createInsertSchema(dailyFeedingCompletionStatus);
 export const insertNutritionistTaskSchema = createInsertSchema(nutritionistTasks);
-
-
-// External system data types (read-only)
-// export interface WeightRecord {
-//   date: string;
-//   weight: number;
-//   recordedBy: string;
-// }
-
-// export interface Pen2 {
-//   id: number;
-//   name: string;
-//   capacity: number;
-//   current: number;
-//   status: 'Active' | 'Maintenance' | 'Inactive';
-//   feedType: string;
-//   lastFed: string;
-//   operatorEmail: string;
-//   cattleType: 'Steers' | 'Heifers' | 'Mixed';
-//   startingWeight: number;
-//   marketWeight: number;
-//   averageDailyGain: number;
-//   isCrossbred: boolean;
-//   currentWeight: number;
-//   daysOnFeed: number;
-//   startDate: string;
-//   endDate?: string;
-//   weightHistory: WeightRecord[];
-//   nutritionistId?: string;
-// }
 
 export interface CreatePenRequest {
   name: string;

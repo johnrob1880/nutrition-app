@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useOperation } from "@/hooks/use-operation";
 import { useQuery } from "@tanstack/react-query";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 import Onboarding from "@/pages/onboarding";
 import Login from "@/pages/login";
@@ -79,12 +80,14 @@ function AppContent() {
   if (isInvitationRoute) {
     return (
       <div className="min-h-screen">
-        <Switch>
-          <Route path="/accept-invitation" component={AcceptInvitation} />
-          <Route path="/invitations/:token" component={VerifyInvitation} />
-          <Route path="/verify-invitation" component={VerifyInvitation} />
-          <Route component={NotFound} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <Route path="/accept-invitation" component={AcceptInvitation} />
+            <Route path="/invitations/:token" component={VerifyInvitation} />
+            <Route path="/verify-invitation" component={VerifyInvitation} />
+            <Route component={NotFound} />
+          </Switch>
+        </ErrorBoundary>
       </div>
     );
   }
@@ -93,17 +96,21 @@ function AppContent() {
   if (!currentOperation || (currentOperation && !operation)) {
     if (showOnboarding) {
       return (
-        <Onboarding 
-          onComplete={handleOnboardingComplete} 
-          onSwitchToLogin={() => setShowOnboarding(false)}
-        />
+        <ErrorBoundary>
+          <Onboarding
+            onComplete={handleOnboardingComplete}
+            onSwitchToLogin={() => setShowOnboarding(false)}
+          />
+        </ErrorBoundary>
       );
     } else {
       return (
-        <Login 
-          onLoginSuccess={handleLoginSuccess}
-          onSwitchToOnboarding={() => setShowOnboarding(true)}
-        />
+        <ErrorBoundary>
+          <Login
+            onLoginSuccess={handleLoginSuccess}
+            onSwitchToOnboarding={() => setShowOnboarding(true)}
+          />
+        </ErrorBoundary>
       );
     }
   }
@@ -111,58 +118,84 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Switch>
-        <Route path="/" component={() => 
-          <Dashboard 
-            operationId={operationId}
-            operationName={operation?.name || ""}
-            operationLocation={operation?.location || ""}
-          />
-        } />
-        <Route path="/dashboard" component={() => 
-          <Dashboard 
-            operationId={operationId}
-            operationName={operation?.name || ""}
-            operationLocation={operation?.location || ""}
-          />
-        } />
-        <Route path="/pens" component={() => 
-          <Pens operationId={operationId} />
-        } />
-        <Route path="/pen/:penId" component={() => 
-          <PenOverview operationId={operationId} />
-        } />
-        <Route path="/feeding-plan/:penId" component={() => 
-          <FeedingPlanDetails operationId={operationId!} />
-        } />
-        <Route path="/schedules" component={() => 
-          <Schedules operationId={operationId} />
-        } />
-        <Route path="/operation" component={() => 
-          <OperationPage operation={operation!} stats={stats} onLogout={handleLogout} />
-        } />
-        <Route path="/feeding/:penId/:scheduleId" component={() => 
-          <Feeding operationId={operationId} />
-        } />
-        <Route path="/feeding-details/:feedingRecordId" component={() => 
-          <FeedingDetails operationId={operationId} />
-        } />
+        <Route path="/" component={() => (
+          <ErrorBoundary>
+            <Dashboard
+              operationId={operationId}
+              operationName={operation?.name || ""}
+              operationLocation={operation?.location || ""}
+            />
+          </ErrorBoundary>
+        )} />
+        <Route path="/dashboard" component={() => (
+          <ErrorBoundary>
+            <Dashboard
+              operationId={operationId}
+              operationName={operation?.name || ""}
+              operationLocation={operation?.location || ""}
+            />
+          </ErrorBoundary>
+        )} />
+        <Route path="/pens" component={() => (
+          <ErrorBoundary>
+            <Pens operationId={operationId} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/pen/:penId" component={() => (
+          <ErrorBoundary>
+            <PenOverview operationId={operationId} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/feeding-plan/:penId" component={() => (
+          <ErrorBoundary>
+            <FeedingPlanDetails operationId={operationId!} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/schedules" component={() => (
+          <ErrorBoundary>
+            <Schedules operationId={operationId} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/operation" component={() => (
+          <ErrorBoundary>
+            <OperationPage operation={operation!} stats={stats} onLogout={handleLogout} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/feeding/:penId/:scheduleId" component={() => (
+          <ErrorBoundary>
+            <Feeding operationId={operationId} />
+          </ErrorBoundary>
+        )} />
+        <Route path="/feeding-details/:feedingRecordId" component={() => (
+          <ErrorBoundary>
+            <FeedingDetails operationId={operationId} />
+          </ErrorBoundary>
+        )} />
         <Route component={NotFound} />
       </Switch>
-      
-      
-      <BottomNav currentOperation={currentOperation} />
+
+      <ErrorBoundary>
+        <BottomNav currentOperation={currentOperation} />
+      </ErrorBoundary>
     </div>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <AppContent />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        // Log critical app-level errors
+        console.error("App-level error:", error, errorInfo);
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <AppContent />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

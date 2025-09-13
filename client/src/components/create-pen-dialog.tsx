@@ -9,9 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Plus } from "lucide-react";
-import type { InsertPen, Pen, Nutritionist } from "@shared/schema";
+import type { InsertPen, User, ConsultantProducerRelationship, ConsultantProducerRelationshipResponse } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 
 const createPenSchema = z.object({
@@ -42,10 +42,17 @@ export default function CreatePenDialog({ operationId }: CreatePenDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch nutritionists for the operation
-  const { data: nutritionists = [], isLoading: nutritionistsLoading } = useQuery<Nutritionist[]>({
-    queryKey: ["/api/nutritionists", operationId],
+  // Fetch consultants/nutritionists for this operation
+  const { data: relationships = [], isLoading: nutritionistsLoading } = useQuery<ConsultantProducerRelationshipResponse['relationships']>({
+    queryKey: ["/api/producer/consultants", operationId],
+    queryFn: async () => {
+      const response = await fetch(`/api/producer/consultants/${operationId}`);
+      if (!response.ok) throw new Error("Failed to fetch consultants");
+      const { relationships } = await response.json() as ConsultantProducerRelationshipResponse;
+      return relationships;
+    },
     enabled: !!operationId,
+    select: (data: any) => data.relationships || [],
   });
 
   const form = useForm<CreatePenForm>({
@@ -86,13 +93,31 @@ export default function CreatePenDialog({ operationId }: CreatePenDialogProps) {
         throw new Error(error.message || "Failed to create pen");
       }
 
-      // Invalidate pens cache to refetch the list
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
-      
-      toast({
-        title: "Pen created successfully!",
-        description: `${data.name} has been added to your operation.`,
-      });
+      const result = await response.json();
+
+      // Invalidate pens cache to refetch the list (use setTimeout to prevent immediate re-render)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
+      }, 100);
+
+      // Show success message with task creation info
+      if (result.taskCreated) {
+        toast({
+          title: "Pen created successfully!",
+          description: `${data.name} has been added and a feeding program task has been assigned to the nutritionist.`,
+        });
+      } else if (result.taskError) {
+        toast({
+          title: "Pen created with warnings",
+          description: `${data.name} was created but task assignment failed: ${result.taskError}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Pen created successfully!",
+          description: `${data.name} has been added to your operation.`,
+        });
+      }
 
       form.reset();
       setOpen(false);
@@ -232,11 +257,12 @@ export default function CreatePenDialog({ operationId }: CreatePenDialogProps) {
                 <SelectValue placeholder={nutritionistsLoading ? "Loading nutritionists..." : "Select a nutritionist"} />
               </SelectTrigger>
               <SelectContent>
-                {nutritionists
-                  .filter(nutritionist => nutritionist.status === 'active')
-                  .map((nutritionist) => (
-                    <SelectItem key={nutritionist.id} value={nutritionist.id.toString()}>
-                      {nutritionist.name} - {nutritionist.company}
+                {relationships
+                  .map(m => m.consultant)
+                  .filter(consultant => consultant.specialization === 'nutritionist')
+                  .map((consultant) => (
+                    <SelectItem key={consultant.id} value={consultant.id.toString()}>
+                      {consultant.fullName}
                     </SelectItem>
                   ))}
               </SelectContent>
