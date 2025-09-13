@@ -455,7 +455,7 @@ export default function FeedingNew({ operatorEmail }: FeedingProps) {
             <CardHeader>
               <CardTitle className="text-yellow-700">Variance Reason Required</CardTitle>
               <p className="text-sm text-gray-600">
-                Please provide a reason for the significant variance (>10%).
+                Please provide a reason for the significant variance (&gt;10%).
               </p>
             </CardHeader>
             <CardContent>

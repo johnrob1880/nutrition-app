@@ -35,7 +35,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface PenOverviewProps {
-  operatorEmail: string;
+  operationId: number | null;
 }
 
 interface WeightProjection {
@@ -66,7 +66,7 @@ type DeathLossData = z.infer<typeof deathLossSchema>;
 type TreatmentData = z.infer<typeof treatmentSchema>;
 type PartialSaleData = z.infer<typeof partialSaleSchema>;
 
-export default function PenOverview({ operatorEmail }: PenOverviewProps) {
+export default function PenOverview({ operationId }: PenOverviewProps) {
   const { penId } = useParams();
   const [avgDailyGain, setAvgDailyGain] = useState(2.5); // Default 2.5 lbs per day
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -81,40 +81,48 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
   const { toast } = useToast();
   const { role } = useUserAuth();
 
+  const operatorEmail = localStorage.getItem("operatorEmail") || "";
+
   // Get pen data
   const { data: pens } = useQuery<Pen[]>({
-    queryKey: ["/api/pens", operatorEmail],
+    queryKey: ["/api/pens", operationId],
+    enabled: !!operationId,
   });
 
   // Get feeding plans
   const { data: feedingPlans } = useQuery<FeedingPlan[]>({
-    queryKey: ["/api/schedules", operatorEmail],
+    queryKey: ["/api/schedules", operationId],
+    enabled: !!operationId,
   });
 
   // Get staff members for treatment "treated by" selection
   const { data: staffMembers = [] } = useQuery<StaffMember[]>({
-    queryKey: ["/api/staff", operatorEmail],
-    enabled: !!operatorEmail,
+    queryKey: ["/api/staff", operationId],
+    enabled: !!operationId,
   });
 
   // Get death loss records
   const { data: deathLosses } = useQuery<DeathLoss[]>({
-    queryKey: ["/api/death-loss", operatorEmail],
+    queryKey: ["/api/death-loss", operationId],
+    enabled: !!operationId,
   });
 
   // Get treatment records
   const { data: treatments } = useQuery<TreatmentRecord[]>({
-    queryKey: ["/api/treatments", operatorEmail],
+    queryKey: ["/api/treatments", operationId],
+    enabled: !!operationId,
   });
 
   // Get partial sales
   const { data: partialSales } = useQuery<PartialSale[]>({
-    queryKey: ["/api/partial-sales", operatorEmail],
+    queryKey: ["/api/partial-sales", operationId],
+    enabled: !!operationId,
   });
 
   // Get nutritionists
   const { data: nutritionists } = useQuery<Nutritionist[]>({
-    queryKey: ["/api/nutritionists", operatorEmail],
+    queryKey: ["/api/nutritionists", operationId],
+    enabled: !!operationId,
   });
 
   const currentPen = pens?.find(pen => pen.id === penId);
@@ -212,20 +220,19 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
     if (!currentPen) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
+      if (!operationId) return;
+      
       const deathLossData: InsertDeathLoss = {
         ...data,
-        operationId: operationData.id,
+        operationId: operationId,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/death-loss", deathLossData);
 
       // Invalidate relevant queries for refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
-      queryClient.invalidateQueries({ queryKey: ["/api/death-loss", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/death-loss", operationId] });
 
       toast({
         title: "Death Loss Recorded",
@@ -248,19 +255,18 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
     if (!currentPen) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
+      if (!operationId) return;
+      
       const treatmentData: InsertTreatmentRecord = {
         ...data,
-        operationId: operationData.id,
+        operationId: operationId,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/treatments", treatmentData);
 
       // Invalidate relevant queries for refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/treatments", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treatments", operationId] });
 
       toast({
         title: "Treatment Recorded",
@@ -282,9 +288,8 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
     if (!currentPen) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
+      if (!operationId) return;
+      
       let totalRevenue = (data.finalWeight * data.pricePerCwt * data.cattleCount) / 100;
       
       // Handle NaN or invalid calculations
@@ -302,15 +307,15 @@ export default function PenOverview({ operatorEmail }: PenOverviewProps) {
       const partialSaleData = {
         ...data,
         totalRevenue,
-        operationId: operationData.id,
+        operationId: operationId,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/partial-sales", partialSaleData);
 
       // Invalidate relevant queries for refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
-      queryClient.invalidateQueries({ queryKey: ["/api/partial-sales", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/partial-sales", operationId] });
 
       toast({
         title: "Partial Sale Recorded",

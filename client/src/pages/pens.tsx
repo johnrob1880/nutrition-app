@@ -68,7 +68,7 @@ import type {
 import { insertDeathLossSchema, insertTreatmentSchema } from "@shared/schema";
 
 interface PensProps {
-  operatorEmail: string;
+  operationId: number | null;
 }
 
 const weightUpdateSchema = z.object({
@@ -101,7 +101,7 @@ type DeathLossData = z.infer<typeof deathLossSchema>;
 type TreatmentData = z.infer<typeof treatmentSchema>;
 type PartialSaleData = z.infer<typeof partialSaleSchema>;
 
-export default function Pens({ operatorEmail }: PensProps) {
+export default function Pens({ operationId }: PensProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPen, setSelectedPen] = useState<Pen | null>(null);
   const [isWeightDialogOpen, setIsWeightDialogOpen] = useState(false);
@@ -112,26 +112,32 @@ export default function Pens({ operatorEmail }: PensProps) {
   const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
   const { role } = useUserAuth();
+  
+  // Get operatorEmail from localStorage for backward compatibility with some API calls
+  const operatorEmail = localStorage.getItem('operatorEmail') || '';
 
   const { data: pens, isLoading: isPensLoading } = useQuery<Pen[]>({
-    queryKey: ["/api/pens", operatorEmail],
+    queryKey: ["/api/pens", operationId],
+    enabled: !!operationId,
   });
 
   const { data: cattleSales, isLoading: isSalesLoading } = useQuery<
     CattleSale[]
   >({
-    queryKey: ["/api/cattle-sales", operatorEmail],
+    queryKey: ["/api/cattle-sales", operationId],
+    enabled: !!operationId,
   });
 
   const { data: nutritionists = [], isLoading: isNutritionistsLoading } =
     useQuery<Nutritionist[]>({
-      queryKey: ["/api/nutritionists", operatorEmail],
+      queryKey: ["/api/nutritionists", operationId],
+      enabled: !!operationId,
     });
 
   // Fetch staff members for treatment "treated by" selection
   const { data: staffMembers = [] } = useQuery<StaffMember[]>({
-    queryKey: ["/api/staff", operatorEmail],
-    enabled: !!operatorEmail,
+    queryKey: ["/api/staff", operationId],
+    enabled: !!operationId,
   });
 
   const updateWeight = useUpdatePenWeight();
@@ -157,7 +163,7 @@ export default function Pens({ operatorEmail }: PensProps) {
   const deathLossForm = useForm<DeathLossData>({
     resolver: zodResolver(deathLossSchema),
     defaultValues: {
-      penId: "",
+      penId: 0,
       lossDate: new Date().toISOString().split('T')[0],
       reason: "",
       cattleCount: 1,
@@ -171,7 +177,7 @@ export default function Pens({ operatorEmail }: PensProps) {
   const treatmentForm = useForm<TreatmentData>({
     resolver: zodResolver(treatmentSchema),
     defaultValues: {
-      penId: "",
+      penId: 0,
       treatmentDate: new Date().toISOString().split('T')[0],
       treatmentType: "",
       product: "",
@@ -199,9 +205,9 @@ export default function Pens({ operatorEmail }: PensProps) {
   });
 
   // Helper function to get nutritionist info
-  const getNutritionistInfo = (nutritionistId?: string) => {
+  const getNutritionistInfo = (nutritionistId?: number) => {
     if (!nutritionistId || !nutritionists) return null;
-    return nutritionists.find((n) => n.id.toString() === nutritionistId);
+    return nutritionists.find((n) => n.id === nutritionistId);
   };
 
   // Filter active pens (status Active or Maintenance with current > 0)
@@ -209,7 +215,7 @@ export default function Pens({ operatorEmail }: PensProps) {
     pens?.filter((pen) => pen.status !== "Inactive" && pen.current > 0) || [];
 
   const filteredActivePens = activePens.filter((pen) => {
-    const nutritionist = getNutritionistInfo(pen.nutritionistId);
+    const nutritionist = getNutritionistInfo(Number(pen.nutritionistId));
     const nutritionistName = nutritionist
       ? `${nutritionist.name} ${nutritionist.company}`
       : "";
@@ -224,11 +230,17 @@ export default function Pens({ operatorEmail }: PensProps) {
 
   // Filter sold cattle (cattle sales)
   const filteredSoldCattle =
-    cattleSales?.filter(
-      (sale) =>
-        sale.penName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.cattleType.toLowerCase().includes(searchQuery.toLowerCase()),
-    ) || [];
+    cattleSales?.filter((sale) => {
+      // Find the associated pen to get name and cattle type
+      const pen = pens?.find(p => p.id === sale.penId);
+      const penName = pen?.name || '';
+      const cattleType = pen?.cattleType || '';
+      
+      return (
+        penName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cattleType.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }) || [];
 
   // Get sold pens (inactive pens with 0 cattle)
   const soldPens = pens?.filter(pen => pen.status === "Inactive" && pen.current === 0) || [];
@@ -274,6 +286,7 @@ export default function Pens({ operatorEmail }: PensProps) {
         penId: selectedPen.id,
         newWeight: data.newWeight,
         operatorEmail,
+        operationId: operationId!,
       });
 
       toast({
@@ -311,18 +324,15 @@ export default function Pens({ operatorEmail }: PensProps) {
 
     try {
       // Get operation ID using apiRequest
-      const operationResponse = await apiRequest(
-        "GET",
-        `/api/operation/${operatorEmail}`,
-      );
-      const operation = await operationResponse.json();
-
       const saleData: InsertCattleSale = {
-        operationId: operation.id,
         penId: selectedPen.id,
-        finalWeight: data.finalWeight,
+        averageWeight: data.finalWeight || 0,
         pricePerCwt: data.pricePerCwt,
+        headCount: selectedPen.current,
+        totalRevenue: (data.finalWeight || 0) * (data.pricePerCwt || 0) * selectedPen.current / 100,
         saleDate: data.saleDate,
+        daysOnFeed: 0, // Calculate from pen start date if available
+        averageDailyGain: 0, // Calculate if start weight is available
         operatorEmail,
       };
 
@@ -356,19 +366,15 @@ export default function Pens({ operatorEmail }: PensProps) {
     if (!selectedPen) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
       const deathLossData: InsertDeathLoss = {
         ...data,
-        operationId: operationData.id,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/death-loss", deathLossData);
 
       // Invalidate pen data to refresh counts
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
 
       toast({
         title: "Death Loss Recorded",
@@ -396,7 +402,7 @@ export default function Pens({ operatorEmail }: PensProps) {
 
   const openPartialSaleDialog = (pen: Pen) => {
     setSelectedPen(pen);
-    partialSaleForm.setValue('penId', pen.id);
+    partialSaleForm.setValue('penId', pen.id.toString());
     partialSaleForm.setValue('cattleCount', Math.min(pen.current, 1));
     partialSaleForm.setValue('finalWeight', pen.currentWeight || pen.marketWeight);
     setIsPartialSaleDialogOpen(true);
@@ -406,19 +412,15 @@ export default function Pens({ operatorEmail }: PensProps) {
     if (!selectedPen) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
       const treatmentData: InsertTreatmentRecord = {
         ...data,
-        operationId: operationData.id,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/treatments", treatmentData);
 
       // Invalidate relevant queries for refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/treatments", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/treatments", operationId] });
 
       toast({
         title: "Treatment Recorded",
@@ -437,23 +439,20 @@ export default function Pens({ operatorEmail }: PensProps) {
   };
 
   const handlePartialSale = async (data: PartialSaleData) => {
-    if (!selectedPen) return;
+    if (!selectedPen || !operationId) return;
 
     try {
-      const operation = await apiRequest("GET", `/api/operation/${operatorEmail}`);
-      const operationData = await operation.json();
-
       const partialSaleData = {
         ...data,
-        operationId: operationData.id,
+        operationId: operationId,
         operatorEmail,
       };
 
       await apiRequest("POST", "/api/partial-sales", partialSaleData);
 
       // Invalidate relevant queries for refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", operatorEmail] });
-      queryClient.invalidateQueries({ queryKey: ["/api/partial-sales", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", operationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/partial-sales", operationId] });
 
       toast({
         title: "Partial Sale Recorded",
@@ -500,7 +499,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                 Manage your cattle pens and track livestock
               </p>
             </div>
-            <CreatePenDialog operatorEmail={operatorEmail} />
+            <CreatePenDialog operationId={operationId!} />
           </div>
         </div>
       </div>
@@ -694,7 +693,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                           <div className="flex-1">
                             <h3 className="font-bold text-blue-900 text-base mb-1">{pen.feedType}</h3>
                             {(() => {
-                              const nutritionist = getNutritionistInfo(pen.nutritionistId);
+                              const nutritionist = getNutritionistInfo(pen.nutritionistId || undefined);
                               return nutritionist ? (
                                 <p className="text-sm text-blue-700">
                                   by {nutritionist.name}
@@ -715,12 +714,12 @@ export default function Pens({ operatorEmail }: PensProps) {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Last Fed:</span>
-                      <span className="font-medium">{pen.lastFed}</span>
+                      <span className="font-medium">{pen.lastFed ? new Date(pen.lastFed).toLocaleDateString() : 'Never'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Weight Records:</span>
+                      <span className="text-gray-600">Current Weight:</span>
                       <span className="font-medium">
-                        {pen.weightHistory.length} entries
+                        {pen.currentWeight ? `${pen.currentWeight} lbs` : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -750,18 +749,25 @@ export default function Pens({ operatorEmail }: PensProps) {
               >
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">{sale.penName}</h3>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getCattleTypeColor(sale.cattleType)}>
-                        {sale.cattleType}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
-                      >
-                        Sold
-                      </Badge>
-                    </div>
+                    {(() => {
+                      const pen = pens?.find(p => p.id === sale.penId);
+                      return (
+                        <>
+                          <h3 className="text-lg font-semibold">{pen?.name || 'Unknown Pen'}</h3>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={getCattleTypeColor(pen?.cattleType || 'Mixed')}>
+                              {pen?.cattleType || 'Mixed'}
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200"
+                            >
+                              Sold
+                            </Badge>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Sale Overview */}
@@ -770,7 +776,7 @@ export default function Pens({ operatorEmail }: PensProps) {
                       <p className="text-sm text-gray-600">Cattle Count</p>
                       <p className="font-semibold flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        {sale.cattleCount} head
+                        {sale.headCount} head
                       </p>
                     </div>
                     <div>
@@ -797,21 +803,21 @@ export default function Pens({ operatorEmail }: PensProps) {
                     <div className="grid grid-cols-3 gap-3 text-xs">
                       <div className="text-center">
                         <p className="font-medium text-gray-900">
-                          {sale.startingWeight} lbs
+                          {sale.averageWeight} lbs
                         </p>
-                        <p className="text-gray-500">Starting</p>
+                        <p className="text-gray-500">Avg Weight</p>
                       </div>
                       <div className="text-center">
                         <p className="font-medium text-primary">
-                          {sale.finalWeight} lbs
+                          {sale.pricePerCwt} $/cwt
                         </p>
-                        <p className="text-gray-500">Final</p>
+                        <p className="text-gray-500">Price</p>
                       </div>
                       <div className="text-center">
                         <p className="font-medium text-secondary">
-                          {sale.finalWeight - sale.startingWeight} lbs
+                          ${sale.totalRevenue.toFixed(2)}
                         </p>
-                        <p className="text-gray-500">Total Gain</p>
+                        <p className="text-gray-500">Revenue</p>
                       </div>
                     </div>
                   </div>
@@ -846,7 +852,7 @@ export default function Pens({ operatorEmail }: PensProps) {
 
                     <div className="text-center pt-1 border-t border-green-200">
                       <p className="text-xs text-green-700">
-                        {sale.cattleCount} head × {sale.finalWeight} lbs × $
+                        {sale.headCount} head × {sale.averageWeight} lbs × $
                         {sale.pricePerCwt}/cwt
                       </p>
                     </div>
@@ -854,14 +860,12 @@ export default function Pens({ operatorEmail }: PensProps) {
 
                   {/* Additional Details */}
                   <div className="space-y-2">
-                    {sale.penStartDate && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Pen Start Date:</span>
-                        <span className="font-medium">
-                          {new Date(sale.penStartDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Days on Feed:</span>
+                      <span className="font-medium">
+                        {sale.daysOnFeed} days
+                      </span>
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Sale Date:</span>
                       <span className="font-medium">
@@ -889,9 +893,9 @@ export default function Pens({ operatorEmail }: PensProps) {
               <div className="p-4 space-y-4">
                 {soldPens.map((pen) => {
                   const sale = cattleSales?.find(s => s.penId === pen.id);
-                  // Get nutritionist from sale record first, then fall back to pen record
-                  const nutritionistId = sale?.nutritionistId || pen.nutritionistId;
-                  const nutritionist = nutritionists?.find(n => n.id.toString() === nutritionistId);
+                  // Get nutritionist from pen record
+                  const nutritionistId = pen.nutritionistId;
+                  const nutritionist = nutritionists?.find(n => n.id === nutritionistId);
                   
                   return (
                     <div key={pen.id} className="border rounded-lg p-4 bg-orange-50 border-orange-200">

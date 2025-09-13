@@ -30,17 +30,20 @@ export default function FeedingPlanDetails({ operationId }: FeedingPlanDetailsPr
   // Fetch pen details
   const { data: pens = [] } = useQuery<Pen[]>({
     queryKey: ["/api/pens", operationId],
+    enabled: !!operationId,
   });
 
 
   // Fetch pen feeding programs (new type)
   const { data: penFeedingPrograms = [] } = useQuery<PenFeedingProgram[]>({
     queryKey: ["/api/feeding-programs", operationId],
+    enabled: !!operationId,
   });
 
   // Fetch daily feeding completion statuses (new type)
   const { data: dailyFeedingStatuses = [] } = useQuery<DailyFeedingCompletionStatus[]>({
     queryKey: ["/api/feeding-completion-status", operationId],
+    enabled: !!operationId,
   });
 
   // Fetch feeding program phases for the current pen program

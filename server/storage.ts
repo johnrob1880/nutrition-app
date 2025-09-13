@@ -55,6 +55,11 @@ export class MemStorage {
     return provider.getPensByOperatorEmail(operatorEmail);
   }
 
+  async getPensByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getPensByOperationId(operationId);
+  }
+
   async createPen(penData: any) {
     const provider = await this.getProvider();
     return provider.createPen(penData);
@@ -65,14 +70,29 @@ export class MemStorage {
     return provider.getFeedingPlansByOperatorEmail(operatorEmail);
   }
 
+  async getFeedingPlansByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getFeedingPlansByOperationId(operationId);
+  }
+
   async getUpcomingScheduleChanges(operatorEmail: string) {
     const provider = await this.getProvider();
     return provider.getUpcomingScheduleChanges(operatorEmail);
   }
 
+  async getUpcomingScheduleChangesByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getUpcomingScheduleChangesByOperationId(operationId);
+  }
+
   async getDashboardStats(operatorEmail: string) {
     const provider = await this.getProvider();
     return provider.getDashboardStats(operatorEmail);
+  }
+
+  async getDashboardStatsByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getDashboardStatsByOperationId(operationId);
   }
 
   async updatePenWeight(request: any) {
@@ -90,6 +110,11 @@ export class MemStorage {
     return provider.getFeedingRecordsByOperatorEmail(operatorEmail);
   }
 
+  async getFeedingRecordsByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getFeedingRecordsByOperationId(operationId);
+  }
+
   async sellCattle(saleRecord: any) {
     const provider = await this.getProvider();
     return provider.sellCattle(saleRecord);
@@ -100,9 +125,19 @@ export class MemStorage {
     return provider.getCattleSalesByOperatorEmail(operatorEmail);
   }
 
+  async getCattleSalesByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getCattleSalesByOperationId(operationId);
+  }
+
   async getNutritionistsByOperatorEmail(operatorEmail: string) {
     const provider = await this.getProvider();
     return provider.getNutritionistsByOperatorEmail(operatorEmail);
+  }
+
+  async getNutritionistsByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getNutritionistsByOperationId(operationId);
   }
 
   async acceptNutritionistInvitation(request: any) {
@@ -120,6 +155,11 @@ export class MemStorage {
     return provider.getDeathLossByOperatorEmail(operatorEmail);
   }
 
+  async getDeathLossByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getDeathLossByOperationId(operationId);
+  }
+
   async recordTreatment(record: any) {
     const provider = await this.getProvider();
     return provider.recordTreatment(record);
@@ -130,6 +170,11 @@ export class MemStorage {
     return provider.getTreatmentsByOperatorEmail(operatorEmail);
   }
 
+  async getTreatmentsByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getTreatmentsByOperationId(operationId);
+  }
+
   async recordPartialSale(record: any) {
     const provider = await this.getProvider();
     return provider.recordPartialSale(record);
@@ -138,6 +183,11 @@ export class MemStorage {
   async getPartialSalesByOperatorEmail(operatorEmail: string) {
     const provider = await this.getProvider();
     return provider.getPartialSalesByOperatorEmail(operatorEmail);
+  }
+
+  async getPartialSalesByOperationId(operationId: number) {
+    const provider = await this.getProvider();
+    return provider.getPartialSalesByOperationId(operationId);
   }
 
   async inviteStaffMember(invitation: any) {

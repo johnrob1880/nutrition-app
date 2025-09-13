@@ -391,7 +391,10 @@ export default function OperationPage({
           </TabsContent>
 
           <TabsContent value="nutritionists">
-            <NutritionistManagement operatorEmail={operation.operatorEmail} />
+            <NutritionistManagement 
+              operatorEmail={operation.operatorEmail} 
+              operationId={operation.id}
+            />
           </TabsContent>
         </Tabs>
       </div>

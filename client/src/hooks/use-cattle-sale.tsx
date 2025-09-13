@@ -11,12 +11,16 @@ export function useSellCattle() {
       return response.json();
     },
     onSuccess: (data: CattleSale, variables) => {
-      // Invalidate and refetch pens data to reflect the sold cattle
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", variables.operatorEmail] });
-      // Invalidate cattle sales data to show the new sale
-      queryClient.invalidateQueries({ queryKey: ["/api/cattle-sales", variables.operatorEmail] });
-      // Invalidate dashboard stats as they may have changed
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", variables.operatorEmail] });
+      // For now, we need to get operationId from localStorage since InsertCattleSale doesn't include it
+      const operationId = localStorage.getItem("operationId");
+      if (operationId) {
+        // Invalidate and refetch pens data to reflect the sold cattle
+        queryClient.invalidateQueries({ queryKey: ["/api/pens", Number(operationId)] });
+        // Invalidate cattle sales data to show the new sale
+        queryClient.invalidateQueries({ queryKey: ["/api/cattle-sales", Number(operationId)] });
+        // Invalidate dashboard stats as they may have changed
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard", Number(operationId)] });
+      }
     },
   });
 }

@@ -17,8 +17,12 @@ export const securityHeaders = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      scriptSrc: process.env.NODE_ENV === 'development' 
+        ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"] // Allow inline scripts in development for Vite
+        : ["'self'"],
+      connectSrc: process.env.NODE_ENV === 'development'
+        ? ["'self'", "ws:", "wss:"] // Allow WebSocket connections for Vite HMR
+        : ["'self'"],
       frameSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]

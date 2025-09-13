@@ -39,7 +39,7 @@ export async function registerConsultant(req: Request, res: Response) {
       });
     }
 
-    const { username, email, password, fullName, specialization } = validationResult.data;
+    const { username, email, password, fullName, company, specialization } = validationResult.data;
 
     // Additional password validation
     const passwordValidation = validatePassword(password);
@@ -109,8 +109,9 @@ export async function registerConsultant(req: Request, res: Response) {
     await db.insert(consultantProfiles).values({
       userId,
       fullName,
+      company: company || null,
       specialization,
-      profileCompletePercentage: 60, // Username, email, name, specialization filled
+      profileCompletePercentage: company ? 70 : 60, // Add 10% if company is provided
     });
 
     // Create email verification token
@@ -119,6 +120,20 @@ export async function registerConsultant(req: Request, res: Response) {
     // Send verification email
     const firstName = fullName.split(' ')[0];
     await sendVerificationEmail(email, firstName, verificationToken);
+
+    // Log verification details in development for easy testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('\n🎯 CONSULTANT REGISTRATION SUCCESSFUL - DEVELOPMENT:');
+      console.log('══════════════════════════════════════════════════');
+      console.log(`👨‍⚕️ Consultant: ${fullName} (${email})`);
+      console.log(`🏢 Company: ${company || 'Not specified'}`);
+      console.log(`🔬 Specialization: ${specialization}`);
+      console.log(`🔗 Verification URL: http://localhost:5173/verify-email?token=${verificationToken}`);
+      console.log(`🎫 Plain Token: ${verificationToken}`);
+      console.log(`📱 Username: ${username}`);
+      console.log(`⏰ Token expires in 24 hours`);
+      console.log('══════════════════════════════════════════════════\n');
+    }
 
     res.status(201).json({
       success: true,
@@ -344,6 +359,8 @@ export async function verifyEmail(req: Request, res: Response) {
     }
 
     const result = await verifyEmailToken(token);
+
+    console.log('Email verification result:', result);
 
     if (!result.success) {
       const statusCode = result.error === 'Verification token has expired' ? 410 : 400;

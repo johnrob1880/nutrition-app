@@ -26,7 +26,8 @@ import {
   cancelInvitation,
   getInvitationByToken,
   acceptInvitation,
-  declineInvitation
+  declineInvitation,
+  createTestInvitation
 } from "./auth/invitation-controller";
 import {
   createRelationship,
@@ -37,6 +38,9 @@ import {
   deleteRelationship,
   getRelationshipDetails
 } from "./auth/relationship-controller";
+import { getUserRelationships } from "./middleware/relationshipAuth";
+import { getDb } from "./db/connection";
+import { sql } from "drizzle-orm";
 import { 
   registrationRateLimit, 
   loginRateLimit, 
@@ -306,6 +310,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     declineInvitation
   );
 
+  // Test endpoint for development
+  app.post('/api/test/create-invitation', 
+    createTestInvitation
+  );
+
   // Consultant-Producer Relationship Management Routes
   app.post('/api/consultant/relationships', authenticateJWT, createRelationship);
   app.get('/api/consultant/relationships', authenticateJWT, requireRelationshipManagement(), getRelationships);
@@ -314,6 +323,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/consultant/relationships/:id/suspend', authenticateJWT, requireRelationshipOwnership(), suspendRelationship);
   app.patch('/api/consultant/relationships/:id/reactivate', authenticateJWT, requireRelationshipOwnership(), reactivateRelationship);
   app.delete('/api/consultant/relationships/:id', authenticateJWT, requireRelationshipOwnership(), deleteRelationship);
+
+  // Producer-side relationship routes (using operationId for consistency)
+  app.get('/api/producer/consultants/:operationId', async (req, res) => {
+    try {
+      const operationId = Number(req.params.operationId);
+      
+      if (isNaN(operationId)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid operation ID' 
+        });
+      }
+
+      // Find the producer user by operation
+      const db = getDb();
+      const producerResult = await db.execute(sql`
+        SELECT u.id as user_id
+        FROM operations o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.id = ${operationId} AND u.user_type = 'producer'
+      `);
+
+      if (producerResult.rows.length === 0) {
+        return res.json({ success: true, relationships: [] });
+      }
+
+      const producerId = producerResult.rows[0].user_id as number;
+      
+      // Get relationships using the existing function
+      const relationships = await getUserRelationships(producerId, 'producer');
+      
+      res.json({
+        success: true,
+        relationships
+      });
+
+    } catch (error) {
+      console.error('Error fetching producer consultants:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch consultants' 
+      });
+    }
+  });
 
   // Get operation by email
   app.get("/api/operation/:email", async (req, res) => {
@@ -376,11 +429,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get pens for operation
-  app.get("/api/pens/:operatorEmail", async (req, res) => {
+  app.get("/api/pens/:operationId", async (req, res) => {
     try {
-      const pens = await storage.getPensByOperatorEmail(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const pens = await storage.getPensByOperationId(operationId);
       res.json(pens);
     } catch (error) {
+      console.error("Failed to get pens:", error);
       res.status(500).json({ message: "Failed to get pens" });
     }
   });
@@ -414,31 +472,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get feeding plans for operation
-  app.get("/api/schedules/:operatorEmail", async (req, res) => {
+  app.get("/api/schedules/:operationId", async (req, res) => {
     try {
-      const feedingPlans = await storage.getFeedingPlansByOperatorEmail(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const feedingPlans = await storage.getFeedingPlansByOperationId(operationId);
       res.json(feedingPlans);
     } catch (error) {
+      console.error("Failed to get feeding plans:", error);
       res.status(500).json({ message: "Failed to get feeding plans" });
     }
   });
 
   // Get upcoming schedule changes
-  app.get("/api/upcoming-changes/:operatorEmail", async (req, res) => {
+  app.get("/api/upcoming-changes/:operationId", async (req, res) => {
     try {
-      const changes = await storage.getUpcomingScheduleChanges(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const changes = await storage.getUpcomingScheduleChangesByOperationId(operationId);
       res.json(changes);
     } catch (error) {
+      console.error("Failed to get upcoming changes:", error);
       res.status(500).json({ message: "Failed to get upcoming changes" });
     }
   });
 
   // Get dashboard stats
-  app.get("/api/dashboard/:operatorEmail", async (req, res) => {
+  app.get("/api/dashboard/:operationId", async (req, res) => {
     try {
-      const stats = await storage.getDashboardStats(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const stats = await storage.getDashboardStatsByOperationId(operationId);
       res.json(stats);
     } catch (error) {
+      console.error("Failed to get dashboard stats:", error);
       res.status(500).json({ message: "Failed to get dashboard stats" });
     }
   });
@@ -504,12 +577,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get feeding records by operator email
-  app.get("/api/feeding-records/:operatorEmail", async (req, res) => {
+  // Get feeding records by operation ID
+  app.get("/api/feeding-records/:operationId", async (req, res) => {
     try {
-      const feedingRecords = await storage.getFeedingRecordsByOperatorEmail(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const feedingRecords = await storage.getFeedingRecordsByOperationId(operationId);
       res.json(feedingRecords);
     } catch (error) {
+      console.error("Failed to get feeding records:", error);
       res.status(500).json({ message: "Failed to get feeding records" });
     }
   });
@@ -538,21 +616,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get cattle sales by operator email
-  app.get("/api/cattle-sales/:operatorEmail", async (req, res) => {
+  // Get cattle sales by operation ID
+  app.get("/api/cattle-sales/:operationId", async (req, res) => {
     try {
-      const cattleSales = await storage.getCattleSalesByOperatorEmail(req.params.operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const cattleSales = await storage.getCattleSalesByOperationId(operationId);
       res.json(cattleSales);
     } catch (error) {
+      console.error("Failed to get cattle sales:", error);
       res.status(500).json({ message: "Failed to get cattle sales" });
     }
   });
 
   // Nutritionist routes
-  app.get("/api/nutritionists/:operatorEmail", async (req, res) => {
+  app.get("/api/nutritionists/:operationId", async (req, res) => {
     try {
-      const { operatorEmail } = req.params;
-      const nutritionists = await storage.getNutritionistsByOperatorEmail(operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const nutritionists = await storage.getNutritionistsByOperationId(operationId);
       res.json(nutritionists);
     } catch (error) {
       console.error("Error fetching nutritionists:", error);
@@ -584,10 +670,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/death-loss/:operatorEmail", async (req, res) => {
+  app.get("/api/death-loss/:operationId", async (req, res) => {
     try {
-      const { operatorEmail } = req.params;
-      const deathLosses = await storage.getDeathLossByOperatorEmail(operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const deathLosses = await storage.getDeathLossByOperationId(operationId);
       res.json(deathLosses);
     } catch (error) {
       console.error("Error fetching death losses:", error);
@@ -606,10 +695,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/treatments/:operatorEmail", async (req, res) => {
+  app.get("/api/treatments/:operationId", async (req, res) => {
     try {
-      const { operatorEmail } = req.params;
-      const treatments = await storage.getTreatmentsByOperatorEmail(operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const treatments = await storage.getTreatmentsByOperationId(operationId);
       res.json(treatments);
     } catch (error) {
       console.error("Error fetching treatments:", error);
@@ -646,10 +738,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/partial-sales/:operatorEmail', async (req, res) => {
+  app.get('/api/partial-sales/:operationId', async (req, res) => {
     try {
-      const { operatorEmail } = req.params;
-      const partialSales = await storage.getPartialSalesByOperatorEmail(operatorEmail);
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
+      }
+      const partialSales = await storage.getPartialSalesByOperationId(operationId);
       res.json(partialSales);
     } catch (error) {
       console.error('Error fetching partial sales:', error);
@@ -711,17 +806,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get staff members for operation
-  app.get('/api/staff/:operatorEmail', async (req, res) => {
+  app.get('/api/staff/:operationId', async (req, res) => {
     try {
-      const { operatorEmail } = req.params;
-      
-      // Get operation to find operation ID
-      const operation = await storage.getOperationByEmail(operatorEmail);
-      if (!operation) {
-        return res.status(404).json({ message: 'Operation not found' });
+      const operationId = Number(req.params.operationId);
+      if (isNaN(operationId)) {
+        return res.status(400).json({ message: "Invalid operation ID" });
       }
 
-      const staffMembers = await storage.getStaffMembersByOperationId(operation.id);
+      const staffMembers = await storage.getStaffMembersByOperationId(operationId);
       res.json(staffMembers);
     } catch (error) {
       console.error('Error fetching staff members:', error);
@@ -791,6 +883,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/nutritionist-tasks/summary', authenticateJWT, NutritionistTaskController.getTaskSummary);
   app.put('/api/nutritionist-tasks/:taskId', authenticateJWT, NutritionistTaskController.updateTaskStatus);
   app.post('/api/pens/:penId/request-feeding-programs', authenticateJWT, NutritionistTaskController.createTask);
+
+  // Migration endpoint for consultant relationships (admin only)
+  app.post('/api/admin/migrate-consultant-relationships', async (req, res) => {
+    try {
+      // Simple admin check - in production, you'd want proper admin authentication
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer admin-')) {
+        return res.status(403).json({ message: 'Admin access required' });
+      }
+
+      const { migrateConsultantRelationships } = await import('./utils/migrate-consultant-relationships');
+      const result = await migrateConsultantRelationships();
+      
+      res.json({
+        success: true,
+        message: 'Migration completed successfully',
+        result
+      });
+    } catch (error) {
+      console.error('Migration endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Migration failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

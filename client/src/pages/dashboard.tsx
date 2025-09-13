@@ -12,40 +12,45 @@ import type {
 } from "@shared/schema";
 
 interface DashboardProps {
-  operatorEmail: string;
+  operationId: number | null;
   operationName: string;
   operationLocation: string;
 }
 
 export default function Dashboard({
-  operatorEmail,
+  operationId,
   operationName,
   operationLocation,
 }: DashboardProps) {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard", operatorEmail],
+    queryKey: ["/api/dashboard", operationId],
+    enabled: !!operationId,
   });
 
   const { data: feedingPlans, isLoading: schedulesLoading } = useQuery<
     FeedingPlan[]
   >({
-    queryKey: ["/api/schedules", operatorEmail],
+    queryKey: ["/api/schedules", operationId],
+    enabled: !!operationId,
   });
 
   const { data: upcomingChanges, isLoading: changesLoading } = useQuery<
     UpcomingScheduleChange[]
   >({
-    queryKey: ["/api/upcoming-changes", operatorEmail],
+    queryKey: ["/api/upcoming-changes", operationId],
+    enabled: !!operationId,
   });
 
   const { data: feedingRecords, isLoading: recordsLoading } = useQuery<
     FeedingRecord[]
   >({
-    queryKey: ["/api/feeding-records", operatorEmail],
+    queryKey: ["/api/feeding-records", operationId],
+    enabled: !!operationId,
   });
 
   const { data: pens } = useQuery<Pen[]>({
-    queryKey: ["/api/pens", operatorEmail],
+    queryKey: ["/api/pens", operationId],
+    enabled: !!operationId,
   });
 
   // Extract today's active schedules from feeding plans, but only for active pens

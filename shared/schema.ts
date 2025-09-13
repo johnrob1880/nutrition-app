@@ -47,9 +47,11 @@ export const consultantProfiles = pgTable("consultant_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   fullName: varchar("full_name", { length: 255 }).notNull(),
+  company: varchar("company", { length: 150 }),
   phone: varchar("phone", { length: 20 }),
   specialization: text("specialization", { enum: ["nutritionist", "veterinarian"] }).notNull(),
   credentials: text("credentials"),
+  bio: text("bio"),
   profilePhoto: text("profile_photo"),
   profileCompletePercentage: integer("profile_complete_percentage").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -122,6 +124,7 @@ export const consultantRegistrationSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters").regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter, one lowercase letter, and one number"),
   fullName: z.string().min(1, "Full name is required"),
+  company: z.string().max(150, "Company name must be at most 150 characters").optional(),
   specialization: z.enum(["nutritionist", "veterinarian"], { required_error: "Please select a specialization" }),
 });
 
@@ -427,7 +430,9 @@ export const partialSales = pgTable("partial_sales", {
 export type PartialSale = typeof partialSales.$inferSelect;
 export type InsertPartialSale = typeof partialSales.$inferInsert;
 
-// Nutritionists table
+// Nutritionists table - DEPRECATED: Use consultantProfiles instead
+// Keeping table definition for backward compatibility during migration
+// TODO: Remove after migration to consultantProfiles is complete
 export const nutritionists = pgTable("nutritionists", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -441,7 +446,9 @@ export const nutritionists = pgTable("nutritionists", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// DEPRECATED: Use User with userType='consultant' and ConsultantProfile instead
 export type Nutritionist = typeof nutritionists.$inferSelect;
+// DEPRECATED: Use User with userType='consultant' and ConsultantProfile instead
 export type InsertNutritionist = typeof nutritionists.$inferInsert;
 
 // Invite codes table (for operation invites)
@@ -465,6 +472,37 @@ export const session = pgTable("session", {
 });
 
 // Define relations
+
+// Users relations - includes consultant profile and other relationships
+export const usersRelations = relations(users, ({ one, many }) => ({
+  consultantProfile: one(consultantProfiles, {
+    fields: [users.id],
+    references: [consultantProfiles.userId],
+  }),
+  operation: one(operations, {
+    fields: [users.id],
+    references: [operations.userId],
+  }),
+  refreshTokens: many(refreshTokens),
+  emailVerifications: many(emailVerifications),
+  feedingIngredients: many(feedingIngredients),
+  feedingProgramTemplates: many(feedingProgramTemplates),
+  penFeedingPrograms: many(penFeedingPrograms),
+  dailyFeedingCompletionStatuses: many(dailyFeedingCompletionStatus),
+  nutritionistTasks: many(nutritionistTasks),
+  consultantProducerRelationshipsAsConsultant: many(consultantProducerRelationships),
+  consultantProducerRelationshipsAsProducer: many(consultantProducerRelationships),
+  consultantProducerInvitations: many(consultantProducerInvitations),
+}));
+
+// Consultant profiles relations
+export const consultantProfilesRelations = relations(consultantProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [consultantProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
 export const operationsRelations = relations(operations, ({ many }) => ({
   staffMembers: many(staffMembers),
   staffInvitations: many(staffInvitations),
@@ -638,9 +676,11 @@ export const dailyFeedingCompletionStatus = pgTable("daily_feeding_completion_st
 }));
 
 // Nutritionist task management
+// Consultant/Nutritionist task management
+// Updated to use userId instead of nutritionistId for consistency with users table
 export const nutritionistTasks = pgTable("nutritionist_tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  nutritionistId: integer("nutritionist_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id), // Changed from nutritionistId to userId
   penId: integer("pen_id").notNull().references(() => pens.id),
   taskType: varchar("task_type", { length: 50 }).notNull(),
   status: varchar("status", { length: 50 }).default("pending"),
@@ -650,7 +690,7 @@ export const nutritionistTasks = pgTable("nutritionist_tasks", {
   completedByUserId: integer("completed_by_user_id").references(() => users.id),
   notes: text("notes"),
 }, (table) => ({
-  nutritionistStatusIdx: index("idx_nutritionist_tasks_nutritionist").on(table.nutritionistId, table.status),
+  userStatusIdx: index("idx_nutritionist_tasks_user").on(table.userId, table.status),
   penIdx: index("idx_nutritionist_tasks_pen").on(table.penId),
   uniqueTask: uniqueIndex("nutritionist_tasks_pen_task_unique_idx").on(table.penId, table.taskType),
 }));
@@ -694,10 +734,6 @@ export type InsertFeedingRecordVariance = typeof feedingRecordVariances.$inferIn
 // Completion types
 export type DailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferSelect;
 export type InsertDailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferInsert;
-
-// Task types
-export type NutritionistTask = typeof nutritionistTasks.$inferSelect;
-export type InsertNutritionistTask = typeof nutritionistTasks.$inferInsert;
 
 // Relations for new feeding program tables
 export const feedingIngredientsRelations = relations(feedingIngredients, ({ one, many }) => ({
@@ -811,8 +847,8 @@ export const dailyFeedingCompletionStatusRelations = relations(dailyFeedingCompl
 }));
 
 export const nutritionistTasksRelations = relations(nutritionistTasks, ({ one }) => ({
-  nutritionist: one(users, {
-    fields: [nutritionistTasks.nutritionistId],
+  user: one(users, {
+    fields: [nutritionistTasks.userId],
     references: [users.id],
   }),
   pen: one(pens, {
@@ -825,25 +861,8 @@ export const nutritionistTasksRelations = relations(nutritionistTasks, ({ one })
   }),
 }));
 
-// Type exports for feeding program designer
-export type FeedingIngredient = typeof feedingIngredients.$inferSelect;
-export type InsertFeedingIngredient = typeof feedingIngredients.$inferInsert;
-export type FeedingProgramTemplate = typeof feedingProgramTemplates.$inferSelect;
-export type InsertFeedingProgramTemplate = typeof feedingProgramTemplates.$inferInsert;
-export type FeedingProgramPhase = typeof feedingProgramPhases.$inferSelect;
-export type InsertFeedingProgramPhase = typeof feedingProgramPhases.$inferInsert;
-export type FeedingProgramIngredient = typeof feedingProgramIngredients.$inferSelect;
-export type InsertFeedingProgramIngredient = typeof feedingProgramIngredients.$inferInsert;
-export type PenFeedingProgram = typeof penFeedingPrograms.$inferSelect;
-export type InsertPenFeedingProgram = typeof penFeedingPrograms.$inferInsert;
-export type PenFeedingProgramPhase = typeof penFeedingProgramPhases.$inferSelect;
-export type InsertPenFeedingProgramPhase = typeof penFeedingProgramPhases.$inferInsert;
-export type PenFeedingProgramIngredient = typeof penFeedingProgramIngredients.$inferSelect;
-export type InsertPenFeedingProgramIngredient = typeof penFeedingProgramIngredients.$inferInsert;
-export type FeedingRecordVariance = typeof feedingRecordVariances.$inferSelect;
-export type InsertFeedingRecordVariance = typeof feedingRecordVariances.$inferInsert;
-export type DailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferSelect;
-export type InsertDailyFeedingCompletionStatus = typeof dailyFeedingCompletionStatus.$inferInsert;
+// Type exports for feeding program designer - moved to lines 669-702
+// Keeping NutritionistTask types here as they were not defined earlier
 export type NutritionistTask = typeof nutritionistTasks.$inferSelect;
 export type InsertNutritionistTask = typeof nutritionistTasks.$inferInsert;
 
@@ -1055,6 +1074,7 @@ export interface ActualIngredient {
 //   acceptedAt?: string;
 // }
 
+// DEPRECATED: This interface is no longer used - consultant invitations are handled via consultantProducerInvitations
 export interface AcceptInvitationRequest {
   nutritionistId: string;
   operatorEmail: string;

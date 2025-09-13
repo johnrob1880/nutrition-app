@@ -40,6 +40,7 @@ export interface IStorageProvider {
   validateInviteCode(inviteCode: string, operatorEmail: string): Promise<boolean>;
 
   // Pen Management
+  /** @deprecated Use getPensByOperationId instead */
   getPensByOperatorEmail(operatorEmail: string): Promise<Pen[]>;
   getPensByOperationId(operationId: number): Promise<Pen[]>;
   createPen(penData: CreatePenRequest): Promise<Pen>;
@@ -47,32 +48,50 @@ export interface IStorageProvider {
 
   // Feeding Management
   createFeedingRecord(record: InsertFeedingRecord): Promise<FeedingRecord>;
+  /** @deprecated Use getFeedingRecordsByOperationId instead */
   getFeedingRecordsByOperatorEmail(operatorEmail: string): Promise<FeedingRecord[]>;
+  getFeedingRecordsByOperationId(operationId: number): Promise<FeedingRecord[]>;
+  /** @deprecated Use getFeedingPlansByOperationId instead */
   getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
+  getFeedingPlansByOperationId(operationId: number): Promise<FeedingPlan[]>;
+  /** @deprecated Use getUpcomingScheduleChangesByOperationId instead */
   getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
+  getUpcomingScheduleChangesByOperationId(operationId: number): Promise<UpcomingScheduleChange[]>;
 
   // Dashboard and Analytics
+  /** @deprecated Use getDashboardStatsByOperationId instead */
   getDashboardStats(operatorEmail: string): Promise<DashboardStats>;
+  getDashboardStatsByOperationId(operationId: number): Promise<DashboardStats>;
 
   // Cattle Sales
   sellCattle(saleRecord: InsertCattleSale): Promise<CattleSale>;
+  /** @deprecated Use getCattleSalesByOperationId instead */
   getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]>;
+  getCattleSalesByOperationId(operationId: number): Promise<CattleSale[]>;
 
   // Nutritionist Management
+  /** @deprecated Use getNutritionistsByOperationId instead */
   getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]>;
+  getNutritionistsByOperationId(operationId: number): Promise<Nutritionist[]>;
   acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined>;
 
   // Health Tracking - Death Loss
   recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss>;
+  /** @deprecated Use getDeathLossByOperationId instead */
   getDeathLossByOperatorEmail(operatorEmail: string): Promise<DeathLoss[]>;
+  getDeathLossByOperationId(operationId: number): Promise<DeathLoss[]>;
 
   // Health Tracking - Treatments
   recordTreatment(record: InsertTreatmentRecord): Promise<TreatmentRecord>;
+  /** @deprecated Use getTreatmentsByOperationId instead */
   getTreatmentsByOperatorEmail(operatorEmail: string): Promise<TreatmentRecord[]>;
+  getTreatmentsByOperationId(operationId: number): Promise<TreatmentRecord[]>;
 
   // Partial Sales
   recordPartialSale(record: InsertPartialSale): Promise<PartialSale>;
+  /** @deprecated Use getPartialSalesByOperationId instead */
   getPartialSalesByOperatorEmail(operatorEmail: string): Promise<PartialSale[]>;
+  getPartialSalesByOperationId(operationId: number): Promise<PartialSale[]>;
 
   // Staff Management
   inviteStaffMember(invitation: InsertStaffInvitation): Promise<StaffInvitation>;

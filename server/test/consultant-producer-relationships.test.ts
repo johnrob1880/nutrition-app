@@ -97,7 +97,10 @@ describe.skipIf(skipIfNotPostgres)('Consultant-Producer Relationship Management'
       userType,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600
-    }, JWT_SECRET, { algorithm: 'HS256' });
+    }, JWT_SECRET, { 
+      algorithm: 'HS256',
+      audience: 'nutrition-app-users'
+    });
   }
 
   async function createAcceptedInvitation(consultantId: number, producerId: number, operationId: number) {

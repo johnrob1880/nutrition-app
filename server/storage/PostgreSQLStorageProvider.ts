@@ -371,24 +371,106 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
     });
   }
 
-  // Nutritionist Management
+  // Nutritionist Management - Updated to use consultant system
   async getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]> {
     return this.executeWithRetry(async () => {
+      // Find the operation and its associated user
+      const [operation] = await this.db
+        .select({
+          userId: schema.operations.userId
+        })
+        .from(schema.operations)
+        .where(eq(schema.operations.operatorEmail, operatorEmail))
+        .limit(1);
+
+      if (!operation || !operation.userId) {
+        return [];
+      }
+
+      // Get consultants associated with this producer through relationships
       const results = await this.db
-        .select()
-        .from(schema.nutritionists)
-        .where(eq(schema.nutritionists.operatorEmail, operatorEmail));
+        .select({
+          consultantUserId: schema.consultantProducerRelationships.consultantId,
+          relationshipStatus: schema.consultantProducerRelationships.status,
+          relationshipCreatedAt: schema.consultantProducerRelationships.createdAt,
+          // Consultant profile data
+          fullName: schema.consultantProfiles.fullName,
+          company: schema.consultantProfiles.company,
+          phone: schema.consultantProfiles.phone,
+          specialization: schema.consultantProfiles.specialization,
+          credentials: schema.consultantProfiles.credentials,
+          // User data
+          email: schema.users.email,
+          userCreatedAt: schema.users.createdAt
+        })
+        .from(schema.consultantProducerRelationships)
+        .innerJoin(schema.users, eq(schema.users.id, schema.consultantProducerRelationships.consultantId))
+        .innerJoin(schema.consultantProfiles, eq(schema.consultantProfiles.userId, schema.consultantProducerRelationships.consultantId))
+        .where(
+          and(
+            eq(schema.consultantProducerRelationships.producerId, operation.userId),
+            eq(schema.consultantProducerRelationships.status, 'active')
+          )
+        );
       
-      return results.map(nutritionist => ({
-        id: nutritionist.id,
-        name: nutritionist.name,
-        company: nutritionist.company || '',
-        email: nutritionist.email,
-        phone: nutritionist.phone || '',
-        specialties: nutritionist.specialties as string[] || [],
-        operatorEmail: nutritionist.operatorEmail,
-        status: nutritionist.status as 'active' | 'inactive' | 'pending',
-        joinedDate: nutritionist.joinedDate || '',
+      return results.map(consultant => ({
+        id: consultant.consultantUserId,
+        name: consultant.fullName,
+        company: consultant.company || '',
+        email: consultant.email,
+        phone: consultant.phone || '',
+        specialties: [consultant.specialization], // Convert single specialization to array for compatibility
+        operatorEmail: operatorEmail,
+        status: 'active' as const,
+        joinedDate: consultant.relationshipCreatedAt?.toISOString().split('T')[0] || '',
+        createdAt: consultant.userCreatedAt
+      })) as Nutritionist[];
+    });
+  }
+
+  // New operation ID-based nutritionist method
+  async getNutritionistsByOperationId(operationId: number): Promise<Nutritionist[]> {
+    return this.executeWithRetry(async () => {
+      // Get consultants associated with this operation through relationships
+      const results = await this.db
+        .select({
+          consultantUserId: schema.consultantProducerRelationships.consultantId,
+          relationshipStatus: schema.consultantProducerRelationships.status,
+          relationshipCreatedAt: schema.consultantProducerRelationships.createdAt,
+          // Consultant profile data
+          fullName: schema.consultantProfiles.fullName,
+          company: schema.consultantProfiles.company,
+          phone: schema.consultantProfiles.phone,
+          specialization: schema.consultantProfiles.specialization,
+          credentials: schema.consultantProfiles.credentials,
+          // User data
+          email: schema.users.email,
+          userCreatedAt: schema.users.createdAt,
+          // Operation data
+          operatorEmail: schema.operations.operatorEmail
+        })
+        .from(schema.consultantProducerRelationships)
+        .innerJoin(schema.users, eq(schema.users.id, schema.consultantProducerRelationships.consultantId))
+        .innerJoin(schema.consultantProfiles, eq(schema.consultantProfiles.userId, schema.consultantProducerRelationships.consultantId))
+        .innerJoin(schema.operations, eq(schema.operations.id, schema.consultantProducerRelationships.operationId))
+        .where(
+          and(
+            eq(schema.consultantProducerRelationships.operationId, operationId),
+            eq(schema.consultantProducerRelationships.status, 'active')
+          )
+        );
+      
+      return results.map(consultant => ({
+        id: consultant.consultantUserId,
+        name: consultant.fullName,
+        company: consultant.company || '',
+        email: consultant.email,
+        phone: consultant.phone || '',
+        specialties: [consultant.specialization || ''], // Convert single specialization to array for compatibility
+        operatorEmail: consultant.operatorEmail,
+        status: 'active' as const,
+        joinedDate: consultant.relationshipCreatedAt?.toISOString().split('T')[0] || '',
+        createdAt: consultant.userCreatedAt
       })) as Nutritionist[];
     });
   }
@@ -612,6 +694,232 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
       }
       
       return undefined;
+    });
+  }
+
+  // ========================================
+  // NEW OPERATION ID-BASED METHODS
+  // ========================================
+
+  // Feeding Management (Operation ID-based)
+  async getFeedingRecordsByOperationId(operationId: number): Promise<FeedingRecord[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.feedingRecords.id,
+          penId: schema.feedingRecords.penId,
+          scheduleId: schema.feedingRecords.scheduleId,
+          plannedAmount: schema.feedingRecords.plannedAmount,
+          feedingTime: schema.feedingRecords.feedingTime,
+          feedingDate: schema.feedingRecords.feedingDate,
+          feedType: schema.feedingRecords.feedType,
+          amount: schema.feedingRecords.amount,
+          unit: schema.feedingRecords.unit,
+          ingredients: schema.feedingRecords.ingredients,
+          fedBy: schema.feedingRecords.fedBy,
+          notes: schema.feedingRecords.notes,
+          operatorEmail: schema.feedingRecords.operatorEmail,
+          createdAt: schema.feedingRecords.createdAt,
+        })
+        .from(schema.feedingRecords)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.feedingRecords.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(record => ({
+        ...record,
+        ingredients: record.ingredients ?? null,
+        notes: record.notes ?? null,
+        createdAt: record.createdAt,
+      }));
+    });
+  }
+
+  async getFeedingPlansByOperationId(operationId: number): Promise<FeedingPlan[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.feedingPlans.id,
+          penId: schema.feedingPlans.penId,
+          name: schema.feedingPlans.name,
+          operatorEmail: schema.feedingPlans.operatorEmail,
+          ingredients: schema.feedingPlans.ingredients,
+          totalCostPerTon: schema.feedingPlans.totalCostPerTon,
+          proteinContent: schema.feedingPlans.proteinContent,
+          energyContent: schema.feedingPlans.energyContent,
+          dailyFeedAmount: schema.feedingPlans.dailyFeedAmount,
+          estimatedDailyGain: schema.feedingPlans.estimatedDailyGain,
+          feedConversionRatio: schema.feedingPlans.feedConversionRatio,
+          createdDate: schema.feedingPlans.createdDate,
+          lastModified: schema.feedingPlans.lastModified,
+          notes: schema.feedingPlans.notes,
+        })
+        .from(schema.feedingPlans)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.feedingPlans.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(plan => ({
+        ...plan,
+        totalCostPerTon: plan.totalCostPerTon ?? null,
+        proteinContent: plan.proteinContent ?? null,
+        energyContent: plan.energyContent ?? null,
+        dailyFeedAmount: plan.dailyFeedAmount ?? null,
+        estimatedDailyGain: plan.estimatedDailyGain ?? null,
+        feedConversionRatio: plan.feedConversionRatio ?? null,
+        notes: plan.notes ?? null,
+      }));
+    });
+  }
+
+  async getUpcomingScheduleChangesByOperationId(operationId: number): Promise<UpcomingScheduleChange[]> {
+    return this.executeWithRetry(async () => {
+      // Mock implementation - return empty array for now
+      // In a real implementation, this would query schedule change data
+      return [];
+    });
+  }
+
+  // Dashboard and Analytics (Operation ID-based)
+  async getDashboardStatsByOperationId(operationId: number): Promise<DashboardStats> {
+    return this.executeWithRetry(async () => {
+      const pens = await this.getPensByOperationId(operationId);
+      const staffMembers = await this.getStaffMembersByOperationId(operationId);
+      const feedingPlans = await this.getFeedingPlansByOperationId(operationId);
+      
+      const totalCattle = pens.reduce((sum, pen) => sum + (pen.current || 0), 0);
+      const totalPens = pens.length;
+      const activeSchedules = feedingPlans.length; // No status field in schema, count all plans
+      const staffCount = staffMembers.filter(member => member.status === 'active').length;
+      
+      return {
+        totalPens,
+        totalCattle,
+        activeSchedules,
+        staffCount,
+        avgFeedPerDay: '0 lbs', // Would need to calculate from feeding records
+        lastSync: new Date().toISOString(),
+      };
+    });
+  }
+
+  // Cattle Sales (Operation ID-based)
+  async getCattleSalesByOperationId(operationId: number): Promise<CattleSale[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.cattleSales.id,
+          penId: schema.cattleSales.penId,
+          saleDate: schema.cattleSales.saleDate,
+          buyerName: schema.cattleSales.buyerName,
+          headCount: schema.cattleSales.headCount,
+          averageWeight: schema.cattleSales.averageWeight,
+          pricePerCwt: schema.cattleSales.pricePerCwt,
+          totalRevenue: schema.cattleSales.totalRevenue,
+          daysOnFeed: schema.cattleSales.daysOnFeed,
+          averageDailyGain: schema.cattleSales.averageDailyGain,
+          transportCost: schema.cattleSales.transportCost,
+          notes: schema.cattleSales.notes,
+          operatorEmail: schema.cattleSales.operatorEmail,
+          createdAt: schema.cattleSales.createdAt,
+        })
+        .from(schema.cattleSales)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.cattleSales.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(sale => ({
+        ...sale,
+        notes: sale.notes ?? null,
+        createdAt: sale.createdAt,
+      }));
+    });
+  }
+
+  // Health Tracking - Death Loss (Operation ID-based)
+  async getDeathLossByOperationId(operationId: number): Promise<DeathLoss[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.deathLosses.id,
+          penId: schema.deathLosses.penId,
+          lossDate: schema.deathLosses.lossDate,
+          reason: schema.deathLosses.reason,
+          cattleCount: schema.deathLosses.cattleCount,
+          estimatedWeight: schema.deathLosses.estimatedWeight,
+          tagNumbers: schema.deathLosses.tagNumbers,
+          notes: schema.deathLosses.notes,
+          operatorEmail: schema.deathLosses.operatorEmail,
+          createdAt: schema.deathLosses.createdAt,
+        })
+        .from(schema.deathLosses)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.deathLosses.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(loss => ({
+        ...loss,
+        tagNumbers: loss.tagNumbers ?? null,
+        notes: loss.notes ?? null,
+        createdAt: loss.createdAt,
+      }));
+    });
+  }
+
+  // Health Tracking - Treatments (Operation ID-based)
+  async getTreatmentsByOperationId(operationId: number): Promise<TreatmentRecord[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.treatmentRecords.id,
+          penId: schema.treatmentRecords.penId,
+          treatmentDate: schema.treatmentRecords.treatmentDate,
+          treatmentType: schema.treatmentRecords.treatmentType,
+          product: schema.treatmentRecords.product,
+          dosage: schema.treatmentRecords.dosage,
+          cattleCount: schema.treatmentRecords.cattleCount,
+          tagNumbers: schema.treatmentRecords.tagNumbers,
+          treatedBy: schema.treatmentRecords.treatedBy,
+          notes: schema.treatmentRecords.notes,
+          operatorEmail: schema.treatmentRecords.operatorEmail,
+          createdAt: schema.treatmentRecords.createdAt,
+        })
+        .from(schema.treatmentRecords)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.treatmentRecords.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(treatment => ({
+        ...treatment,
+        tagNumbers: treatment.tagNumbers ?? null,
+        notes: treatment.notes ?? null,
+        createdAt: treatment.createdAt,
+      }));
+    });
+  }
+
+  // Partial Sales (Operation ID-based)
+  async getPartialSalesByOperationId(operationId: number): Promise<PartialSale[]> {
+    return this.executeWithRetry(async () => {
+      const results = await this.db
+        .select({
+          id: schema.partialSales.id,
+          penId: schema.partialSales.penId,
+          saleDate: schema.partialSales.saleDate,
+          headCount: schema.partialSales.headCount,
+          averageWeight: schema.partialSales.averageWeight,
+          pricePerCwt: schema.partialSales.pricePerCwt,
+          totalRevenue: schema.partialSales.totalRevenue,
+          tagNumbers: schema.partialSales.tagNumbers,
+          notes: schema.partialSales.notes,
+          operatorEmail: schema.partialSales.operatorEmail,
+          createdAt: schema.partialSales.createdAt,
+        })
+        .from(schema.partialSales)
+        .innerJoin(schema.pens, eq(schema.pens.id, schema.partialSales.penId))
+        .where(eq(schema.pens.operationId, operationId));
+      
+      return results.map(sale => ({
+        ...sale,
+        tagNumbers: sale.tagNumbers ?? null,
+        notes: sale.notes ?? null,
+        createdAt: sale.createdAt,
+      }));
     });
   }
 }

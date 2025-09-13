@@ -7,14 +7,14 @@ import {
   relationshipPermissionsSchema,
   type CreateRelationship,
   type UpdateRelationship 
-} from '@shared/schema';
-import { AuthRequest } from '../middleware/jwtAuth';
+} from '../../shared/schema';
+import '../auth/middleware'; // Import to make global Request extension available
 import { RelationshipAuthRequest, getUserRelationships } from '../middleware/relationshipAuth';
 
 /**
  * Create a new consultant-producer relationship from an accepted invitation
  */
-export async function createRelationship(req: AuthRequest, res: Response) {
+export async function createRelationship(req: Request, res: Response) {
   try {
     const db = getDb();
     const { user } = req;
@@ -52,7 +52,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
         accepted_at
       FROM consultant_producer_invitations
       WHERE id = ${invitationId} 
-      AND producer_id = ${user.id}
+      AND producer_id = ${user.userId}
       AND status = 'accepted'
     `);
 
@@ -70,7 +70,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
     // Verify the operation belongs to the producer
     const operationResult = await db.execute(sql`
       SELECT id FROM operations 
-      WHERE id = ${operationId} AND user_id = ${user.id}
+      WHERE id = ${operationId} AND user_id = ${user.userId}
     `);
 
     if (operationResult.rows.length === 0) {
@@ -86,7 +86,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
     const existingResult = await db.execute(sql`
       SELECT id FROM consultant_producer_relationships
       WHERE consultant_id = ${invitation.consultant_id}
-      AND producer_id = ${user.id}
+      AND producer_id = ${user.userId}
       AND operation_id = ${operationId}
     `);
 
@@ -110,7 +110,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
       )
       VALUES (
         ${invitation.consultant_id},
-        ${user.id},
+        ${user.userId},
         ${operationId},
         ${JSON.stringify(permissions)},
         'active'
@@ -127,7 +127,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
         consultantId: relationship.consultant_id,
         producerId: relationship.producer_id,
         operationId: relationship.operation_id,
-        permissions: JSON.parse(relationship.permissions),
+        permissions: JSON.parse(relationship.permissions as string),
         status: relationship.status,
         establishedAt: relationship.established_at
       }
@@ -147,7 +147,7 @@ export async function createRelationship(req: AuthRequest, res: Response) {
 /**
  * Get user's relationships
  */
-export async function getRelationships(req: AuthRequest, res: Response) {
+export async function getRelationships(req: Request, res: Response) {
   try {
     const { user } = req;
     
@@ -160,7 +160,7 @@ export async function getRelationships(req: AuthRequest, res: Response) {
       });
     }
 
-    const relationships = await getUserRelationships(user.id, user.userType);
+    const relationships = await getUserRelationships(user.userId, user.userType);
 
     res.json({
       success: true,
@@ -229,7 +229,7 @@ export async function updateRelationshipPermissions(req: RelationshipAuthRequest
     const relationship = relationshipResult.rows[0];
     
     // Only the producer can modify permissions
-    if (user.userType !== 'producer' || user.id !== relationship.producer_id) {
+    if (user.userType !== 'producer' || user.userId !== relationship.producer_id) {
       return res.status(403).json({
         error: {
           code: 'ACCESS_DENIED',
@@ -255,7 +255,7 @@ export async function updateRelationshipPermissions(req: RelationshipAuthRequest
         consultantId: updatedRelationship.consultant_id,
         producerId: updatedRelationship.producer_id,
         operationId: updatedRelationship.operation_id,
-        permissions: JSON.parse(updatedRelationship.permissions),
+        permissions: JSON.parse(updatedRelationship.permissions as string),
         status: updatedRelationship.status
       }
     });
@@ -294,7 +294,7 @@ export async function suspendRelationship(req: RelationshipAuthRequest, res: Res
       UPDATE consultant_producer_relationships
       SET status = 'suspended'
       WHERE id = ${relationshipId}
-      AND (consultant_id = ${user.id} OR producer_id = ${user.id})
+      AND (consultant_id = ${user.userId} OR producer_id = ${user.userId})
       RETURNING id
     `);
 
@@ -346,7 +346,7 @@ export async function reactivateRelationship(req: RelationshipAuthRequest, res: 
       UPDATE consultant_producer_relationships
       SET status = 'active'
       WHERE id = ${relationshipId}
-      AND (consultant_id = ${user.id} OR producer_id = ${user.id})
+      AND (consultant_id = ${user.userId} OR producer_id = ${user.userId})
       AND status = 'suspended'
       RETURNING id
     `);
@@ -398,7 +398,7 @@ export async function deleteRelationship(req: RelationshipAuthRequest, res: Resp
     const deleteResult = await db.execute(sql`
       DELETE FROM consultant_producer_relationships
       WHERE id = ${relationshipId}
-      AND (consultant_id = ${user.id} OR producer_id = ${user.id})
+      AND (consultant_id = ${user.userId} OR producer_id = ${user.userId})
       RETURNING id
     `);
 
@@ -469,7 +469,7 @@ export async function getRelationshipDetails(req: RelationshipAuthRequest, res: 
       JOIN users pu ON cpr.producer_id = pu.id
       JOIN operations o ON cpr.operation_id = o.id
       WHERE cpr.id = ${relationshipId}
-      AND (cpr.consultant_id = ${user.id} OR cpr.producer_id = ${user.id})
+      AND (cpr.consultant_id = ${user.userId} OR cpr.producer_id = ${user.userId})
     `);
 
     if (relationshipResult.rows.length === 0) {
@@ -487,7 +487,7 @@ export async function getRelationshipDetails(req: RelationshipAuthRequest, res: 
       success: true,
       relationship: {
         id: row.id,
-        permissions: JSON.parse(row.permissions),
+        permissions: JSON.parse(row.permissions as string),
         status: row.status,
         establishedAt: row.established_at,
         consultant: {

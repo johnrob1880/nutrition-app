@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { consultantRegistrationSchema, type ConsultantRegistration } from '@shared/schema';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,22 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Link } from 'wouter';
 import { Loader2, UserCheck, Stethoscope } from 'lucide-react';
 
-const registerSchema = z.object({
-  username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(20, 'Username must be at most 20 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  fullName: z.string().min(1, 'Full name is required'),
-  specialization: z.enum(['nutritionist', 'veterinarian'], {
-    required_error: 'Please select a specialization',
-  }),
-});
-
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterForm = ConsultantRegistration;
 
 export const Register: React.FC = () => {
   const { register: registerUser } = useAuth();
@@ -41,7 +26,7 @@ export const Register: React.FC = () => {
     watch,
     formState: { errors },
   } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(consultantRegistrationSchema),
   });
 
   const watchedSpecialization = watch('specialization');
@@ -124,6 +109,19 @@ export const Register: React.FC = () => {
                 />
                 {errors.fullName && (
                   <p className="text-sm text-red-500 mt-1">{errors.fullName.message}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="company">Company (Optional)</Label>
+                <Input
+                  id="company"
+                  {...register('company')}
+                  placeholder="Smith Nutrition Consulting"
+                  className={errors.company ? 'border-red-500' : ''}
+                />
+                {errors.company && (
+                  <p className="text-sm text-red-500 mt-1">{errors.company.message}</p>
                 )}
               </div>
 

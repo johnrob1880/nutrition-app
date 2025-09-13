@@ -11,19 +11,21 @@ import { useLocation } from "wouter";
 import type { FeedingRecord, FeedingPlan } from "@shared/schema";
 
 interface FeedingDetailsProps {
-  operatorEmail: string;
+  operationId: number | null;
 }
 
-export default function FeedingDetails({ operatorEmail }: FeedingDetailsProps) {
+export default function FeedingDetails({ operationId }: FeedingDetailsProps) {
   const { feedingRecordId } = useParams();
   const [, setLocation] = useLocation();
 
   const { data: feedingRecords, isLoading: recordsLoading } = useQuery<FeedingRecord[]>({
-    queryKey: ["/api/feeding-records", operatorEmail],
+    queryKey: ["/api/feeding-records", operationId],
+    enabled: !!operationId,
   });
 
   const { data: feedingPlans, isLoading: plansLoading } = useQuery<FeedingPlan[]>({
-    queryKey: ["/api/schedules", operatorEmail],
+    queryKey: ["/api/schedules", operationId],
+    enabled: !!operationId,
   });
 
   const feedingRecord = feedingRecords?.find(record => record.id === feedingRecordId);

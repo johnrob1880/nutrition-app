@@ -3,6 +3,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { Landing } from '@/pages/Landing';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
+import { VerifyEmail } from '@/pages/VerifyEmail';
 import { Dashboard } from '@/pages/Dashboard';
 import { Invitations } from '@/pages/Invitations';
 import { Clients } from '@/pages/Clients';
@@ -21,6 +22,12 @@ function App() {
         <Route path="/register">
           <AuthGuard requireAuth={false}>
             <Register />
+          </AuthGuard>
+        </Route>
+
+        <Route path="/verify-email">
+          <AuthGuard requireAuth={false}>
+            <VerifyEmail />
           </AuthGuard>
         </Route>
 

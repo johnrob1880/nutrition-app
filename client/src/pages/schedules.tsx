@@ -22,14 +22,15 @@ import {
 import type { FeedingPlan } from "@shared/schema";
 
 interface SchedulesProps {
-  operatorEmail: string;
+  operationId: number | null;
 }
 
-export default function Schedules({ operatorEmail }: SchedulesProps) {
+export default function Schedules({ operationId }: SchedulesProps) {
   const [activeFilter, setActiveFilter] = useState("today");
 
   const { data: feedingPlans, isLoading } = useQuery<FeedingPlan[]>({
-    queryKey: ["/api/schedules", operatorEmail],
+    queryKey: ["/api/schedules", operationId],
+    enabled: !!operationId,
   });
 
   const filteredPlans =

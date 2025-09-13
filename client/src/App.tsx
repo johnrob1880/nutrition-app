@@ -18,6 +18,7 @@ import Feeding from "@/pages/feeding";
 import FeedingDetails from "@/pages/feeding-details";
 import FeedingPlanDetails from "@/pages/feeding-plan";
 import AcceptInvitation from "@/pages/accept-invitation";
+import VerifyInvitation from "@/pages/verify-invitation";
 import BottomNav from "@/components/bottom-nav";
 import NotFound from "@/pages/not-found";
 
@@ -33,11 +34,24 @@ function AppContent() {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // Check if we're on an invitation route first (before authentication)
+  const isInvitationRoute = window.location.pathname.startsWith('/invitations/') || 
+                           window.location.pathname === '/verify-invitation' ||
+                           window.location.pathname === '/accept-invitation';
+
   const { data: operation } = useOperation(currentOperation || "");
   const { data: stats } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard", currentOperation],
-    enabled: !!currentOperation,
+    queryKey: ["/api/dashboard", operationId],
+    enabled: !!operationId,
   });
+
+  // Set operation ID when operation data is fetched
+  useEffect(() => {
+    if (operation?.id && operationId !== operation.id) {
+      localStorage.setItem("operationId", operation.id.toString());
+      setOperationId(operation.id);
+    }
+  }, [operation, operationId]);
 
   const handleOnboardingComplete = (operationData: { operatorEmail: string }) => {
     localStorage.setItem("operatorEmail", operationData.operatorEmail);
@@ -60,6 +74,20 @@ function AppContent() {
     // Clear query cache to ensure fresh data on next login
     queryClient.clear();
   };
+
+  // Handle invitation routes first (no authentication required)
+  if (isInvitationRoute) {
+    return (
+      <div className="min-h-screen">
+        <Switch>
+          <Route path="/accept-invitation" component={AcceptInvitation} />
+          <Route path="/invitations/:token" component={VerifyInvitation} />
+          <Route path="/verify-invitation" component={VerifyInvitation} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+    );
+  }
 
   // If no current operation or operation doesn't exist, show login or onboarding
   if (!currentOperation || (currentOperation && !operation)) {
@@ -85,47 +113,42 @@ function AppContent() {
       <Switch>
         <Route path="/" component={() => 
           <Dashboard 
-            operatorEmail={currentOperation}
+            operationId={operationId}
             operationName={operation?.name || ""}
             operationLocation={operation?.location || ""}
           />
         } />
         <Route path="/dashboard" component={() => 
           <Dashboard 
-            operatorEmail={currentOperation}
+            operationId={operationId}
             operationName={operation?.name || ""}
             operationLocation={operation?.location || ""}
           />
         } />
         <Route path="/pens" component={() => 
-          <Pens operatorEmail={currentOperation} />
+          <Pens operationId={operationId} />
         } />
         <Route path="/pen/:penId" component={() => 
-          <PenOverview operatorEmail={currentOperation} />
+          <PenOverview operationId={operationId} />
         } />
         <Route path="/feeding-plan/:penId" component={() => 
           <FeedingPlanDetails operationId={operationId!} />
         } />
         <Route path="/schedules" component={() => 
-          <Schedules operatorEmail={currentOperation} />
+          <Schedules operationId={operationId} />
         } />
         <Route path="/operation" component={() => 
           <OperationPage operation={operation!} stats={stats} onLogout={handleLogout} />
         } />
         <Route path="/feeding/:penId/:scheduleId" component={() => 
-          <Feeding operatorEmail={currentOperation} />
+          <Feeding operationId={operationId} />
         } />
         <Route path="/feeding-details/:feedingRecordId" component={() => 
-          <FeedingDetails operatorEmail={currentOperation} />
+          <FeedingDetails operationId={operationId} />
         } />
         <Route component={NotFound} />
       </Switch>
       
-      {/* Special route for invitation acceptance - doesn't require authentication */}
-      <Switch>
-        <Route path="/accept-invitation" component={AcceptInvitation} />
-        <Route path="*" component={() => null} />
-      </Switch>
       
       <BottomNav currentOperation={currentOperation} />
     </div>

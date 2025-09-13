@@ -6,7 +6,7 @@ export function useUpdatePenWeight() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ penId, newWeight, operatorEmail }: UpdateWeightRequest) => {
+    mutationFn: async ({ penId, newWeight, operatorEmail, operationId }: UpdateWeightRequest & { operationId: number }) => {
       const res = await apiRequest("PATCH", `/api/pens/${penId}/weight`, {
         newWeight,
         operatorEmail
@@ -15,8 +15,8 @@ export function useUpdatePenWeight() {
     },
     onSuccess: (data: Pen, variables) => {
       // Invalidate and refetch pen data
-      queryClient.invalidateQueries({ queryKey: ["/api/pens", variables.operatorEmail] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", variables.operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pens", variables.operationId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", variables.operationId] });
     },
   });
 }

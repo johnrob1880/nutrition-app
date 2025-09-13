@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../db/connection';
-import { sql, eq, and, desc } from 'drizzle-orm';
+import { sql, eq, and, or, desc, isNull } from 'drizzle-orm';
 // import { AuthRequest } from './jwtAuth';
 import { consultantProducerRelationships, users, operations, consultantProfiles } from '@shared/schema';
 
@@ -345,7 +345,13 @@ export async function getUserRelationships(userId: number, userType: string) {
       })
       .from(consultantProducerRelationships)
       .innerJoin(users, eq(consultantProducerRelationships.producerId, users.id))
-      .innerJoin(operations, eq(consultantProducerRelationships.operationId, operations.id))
+      .innerJoin(operations, or(
+        eq(consultantProducerRelationships.operationId, operations.id),
+        and(
+          isNull(consultantProducerRelationships.operationId),
+          eq(operations.userId, consultantProducerRelationships.producerId)
+        )
+      ))
       .where(eq(consultantProducerRelationships.consultantId, userId))
       .orderBy(desc(consultantProducerRelationships.establishedAt));
 

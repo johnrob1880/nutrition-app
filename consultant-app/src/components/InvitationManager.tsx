@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Mail, RefreshCw, X, Calendar, User, MessageCircle } from 'lucide-react';
+import { UserPlus, Mail, RefreshCw, X, Calendar, User, MessageCircle, Eye, EyeOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface Invitation {
   id: number;
@@ -37,6 +38,7 @@ export const InvitationManager: React.FC = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [showAcceptedInvitations, setShowAcceptedInvitations] = useState(false);
   const [formData, setFormData] = useState<CreateInvitationData>({
     producerEmail: '',
     producerName: '',
@@ -203,6 +205,14 @@ export const InvitationManager: React.FC = () => {
 
   const isExpired = (expiresAt: string) => new Date() > new Date(expiresAt);
 
+  // Filter invitations based on toggle state
+  const filteredInvitations = showAcceptedInvitations 
+    ? invitations 
+    : invitations.filter(invitation => invitation.status !== 'accepted');
+
+  const acceptedCount = invitations.filter(invitation => invitation.status === 'accepted').length;
+  const totalCount = invitations.length;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -275,6 +285,36 @@ export const InvitationManager: React.FC = () => {
         </Dialog>
       </div>
 
+      {/* Filter Toggle */}
+      {totalCount > 0 && (
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              {showAcceptedInvitations ? (
+                <Eye className="w-4 h-4 text-gray-500" />
+              ) : (
+                <EyeOff className="w-4 h-4 text-gray-500" />
+              )}
+              <Label htmlFor="show-accepted" className="text-sm font-medium">
+                Show accepted invitations
+              </Label>
+            </div>
+            <Switch
+              id="show-accepted"
+              checked={showAcceptedInvitations}
+              onCheckedChange={setShowAcceptedInvitations}
+            />
+          </div>
+          <div className="text-sm text-gray-600">
+            {showAcceptedInvitations ? (
+              <span>Showing all {totalCount} invitations</span>
+            ) : (
+              <span>Showing {filteredInvitations.length} of {totalCount} invitations ({acceptedCount} accepted hidden)</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Invitations List */}
       <Card>
         <CardHeader>
@@ -289,15 +329,24 @@ export const InvitationManager: React.FC = () => {
               <RefreshCw className="w-6 h-6 mx-auto animate-spin text-gray-400" />
               <p className="text-gray-500 mt-2">Loading invitations...</p>
             </div>
-          ) : invitations.length === 0 ? (
+          ) : filteredInvitations.length === 0 ? (
             <div className="text-center py-8">
               <Mail className="w-12 h-12 mx-auto text-gray-400" />
-              <p className="text-gray-500 mt-2">No invitations sent yet</p>
-              <p className="text-sm text-gray-400">Send your first invitation to get started</p>
+              <p className="text-gray-500 mt-2">
+                {totalCount === 0 ? 'No invitations sent yet' : 'No pending invitations'}
+              </p>
+              <p className="text-sm text-gray-400">
+                {totalCount === 0 
+                  ? 'Send your first invitation to get started'
+                  : acceptedCount > 0 
+                    ? `All ${acceptedCount} invitations have been accepted. Toggle "Show accepted invitations" to see them.`
+                    : 'Send your first invitation to get started'
+                }
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {invitations.map((invitation) => (
+              {filteredInvitations.map((invitation) => (
                 <div 
                   key={invitation.id} 
                   className="border rounded-lg p-4 space-y-3"

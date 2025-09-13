@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import sgMail from '@sendgrid/mail';
 import { getDb } from '../db/connection';
 import { emailVerifications, users, consultantProfiles } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull, lt } from 'drizzle-orm';
 
 // Configure SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -152,6 +152,14 @@ export async function verifyEmailToken(token: string): Promise<{ success: boolea
   const db = getDb();
 
   try {
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('\n🔍 EMAIL VERIFICATION DEBUG:');
+      console.log('════════════════════════════');
+      console.log(`📥 Received token: "${token}"`);
+      console.log(`📏 Token length: ${token.length}`);
+    }
+
     // Get all verification tokens to find matching hash
     const verificationTokens = await db
       .select({
@@ -162,12 +170,22 @@ export async function verifyEmailToken(token: string): Promise<{ success: boolea
         verifiedAt: emailVerifications.verifiedAt,
       })
       .from(emailVerifications)
-      .where(eq(emailVerifications.verifiedAt, null)); // Only get unverified tokens
+      .where(isNull(emailVerifications.verifiedAt)); // Only get unverified tokens
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔢 Found ${verificationTokens.length} unverified tokens in database`);
+    }
 
     // Find matching token by comparing hashes
     let matchingToken = null;
-    for (const storedToken of verificationTokens) {
+    for (let i = 0; i < verificationTokens.length; i++) {
+      const storedToken = verificationTokens[i];
       const isValid = await bcrypt.compare(token, storedToken.tokenHash);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔐 Comparing with token ${i + 1}: ${isValid ? '✅ MATCH' : '❌ NO MATCH'}`);
+      }
+      
       if (isValid) {
         matchingToken = storedToken;
         break;
@@ -175,7 +193,16 @@ export async function verifyEmailToken(token: string): Promise<{ success: boolea
     }
 
     if (!matchingToken) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ No matching token found');
+        console.log('════════════════════════════\n');
+      }
       return { success: false, error: 'Invalid verification token' };
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Token matched! User ID: ${matchingToken.userId}`);
+      console.log('════════════════════════════\n');
     }
 
     // Check if token has expired
@@ -188,17 +215,34 @@ export async function verifyEmailToken(token: string): Promise<{ success: boolea
       return { success: false, error: 'Email already verified' };
     }
 
-    // Mark token as verified
-    await db
-      .update(emailVerifications)
-      .set({ verifiedAt: new Date() })
-      .where(eq(emailVerifications.id, matchingToken.id));
+    // Use a transaction to ensure all operations succeed together
+    await db.transaction(async (tx) => {
+      // Mark token as verified
+      await tx
+        .update(emailVerifications)
+        .set({ verifiedAt: new Date() })
+        .where(eq(emailVerifications.id, matchingToken.id));
 
-    // Mark user email as verified
-    await db
-      .update(users)
-      .set({ emailVerified: true })
-      .where(eq(users.id, matchingToken.userId));
+      // Mark user email as verified
+      await tx
+        .update(users)
+        .set({ emailVerified: true })
+        .where(eq(users.id, matchingToken.userId));
+
+      // Get user details to check if consultant profile needs to be created
+      const [user] = await tx
+        .select({
+          id: users.id,
+          userType: users.userType,
+          username: users.username,
+          email: users.email,
+        })
+        .from(users)
+        .where(eq(users.id, matchingToken.userId))
+        .limit(1);
+
+      // Consultant profiles are now created during registration, not email verification
+    });
 
     return { success: true, userId: matchingToken.userId };
   } catch (error) {
@@ -273,8 +317,8 @@ export async function cleanupExpiredVerificationTokens(): Promise<void> {
     await db
       .delete(emailVerifications)
       .where(and(
-        eq(emailVerifications.expiresAt, new Date()),
-        eq(emailVerifications.verifiedAt, null)
+        lt(emailVerifications.expiresAt, new Date()),
+        isNull(emailVerifications.verifiedAt)
       ));
     console.log('Expired verification tokens cleaned up');
   } catch (error) {

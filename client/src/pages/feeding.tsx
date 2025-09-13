@@ -18,28 +18,27 @@ import { apiRequest } from "@/lib/queryClient";
 import type { FeedingPlan, FeedingSchedule, InsertFeedingRecord, ActualIngredient, Operation, Pen } from "@shared/schema";
 
 interface FeedingProps {
-  operatorEmail: string;
+  operationId: number | null;
 }
 
-export default function Feeding({ operatorEmail }: FeedingProps) {
+export default function Feeding({ operationId }: FeedingProps) {
   const { penId, scheduleId } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Get operation data to access operation ID
-  const { data: operation } = useQuery<Operation>({
-    queryKey: ["/api/operation", operatorEmail],
-  });
+  const operatorEmail = localStorage.getItem("operatorEmail") || "";
 
   // Get feeding plans to find the specific schedule
   const { data: feedingPlans, isLoading } = useQuery<FeedingPlan[]>({
-    queryKey: ["/api/schedules", operatorEmail],
+    queryKey: ["/api/schedules", operationId],
+    enabled: !!operationId,
   });
 
   // Get pen data to calculate total amounts
   const { data: pens } = useQuery<Pen[]>({
-    queryKey: ["/api/pens", operatorEmail],
+    queryKey: ["/api/pens", operationId],
+    enabled: !!operationId,
   });
 
   // Find the specific schedule and pen
@@ -155,7 +154,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
     },
     onSuccess: () => {
       // Invalidate feeding records cache to refresh dashboard
-      queryClient.invalidateQueries({ queryKey: ["/api/feeding-records", operatorEmail] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feeding-records", operationId] });
       toast({
         title: "Feeding Completed",
         description: "Feeding record has been saved successfully.",
@@ -191,7 +190,7 @@ export default function Feeding({ operatorEmail }: FeedingProps) {
     }));
 
     const feedingRecord: InsertFeedingRecord = {
-      operationId: operation.id,
+      operationId: operationId!,
       penId: penId!,
       scheduleId: scheduleId!,
       plannedAmount: currentSchedule.totalAmount,

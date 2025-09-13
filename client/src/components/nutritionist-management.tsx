@@ -11,29 +11,31 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Building2, User, UserCheck, Plus, Mail, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { Nutritionist, AcceptInvitationRequest, StaffMember, InviteStaffForm } from "@shared/schema";
+import type { StaffMember, InviteStaffForm } from "@shared/schema";
 import { inviteStaffSchema } from "@shared/schema";
 import { useUserAuth, hasPermission } from "@/hooks/use-user-auth";
 
 interface NutritionistManagementProps {
   operatorEmail: string;
+  operationId: number;
 }
 
-export default function NutritionistManagement({ operatorEmail }: NutritionistManagementProps) {
+export default function NutritionistManagement({ operatorEmail, operationId }: NutritionistManagementProps) {
   const { toast } = useToast();
   const { role } = useUserAuth();
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  // Fetch nutritionists
-  const { data: nutritionists = [], isLoading } = useQuery<Nutritionist[]>({
-    queryKey: ["/api/nutritionists", operatorEmail],
-    enabled: !!operatorEmail,
+  // Fetch consultants using new system
+  const { data: consultants = [], isLoading } = useQuery({
+    queryKey: ["/api/producer/consultants", operationId],
+    enabled: !!operationId,
+    select: (data: any) => data.relationships || [],
   });
 
   // Fetch staff members
   const { data: staffMembers = [], isLoading: isStaffLoading } = useQuery<StaffMember[]>({
-    queryKey: ["/api/staff", operatorEmail],
-    enabled: !!operatorEmail,
+    queryKey: ["/api/staff", operationId],
+    enabled: !!operationId,
   });
 
   // Staff invitation form
@@ -69,48 +71,6 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
     },
   });
 
-  // Accept invitation mutation
-  const acceptMutation = useMutation({
-    mutationFn: async (nutritionistId: string) => {
-      const requestData: AcceptInvitationRequest = {
-        nutritionistId,
-        operatorEmail,
-      };
-
-      const response = await fetch("/api/nutritionists/accept", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to accept invitation");
-      }
-
-      return response.json();
-    },
-    onSuccess: (updatedNutritionist) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/nutritionists", operatorEmail] });
-      toast({
-        title: "Invitation accepted!",
-        description: `${updatedNutritionist.name} can now manage feed types for your pens.`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error accepting invitation",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleAcceptInvitation = (nutritionistId: string) => {
-    acceptMutation.mutate(nutritionistId);
-  };
 
   if (isLoading || isStaffLoading) {
     return (
@@ -275,65 +235,76 @@ export default function NutritionistManagement({ operatorEmail }: NutritionistMa
           )}
         </div>
       </div>
-      {/* Nutritionists Section */}
+      {/* Consultants Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-4 border-b border-gray-100">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-lg font-semibold flex items-center">
                 <Building2 className="h-5 w-5 mr-2" />
-                Nutritionists
+                Consultants
               </h2>
-              <p className="text-sm text-gray-600">Nutritionist invitations are managed by the external system</p>
+              <p className="text-sm text-gray-600">Professional consultants working with your operation</p>
             </div>
           </div>
         </div>
 
         <div className="p-4">
 
-          {nutritionists.length === 0 ? (
+          {consultants.length === 0 ? (
             <div className="text-center py-8">
               <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No nutritionist invitations yet</p>
+              <p className="text-gray-500 mb-4">No consultants yet</p>
               <p className="text-sm text-gray-400">
-                Nutritionist invitations will appear here when sent by the external system
+                Consultants who invite you will appear here once you accept their invitation
               </p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 w-full min-w-0">
-              {nutritionists.map((nutritionist) => (
-                <Card key={nutritionist.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-blue-100 p-2 rounded-full">
-                        <User className="h-5 w-5 text-blue-600" />
+              {consultants.map((relationship: any) => (
+                <Card key={relationship.id} className="border-l-4 border-l-green-500">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
-                        <CardTitle className="text-base">{nutritionist.name}</CardTitle>
-                        <CardDescription className="flex items-center space-x-2">
-                          <Building2 className="h-4 w-4" />
-                          <span>{nutritionist.company}</span>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-sm">
+                          {relationship.consultant.fullName || relationship.consultant.username}
+                        </CardTitle>
+                        <CardDescription className="text-xs truncate">
+                          {relationship.consultant.email}
                         </CardDescription>
                       </div>
+                      <Badge variant="outline" className="text-xs">
+                        {relationship.consultant.specialization || 'Consultant'}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    {nutritionist.status === 'pending' && (
-                      <div className="flex justify-end">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAcceptInvitation(nutritionist.id)}
-                          disabled={acceptMutation.isPending}
-                          className="h-6 px-2 text-xs"
-                        >
-                          {acceptMutation.isPending ? "Accepting..." : "Accept"}
-                        </Button>
-                      </div>
-                    )}
-                    {nutritionist.status === 'active' && nutritionist.acceptedAt && (
-                      <p className="text-xs text-gray-500">
-                        Accepted {new Date(nutritionist.acceptedAt).toLocaleDateString()}
+                  <CardContent className="pt-0 pb-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Status:</span>
+                      <Badge variant={relationship.status === 'active' ? 'default' : 'secondary'}>
+                        {relationship.status}
+                      </Badge>
+                    </div>
+                    {relationship.establishedAt && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Connected {new Date(relationship.establishedAt).toLocaleDateString()}
                       </p>
+                    )}
+                    {relationship.permissions && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {relationship.permissions.view && (
+                          <Badge variant="outline" className="text-xs">View</Badge>
+                        )}
+                        {relationship.permissions.edit && (
+                          <Badge variant="outline" className="text-xs">Edit</Badge>
+                        )}
+                        {relationship.permissions.admin && (
+                          <Badge variant="outline" className="text-xs">Admin</Badge>
+                        )}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
