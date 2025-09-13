@@ -332,28 +332,6 @@ export const feedingRecords = pgTable("feeding_records", {
 export type FeedingRecord = typeof feedingRecords.$inferSelect;
 export type InsertFeedingRecord = typeof feedingRecords.$inferInsert;
 
-// Feeding plans table
-// @deprecated Use penFeedingPrograms table instead
-export const feedingPlans = pgTable("feeding_plans", {
-  id: serial("id").primaryKey(),
-  penId: integer("pen_id").notNull().references(() => pens.id),
-  name: text("name").notNull(),
-  operatorEmail: text("operator_email").notNull(),
-  ingredients: jsonb("ingredients").notNull(),
-  totalCostPerTon: real("total_cost_per_ton"),
-  proteinContent: real("protein_content"),
-  energyContent: real("energy_content"),
-  dailyFeedAmount: real("daily_feed_amount"),
-  estimatedDailyGain: real("estimated_daily_gain"),
-  feedConversionRatio: real("feed_conversion_ratio"),
-  createdDate: text("created_date").notNull(),
-  lastModified: text("last_modified").notNull(),
-  notes: text("notes"),
-});
-
-// @deprecated Use PenFeedingProgram types instead
-export type FeedingPlan = typeof feedingPlans.$inferSelect;
-export type InsertFeedingPlan = typeof feedingPlans.$inferInsert;
 
 // Cattle sales table
 export const cattleSales = pgTable("cattle_sales", {
@@ -430,26 +408,6 @@ export const partialSales = pgTable("partial_sales", {
 export type PartialSale = typeof partialSales.$inferSelect;
 export type InsertPartialSale = typeof partialSales.$inferInsert;
 
-// Nutritionists table - DEPRECATED: Use consultantProfiles instead
-// Keeping table definition for backward compatibility during migration
-// TODO: Remove after migration to consultantProfiles is complete
-export const nutritionists = pgTable("nutritionists", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  company: text("company"),
-  email: text("email").notNull().unique(),
-  phone: text("phone"),
-  specialties: jsonb("specialties"),
-  operatorEmail: text("operator_email").notNull(),
-  status: text("status", { enum: ["active", "inactive", "pending"] }).notNull().default("pending"),
-  joinedDate: text("joined_date"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// DEPRECATED: Use User with userType='consultant' and ConsultantProfile instead
-export type Nutritionist = typeof nutritionists.$inferSelect;
-// DEPRECATED: Use User with userType='consultant' and ConsultantProfile instead
-export type InsertNutritionist = typeof nutritionists.$inferInsert;
 
 // Invite codes table (for operation invites)
 export const inviteCodes = pgTable("invite_codes", {
@@ -525,7 +483,6 @@ export const pensRelations = relations(pens, ({ one, many }) => ({
     references: [users.id],
   }),
   weightRecords: many(weightRecords),
-  feedingPlans: many(feedingPlans),
   penFeedingPrograms: many(penFeedingPrograms),
   feedingRecordVariances: many(feedingRecordVariances),
   nutritionistTasks: many(nutritionistTasks),
@@ -538,12 +495,6 @@ export const weightRecordsRelations = relations(weightRecords, ({ one }) => ({
   }),
 }));
 
-export const feedingPlansRelations = relations(feedingPlans, ({ one }) => ({
-  pen: one(pens, {
-    fields: [feedingPlans.penId],
-    references: [pens.id],
-  }),
-}));
 
 // Feeding Program Designer Tables
 
@@ -861,10 +812,73 @@ export const nutritionistTasksRelations = relations(nutritionistTasks, ({ one })
   }),
 }));
 
-// Type exports for feeding program designer - moved to lines 669-702
-// Keeping NutritionistTask types here as they were not defined earlier
+// Type exports for feeding program designer
 export type NutritionistTask = typeof nutritionistTasks.$inferSelect;
 export type InsertNutritionistTask = typeof nutritionistTasks.$inferInsert;
+
+// Legacy types - temporarily kept for compatibility during cleanup
+// TODO: Remove these once all references are updated
+export interface FeedingPlan {
+  id: number;
+  penId: number;
+  name: string;
+  operatorEmail: string;
+  ingredients: any;
+  totalCostPerTon?: number;
+  proteinContent?: number;
+  energyContent?: number;
+  dailyFeedAmount?: number;
+  estimatedDailyGain?: number;
+  feedConversionRatio?: number;
+  createdDate: string;
+  lastModified: string;
+  notes?: string;
+}
+
+export interface FeedingPlan2 {
+  id: string;
+  penId: number;
+  penName: string;
+  planName: string;
+  startDate: string;
+  daysToFeed: number;
+  currentDay: number;
+  status: 'Active' | 'Upcoming' | 'Completed';
+  feedType: string;
+  schedules: FeedingSchedule[];
+  operatorEmail: string;
+}
+
+export interface FeedingSchedule {
+  id: string;
+  time: string;
+  totalAmount: string;
+  ingredients: FeedingIngredient[];
+  totalNutrition: {
+    protein: string;
+    fat: string;
+    fiber: string;
+    moisture: string;
+  };
+}
+
+export interface Nutritionist {
+  id: string;
+  name: string;
+  company?: string;
+  email: string;
+  phone?: string;
+  specialties?: any;
+  operatorEmail: string;
+  status: 'active' | 'inactive' | 'pending';
+  joinedDate?: string;
+  createdAt: Date;
+}
+
+export interface AcceptInvitationRequest {
+  nutritionistId: string;
+  operatorEmail: string;
+}
 
 // Zod schemas for feeding program designer
 export const insertFeedingIngredientSchema = createInsertSchema(feedingIngredients);
@@ -944,34 +958,6 @@ export interface UpdateWeightRequest {
 //   };
 // }
 
-// @deprecated Use PenFeedingProgram type instead
-export interface FeedingPlan2 {
-  id: string;
-  penId: number;
-  penName: string;
-  planName: string;
-  startDate: string;
-  daysToFeed: number;
-  currentDay: number;
-  status: 'Active' | 'Upcoming' | 'Completed';
-  feedType: string;
-  schedules: FeedingSchedule[];
-  operatorEmail: string;
-}
-
-// @deprecated Use PenFeedingProgramPhase type instead
-export interface FeedingSchedule {
-  id: string;
-  time: string;
-  totalAmount: string;
-  ingredients: FeedingIngredient[];
-  totalNutrition: {
-    protein: string;  
-    fat: string;
-    fiber: string;
-    moisture: string;
-  };
-}
 
 export interface UpcomingScheduleChange {
   id: string;
@@ -1074,11 +1060,6 @@ export interface ActualIngredient {
 //   acceptedAt?: string;
 // }
 
-// DEPRECATED: This interface is no longer used - consultant invitations are handled via consultantProducerInvitations
-export interface AcceptInvitationRequest {
-  nutritionistId: string;
-  operatorEmail: string;
-}
 
 // Death Loss Records
 // export interface DeathLoss {

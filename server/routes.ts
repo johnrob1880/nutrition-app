@@ -471,20 +471,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get feeding plans for operation
-  app.get("/api/schedules/:operationId", async (req, res) => {
-    try {
-      const operationId = Number(req.params.operationId);
-      if (isNaN(operationId)) {
-        return res.status(400).json({ message: "Invalid operation ID" });
-      }
-      const feedingPlans = await storage.getFeedingPlansByOperationId(operationId);
-      res.json(feedingPlans);
-    } catch (error) {
-      console.error("Failed to get feeding plans:", error);
-      res.status(500).json({ message: "Failed to get feeding plans" });
-    }
-  });
 
   // Get upcoming schedule changes
   app.get("/api/upcoming-changes/:operationId", async (req, res) => {
@@ -631,33 +617,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Nutritionist routes
-  app.get("/api/nutritionists/:operationId", async (req, res) => {
-    try {
-      const operationId = Number(req.params.operationId);
-      if (isNaN(operationId)) {
-        return res.status(400).json({ message: "Invalid operation ID" });
-      }
-      const nutritionists = await storage.getNutritionistsByOperationId(operationId);
-      res.json(nutritionists);
-    } catch (error) {
-      console.error("Error fetching nutritionists:", error);
-      res.status(500).json({ message: "Failed to fetch nutritionists" });
-    }
-  });
-
-  app.post("/api/nutritionists/accept", async (req, res) => {
-    try {
-      const nutritionist = await storage.acceptNutritionistInvitation(req.body);
-      if (!nutritionist) {
-        return res.status(404).json({ message: "Nutritionist invitation not found or access denied" });
-      }
-      res.json(nutritionist);
-    } catch (error) {
-      console.error("Error accepting nutritionist invitation:", error);
-      res.status(500).json({ message: "Failed to accept invitation" });
-    }
-  });
 
   // Death Loss endpoints
   app.post("/api/death-loss", async (req, res) => {

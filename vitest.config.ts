@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom', // Default to jsdom since more tests need it
     setupFiles: './server/test/setup.ts',
     pool: 'threads',
     poolOptions: {

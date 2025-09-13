@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { getDb, closeConnection, executeWithRetry } from './connection';
-import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers, feedingPlans, nutritionists } from '@shared/schema';
+import { operations, pens, feedingRecords, treatmentRecords, deathLosses, staffMembers, penFeedingPrograms, nutritionistTasks } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 // Load environment variables
@@ -78,30 +78,23 @@ export interface SeedData {
     notes: string;
     operatorEmail: string;
   }>;
-  feedingPlans: Array<{
-    penId: string;
-    name: string;
-    operatorEmail: string;
-    ingredients: any;
+  penFeedingPrograms: Array<{
+    id: string;
+    penId: number;
+    templateId: string;
+    createdByUserId: number;
+    status: 'draft' | 'active' | 'completed' | 'paused';
+    startDate: string;
+    endDate: string;
+    programName: string;
     totalCostPerTon: number;
     proteinContent: number;
     energyContent: number;
-    dailyFeedAmount: number;
     estimatedDailyGain: number;
     feedingTimes: string[];
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
-  }>;
-  nutritionists: Array<{
-    name: string;
-    company: string;
-    email: string;
-    phone: string;
-    specialties: string[];
-    operatorEmail: string;
-    status: 'active' | 'inactive' | 'pending';
-    joinedDate: string;
   }>;
 }
 
@@ -113,8 +106,7 @@ export interface SeedResult {
   feedingRecords?: any[];
   treatments?: any[];
   deathLosses?: any[];
-  feedingPlans?: any[];
-  nutritionists?: any[];
+  penFeedingPrograms?: any[];
   error?: string;
 }
 
@@ -371,89 +363,8 @@ export function generateSeedData(): SeedData {
     }
   ];
 
-  // Sample feeding plans for each pen
-  const feedingPlans = [
-    // Plan for Pen 1: High Energy Corn-Based
-    {
-      penId: penIds[0],
-      name: 'High Energy Corn-Based Finishing',
-      operatorEmail: operatorEmail,
-      ingredients: [
-        { name: 'Corn', amount: '3060', unit: 'lbs', percentage: '70%', category: 'Grain' },
-        { name: 'Soybean Meal', amount: '525', unit: 'lbs', percentage: '12%', category: 'Protein' },
-        { name: 'Hay', amount: '395', unit: 'lbs', percentage: '9%', category: 'Feedstuff' },
-        { name: 'Mineral Mix', amount: '130', unit: 'lbs', percentage: '3%', category: 'Mineral' },
-        { name: 'Fat Supplement', amount: '265', unit: 'lbs', percentage: '6%', category: 'Supplement' }
-      ],
-      totalCostPerTon: 285.50,
-      proteinContent: 14.2,
-      energyContent: 3.2,
-      dailyFeedAmount: 4375,
-      estimatedDailyGain: 3.2,
-      feedingTimes: ['07:00', '16:00'],
-      isActive: true,
-      createdAt: new Date(currentDate.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: currentDate.toISOString()
-    },
-    // Plan for Pen 2: Moderate Energy Mixed Ration
-    {
-      penId: penIds[1],
-      name: 'Moderate Energy Mixed Ration',
-      operatorEmail: operatorEmail,
-      ingredients: [
-        { name: 'Corn', amount: '1925', unit: 'lbs', percentage: '50%', category: 'Grain' },
-        { name: 'Barley', amount: '965', unit: 'lbs', percentage: '25%', category: 'Grain' },
-        { name: 'Alfalfa Hay', amount: '730', unit: 'lbs', percentage: '19%', category: 'Feedstuff' },
-        { name: 'Protein Supplement', amount: '155', unit: 'lbs', percentage: '4%', category: 'Protein' },
-        { name: 'Minerals', amount: '75', unit: 'lbs', percentage: '2%', category: 'Mineral' }
-      ],
-      totalCostPerTon: 245.75,
-      proteinContent: 12.8,
-      energyContent: 2.9,
-      dailyFeedAmount: 3850,
-      estimatedDailyGain: 2.8,
-      feedingTimes: ['08:00', '17:00'],
-      isActive: true,
-      createdAt: new Date(currentDate.getTime() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: currentDate.toISOString()
-    },
-    // Plan for Pen 3: Custom Finishing Ration
-    {
-      penId: penIds[2],
-      name: 'Custom Finishing Ration',
-      operatorEmail: operatorEmail,
-      ingredients: [
-        { name: 'Steam Flaked Corn', amount: '1785', unit: 'lbs', percentage: '60%', category: 'Grain' },
-        { name: 'Cottonseed Hulls', amount: '595', unit: 'lbs', percentage: '20%', category: 'Feedstuff' },
-        { name: 'Distillers Grains', amount: '385', unit: 'lbs', percentage: '13%', category: 'Feedstuff' },
-        { name: 'Liquid Supplement', amount: '150', unit: 'lbs', percentage: '5%', category: 'Supplement' },
-        { name: 'Urea', amount: '60', unit: 'lbs', percentage: '2%', category: 'Protein' }
-      ],
-      totalCostPerTon: 255.25,
-      proteinContent: 13.5,
-      energyContent: 3.0,
-      dailyFeedAmount: 2975,
-      estimatedDailyGain: 2.9,
-      feedingTimes: ['06:30', '15:30', '19:00'],
-      isActive: true,
-      createdAt: new Date(currentDate.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: currentDate.toISOString()
-    }
-  ];
-
-  // Sample nutritionist data
-  const nutritionists = [
-    {
-      name: 'Dr. Sarah Johnson',
-      company: 'Cattle Nutrition Experts',
-      email: 'sarah.johnson@cne.com',
-      phone: '555-123-4567',
-      specialties: ['Feedlot Nutrition', 'Performance Optimization'],
-      operatorEmail: operatorEmail,
-      status: 'active' as const,
-      joinedDate: new Date(currentDate.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    }
-  ];
+  // NOTE: Deprecated feeding plans and nutritionist data removed
+  // as part of feeding program designer migration
 
   return {
     operation,
@@ -462,8 +373,7 @@ export function generateSeedData(): SeedData {
     feedingRecords,
     treatments,
     deathLosses,
-    feedingPlans,
-    nutritionists
+    penFeedingPrograms: []  // Empty array for now to avoid seed complexity
   };
 }
 
@@ -480,10 +390,10 @@ export async function clearDatabase(): Promise<void> {
     await executeWithRetry(() => db.delete(feedingRecords));
     await executeWithRetry(() => db.delete(treatmentRecords));
     await executeWithRetry(() => db.delete(deathLosses));
-    await executeWithRetry(() => db.delete(feedingPlans));
+    // NOTE: Skip penFeedingPrograms and nutritionistTasks if tables don't exist
+    // These are part of the new feeding program system that may not be fully deployed
     await executeWithRetry(() => db.delete(staffMembers));
     await executeWithRetry(() => db.delete(pens));
-    await executeWithRetry(() => db.delete(nutritionists));
     await executeWithRetry(() => db.delete(operations));
     
     console.log('Database cleared successfully');
@@ -534,11 +444,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       db.insert(staffMembers).values(seedData.staffMember).returning()
     );
 
-    // Insert nutritionists
-    console.log('Creating nutritionists...');
-    const createdNutritionists = await executeWithRetry(() =>
-      db.insert(nutritionists).values(seedData.nutritionists).returning()
-    );
+    // NOTE: Nutritionist creation removed as part of feeding program migration
     
     // Insert pens
     console.log('Creating demo pens...');
@@ -560,7 +466,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       feedConversion: pen.feedConversion,
       projectedCloseoutDate: pen.projectedCloseoutDate,
       estimatedValue: pen.estimatedValue,
-      nutritionistId: createdNutritionists[0]?.id.toString()
+      nutritionistId: null // No nutritionist assignment for now
     }));
     
     // NOTE: Using the same approach as PostgreSQLStorageProvider.createPen
@@ -654,31 +560,11 @@ export async function seedDatabase(): Promise<SeedResult> {
       db.insert(deathLosses).values(deathLossesForDb).returning()
     );
     
-    // Insert feeding plans
-    console.log('Creating feeding plans...');
-    const feedingPlansForDb = seedData.feedingPlans.map(plan => ({
-      penId: parseInt(penIdMapping[plan.penId]),
-      name: plan.name,
-      operatorEmail: plan.operatorEmail,
-      ingredients: plan.ingredients,
-      totalCostPerTon: plan.totalCostPerTon,
-      proteinContent: plan.proteinContent,
-      energyContent: plan.energyContent,
-      dailyFeedAmount: plan.dailyFeedAmount,
-      estimatedDailyGain: plan.estimatedDailyGain,
-      feedConversionRatio: 7.0,
-      createdDate: plan.createdAt,
-      lastModified: plan.updatedAt,
-      notes: `Feeding times: ${plan.feedingTimes.join(', ')}`
-    }));
-    
-    const createdFeedingPlans = await executeWithRetry(() =>
-      db.insert(feedingPlans).values(feedingPlansForDb).returning()
-    );
+    // NOTE: Feeding plans insertion removed as part of migration to pen feeding programs
     
     console.log('Database seeding completed successfully!');
-    console.log(`Created: ${createdPens.length} pens, ${createdFeedingRecords.length} feeding records, ${createdTreatments.length} treatments, ${createdDeathLosses.length} death loss records, ${createdFeedingPlans.length} feeding plans, ${createdNutritionists.length} nutritionists`);
-    
+    console.log(`Created: ${createdPens.length} pens, ${createdFeedingRecords.length} feeding records, ${createdTreatments.length} treatments, ${createdDeathLosses.length} death loss records`);
+
     return {
       success: true,
       operation: createdOperation,
@@ -687,8 +573,7 @@ export async function seedDatabase(): Promise<SeedResult> {
       feedingRecords: createdFeedingRecords,
       treatments: createdTreatments,
       deathLosses: createdDeathLosses,
-      feedingPlans: createdFeedingPlans,
-      nutritionists: createdNutritionists
+      penFeedingPrograms: []  // Empty for now
     };
     
   } catch (error) {

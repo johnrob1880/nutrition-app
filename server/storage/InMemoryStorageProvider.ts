@@ -1,22 +1,19 @@
-import type { 
-  Operation, 
-  InsertOperation, 
-  Pen, 
-  CreatePenRequest, 
-  FeedingPlan, 
-  FeedingSchedule, 
-  DashboardStats, 
-  FeedingIngredient, 
-  UpdateWeightRequest, 
-  WeightRecord, 
-  UpcomingScheduleChange, 
-  FeedingRecord, 
-  InsertFeedingRecord, 
-  CattleSale, 
-  InsertCattleSale, 
-  Nutritionist, 
-  AcceptInvitationRequest, 
-  DeathLoss, 
+import type {
+  Operation,
+  InsertOperation,
+  Pen,
+  CreatePenRequest,
+  FeedingSchedule,
+  DashboardStats,
+  FeedingIngredient,
+  UpdateWeightRequest,
+  WeightRecord,
+  UpcomingScheduleChange,
+  FeedingRecord,
+  InsertFeedingRecord,
+  CattleSale,
+  InsertCattleSale,
+  DeathLoss,
   InsertDeathLoss, 
   TreatmentRecord, 
   InsertTreatmentRecord, 
@@ -454,10 +451,6 @@ export class InMemoryStorageProvider implements IStorageProvider {
       .filter(nutritionist => nutritionist.operatorEmail === operatorEmail);
   }
 
-  async acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined> {
-    // Implementation would handle accepting nutritionist invitations
-    return undefined;
-  }
 
   // Health Tracking - Death Loss
   async recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss> {

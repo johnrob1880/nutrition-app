@@ -1,23 +1,20 @@
-import type { 
-  Operation, 
-  InsertOperation, 
-  Pen, 
-  CreatePenRequest, 
-  FeedingPlan, 
-  DashboardStats, 
-  UpdateWeightRequest, 
-  UpcomingScheduleChange, 
-  FeedingRecord, 
-  InsertFeedingRecord, 
-  CattleSale, 
-  InsertCattleSale, 
-  Nutritionist, 
-  AcceptInvitationRequest, 
-  DeathLoss, 
-  InsertDeathLoss, 
-  TreatmentRecord, 
-  InsertTreatmentRecord, 
-  PartialSale, 
+import type {
+  Operation,
+  InsertOperation,
+  Pen,
+  CreatePenRequest,
+  DashboardStats,
+  UpdateWeightRequest,
+  UpcomingScheduleChange,
+  FeedingRecord,
+  InsertFeedingRecord,
+  CattleSale,
+  InsertCattleSale,
+  DeathLoss,
+  InsertDeathLoss,
+  TreatmentRecord,
+  InsertTreatmentRecord,
+  PartialSale,
   InsertPartialSale, 
   StaffMember, 
   InsertStaffMember, 
@@ -53,7 +50,6 @@ export interface IStorageProvider {
   getFeedingRecordsByOperationId(operationId: number): Promise<FeedingRecord[]>;
   /** @deprecated Use getFeedingPlansByOperationId instead */
   getFeedingPlansByOperatorEmail(operatorEmail: string): Promise<FeedingPlan[]>;
-  getFeedingPlansByOperationId(operationId: number): Promise<FeedingPlan[]>;
   /** @deprecated Use getUpcomingScheduleChangesByOperationId instead */
   getUpcomingScheduleChanges(operatorEmail: string): Promise<UpcomingScheduleChange[]>;
   getUpcomingScheduleChangesByOperationId(operationId: number): Promise<UpcomingScheduleChange[]>;
@@ -69,11 +65,6 @@ export interface IStorageProvider {
   getCattleSalesByOperatorEmail(operatorEmail: string): Promise<CattleSale[]>;
   getCattleSalesByOperationId(operationId: number): Promise<CattleSale[]>;
 
-  // Nutritionist Management
-  /** @deprecated Use getNutritionistsByOperationId instead */
-  getNutritionistsByOperatorEmail(operatorEmail: string): Promise<Nutritionist[]>;
-  getNutritionistsByOperationId(operationId: number): Promise<Nutritionist[]>;
-  acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined>;
 
   // Health Tracking - Death Loss
   recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss>;

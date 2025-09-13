@@ -7,7 +7,6 @@ import type {
   InsertOperation,
   Pen,
   CreatePenRequest,
-  FeedingPlan,
   DashboardStats,
   UpdateWeightRequest,
   UpcomingScheduleChange,
@@ -15,8 +14,6 @@ import type {
   InsertFeedingRecord,
   CattleSale,
   InsertCattleSale,
-  Nutritionist,
-  AcceptInvitationRequest,
   DeathLoss,
   InsertDeathLoss,
   TreatmentRecord,
@@ -428,58 +425,7 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
     });
   }
 
-  // New operation ID-based nutritionist method
-  async getNutritionistsByOperationId(operationId: number): Promise<Nutritionist[]> {
-    return this.executeWithRetry(async () => {
-      // Get consultants associated with this operation through relationships
-      const results = await this.db
-        .select({
-          consultantUserId: schema.consultantProducerRelationships.consultantId,
-          relationshipStatus: schema.consultantProducerRelationships.status,
-          relationshipCreatedAt: schema.consultantProducerRelationships.createdAt,
-          // Consultant profile data
-          fullName: schema.consultantProfiles.fullName,
-          company: schema.consultantProfiles.company,
-          phone: schema.consultantProfiles.phone,
-          specialization: schema.consultantProfiles.specialization,
-          credentials: schema.consultantProfiles.credentials,
-          // User data
-          email: schema.users.email,
-          userCreatedAt: schema.users.createdAt,
-          // Operation data
-          operatorEmail: schema.operations.operatorEmail
-        })
-        .from(schema.consultantProducerRelationships)
-        .innerJoin(schema.users, eq(schema.users.id, schema.consultantProducerRelationships.consultantId))
-        .innerJoin(schema.consultantProfiles, eq(schema.consultantProfiles.userId, schema.consultantProducerRelationships.consultantId))
-        .innerJoin(schema.operations, eq(schema.operations.id, schema.consultantProducerRelationships.operationId))
-        .where(
-          and(
-            eq(schema.consultantProducerRelationships.operationId, operationId),
-            eq(schema.consultantProducerRelationships.status, 'active')
-          )
-        );
-      
-      return results.map(consultant => ({
-        id: consultant.consultantUserId,
-        name: consultant.fullName,
-        company: consultant.company || '',
-        email: consultant.email,
-        phone: consultant.phone || '',
-        specialties: [consultant.specialization || ''], // Convert single specialization to array for compatibility
-        operatorEmail: consultant.operatorEmail,
-        status: 'active' as const,
-        joinedDate: consultant.relationshipCreatedAt?.toISOString().split('T')[0] || '',
-        createdAt: consultant.userCreatedAt
-      })) as Nutritionist[];
-    });
-  }
 
-  async acceptNutritionistInvitation(request: AcceptInvitationRequest): Promise<Nutritionist | undefined> {
-    // Implementation would handle nutritionist invitation acceptance
-    // For now, return undefined as this feature is not fully implemented
-    return undefined;
-  }
 
   // Health Tracking - Death Loss
   async recordDeathLoss(record: InsertDeathLoss): Promise<DeathLoss> {
@@ -734,41 +680,6 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
     });
   }
 
-  async getFeedingPlansByOperationId(operationId: number): Promise<FeedingPlan[]> {
-    return this.executeWithRetry(async () => {
-      const results = await this.db
-        .select({
-          id: schema.feedingPlans.id,
-          penId: schema.feedingPlans.penId,
-          name: schema.feedingPlans.name,
-          operatorEmail: schema.feedingPlans.operatorEmail,
-          ingredients: schema.feedingPlans.ingredients,
-          totalCostPerTon: schema.feedingPlans.totalCostPerTon,
-          proteinContent: schema.feedingPlans.proteinContent,
-          energyContent: schema.feedingPlans.energyContent,
-          dailyFeedAmount: schema.feedingPlans.dailyFeedAmount,
-          estimatedDailyGain: schema.feedingPlans.estimatedDailyGain,
-          feedConversionRatio: schema.feedingPlans.feedConversionRatio,
-          createdDate: schema.feedingPlans.createdDate,
-          lastModified: schema.feedingPlans.lastModified,
-          notes: schema.feedingPlans.notes,
-        })
-        .from(schema.feedingPlans)
-        .innerJoin(schema.pens, eq(schema.pens.id, schema.feedingPlans.penId))
-        .where(eq(schema.pens.operationId, operationId));
-      
-      return results.map(plan => ({
-        ...plan,
-        totalCostPerTon: plan.totalCostPerTon ?? null,
-        proteinContent: plan.proteinContent ?? null,
-        energyContent: plan.energyContent ?? null,
-        dailyFeedAmount: plan.dailyFeedAmount ?? null,
-        estimatedDailyGain: plan.estimatedDailyGain ?? null,
-        feedConversionRatio: plan.feedConversionRatio ?? null,
-        notes: plan.notes ?? null,
-      }));
-    });
-  }
 
   async getUpcomingScheduleChangesByOperationId(operationId: number): Promise<UpcomingScheduleChange[]> {
     return this.executeWithRetry(async () => {
@@ -783,11 +694,11 @@ export class PostgreSQLStorageProvider implements IStorageProvider {
     return this.executeWithRetry(async () => {
       const pens = await this.getPensByOperationId(operationId);
       const staffMembers = await this.getStaffMembersByOperationId(operationId);
-      const feedingPlans = await this.getFeedingPlansByOperationId(operationId);
+      // Note: Feeding plans are now managed through the new pen feeding programs system
       
       const totalCattle = pens.reduce((sum, pen) => sum + (pen.current || 0), 0);
       const totalPens = pens.length;
-      const activeSchedules = feedingPlans.length; // No status field in schema, count all plans
+      const activeSchedules = 0; // TODO: Count active pen feeding programs when needed
       const staffCount = staffMembers.filter(member => member.status === 'active').length;
       
       return {
